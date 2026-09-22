@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ApiError } from '@/api/client';
 import {
   getArticle,
   getStructure,
   markRead,
+  requestAiSummary,
   searchLibrary,
   toggleBookmark,
   type LibraryArticleContent,
   type LibraryArticleRef,
   type LibraryCategory,
 } from '@/api/library';
+import { createNote, getNotes, updateNote, type NotebookNote } from '@/api/notebook';
 import { MEDIA_CDN } from '@/lib/env';
 import { safeRichHtml } from '@/lib/sanitize';
 import { LIBRARY_SOURCES } from '@/lib/nav';
@@ -108,6 +111,18 @@ export default function LibraryPage() {
   const [lbSrc, setLbSrc] = useState<string | null>(null);
   const [lbZoom, setLbZoom] = useState(1);
 
+  const [nbOpen, setNbOpen] = useState(false);
+  const [notes, setNotes] = useState<NotebookNote[]>([]);
+  const [noteId, setNoteId] = useState<number | null>(null);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteSearch, setNoteSearch] = useState('');
+  const [nbWidth, setNbWidth] = useState(420);
+
+  const [aiContent, setAiContent] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const nbedRef = useRef<HTMLDivElement>(null);
+
   const articleRef = useRef<HTMLDivElement>(null);
   const iaMarksRef = useRef<HTMLElement[]>([]);
   const iaIdxRef = useRef(0);
@@ -164,6 +179,158 @@ export default function LibraryPage() {
     onToast: showToast,
     onToggleSidebar: () => setSidebarOpen((v) => !v),
   });
+
+  // ── Notebook ───────────────────────────────────────────────────────────────
+  const loadNotes = useCallback(async () => {
+    try {
+      const d = await getNotes();
+      setNotes(Array.isArray(d) ? d : []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const openNote = useCallback(
+    (id: number) => {
+      const n = notes.find((x) => x.id === id);
+      if (!n) return;
+      setNoteId(id);
+      setNoteTitle(n.title || 'Untitled');
+      if (nbedRef.current) nbedRef.current.innerHTML = safeRichHtml(n.content || '<p><br/></p>');
+    },
+    [notes],
+  );
+
+  const addNote = useCallback(async () => {
+    try {
+      const d = await createNote({ title: 'Untitled', content: '' });
+      setNotes((prev) => [...prev, d]);
+      setNoteId(d.id);
+      setNoteTitle(d.title || 'Untitled');
+      if (nbedRef.current) nbedRef.current.innerHTML = '';
+      showToast('Note created');
+    } catch {
+      showToast('Create failed', true);
+    }
+  }, [showToast]);
+
+  const saveNote = useCallback(async () => {
+    if (!noteId) {
+      showToast('Select a note first', true);
+      return;
+    }
+    const title = noteTitle || 'Untitled';
+    const content = safeRichHtml(nbedRef.current?.innerHTML || '');
+    if (nbedRef.current) nbedRef.current.innerHTML = content;
+    try {
+      await updateNote(noteId, { title, content });
+      setNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, title, content } : n)));
+      showToast('Saved ✓');
+    } catch {
+      showToast('Save failed', true);
+    }
+  }, [noteId, noteTitle, showToast]);
+
+  const insertArticleRef = useCallback(() => {
+    if (!articleId) {
+      showToast('No article open', true);
+      return;
+    }
+    const ed = nbedRef.current;
+    if (!ed) return;
+    ed.focus();
+    const link = document.createElement('a');
+    link.href = '#';
+    link.dataset.libraryArticleId = String(articleId);
+    link.dataset.libraryArticleTitle = String(articleTitle || 'Article');
+    link.style.cssText = 'color:var(--mp);font-weight:500;text-decoration:underline';
+    link.textContent = '📖 ' + String(articleTitle || 'Article');
+    document.execCommand('insertHTML', false, link.outerHTML + '<br/>');
+    showToast('Article reference inserted');
+  }, [articleId, articleTitle, showToast]);
+
+  const execFormat = useCallback((cmd: string, val?: string) => {
+    nbedRef.current?.focus();
+    document.execCommand(cmd, false, val);
+  }, []);
+
+  const exportPdf = useCallback(() => {
+    const title = noteTitle || 'Note';
+    const safeTitle = title
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const content = safeRichHtml(nbedRef.current?.innerHTML || '');
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(
+      `<!DOCTYPE html><html><head><title>${safeTitle}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Inter,sans-serif;padding:48px;max-width:800px;margin:auto;line-height:1.7;color:#1f2937}h1{font-size:24px;font-weight:700;margin-bottom:20px}a{color:#FF4500}</style></head><body><h1>${safeTitle}</h1>${content}</body></html>`,
+    );
+    w.document.close();
+    w.print();
+  }, [noteTitle]);
+
+  const toggleNotebook = useCallback(() => {
+    setNbOpen((v) => {
+      const next = !v;
+      if (next) void loadNotes();
+      return next;
+    });
+  }, [loadNotes]);
+
+  const filteredNotes = useMemo(
+    () =>
+      notes.filter((n) =>
+        (n.title || 'Untitled').toLowerCase().includes(noteSearch.toLowerCase()),
+      ),
+    [notes, noteSearch],
+  );
+
+  // Notebook drawer resize handle.
+  useEffect(() => {
+    const rz = document.getElementById('nbrz');
+    if (!rz) return;
+    let resizing = false;
+    let startX = 0;
+    let startW = 0;
+    const onDown = (e: MouseEvent) => {
+      resizing = true;
+      startX = e.clientX;
+      startW = document.getElementById('nbdr')?.offsetWidth ?? 420;
+      e.preventDefault();
+    };
+    const onMove = (e: MouseEvent) => {
+      if (!resizing) return;
+      const w = Math.max(320, Math.min(700, startW + (startX - e.clientX)));
+      setNbWidth(w);
+    };
+    const onUp = () => {
+      resizing = false;
+    };
+    rz.addEventListener('mousedown', onDown);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      rz.removeEventListener('mousedown', onDown);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [nbOpen]);
+
+  // ── AI summary ───────────────────────────────────────────────────────────────
+  const reqAi = useCallback(async () => {
+    if (!articleId) return;
+    setAiLoading(true);
+    try {
+      const d = await requestAiSummary(articleId);
+      setAiContent(d.content || d.summary || '');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'AI failed', true);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [articleId, showToast]);
 
   const sourceLabel = useMemo(
     () => LIBRARY_SOURCES.find((s) => s.id === source)?.label ?? 'USMLE Step 1-3',
@@ -523,6 +690,17 @@ export default function LibraryPage() {
             </span>
           </div>
           <button
+            className={`tb${nbOpen ? ' act' : ''}`}
+            id="tnb"
+            title="Notebook"
+            onClick={toggleNotebook}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+          </button>
+          <button
             className={`tb${dark ? ' act' : ''}`}
             id="tdm"
             title="Toggle Dark Mode"
@@ -691,6 +869,19 @@ export default function LibraryPage() {
                   </svg>
                   {isBookmarked ? 'Bookmarked' : 'Bookmark'}
                 </button>
+                <button
+                  className="abtn"
+                  id="btnai"
+                  onClick={() => void reqAi()}
+                  style={{ display: articleId ? 'flex' : 'none' }}
+                  disabled={aiLoading}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a10 10 0 1 0 10 10" />
+                    <path d="m22 2-10 10" />
+                  </svg>
+                  {aiLoading ? '...' : 'AI Summary'}
+                </button>
               </div>
             </div>
 
@@ -784,6 +975,148 @@ export default function LibraryPage() {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </button>
+        </div>
+      </div>
+
+      {/* AI SUMMARY PANEL */}
+      {aiContent !== null && (
+        <div
+          id="_aip"
+          style={{
+            position: 'fixed',
+            right: 0,
+            top: 52,
+            width: 350,
+            height: 'calc(100vh - 52px)',
+            background: '#fff',
+            borderLeft: '1px solid #e5e7eb',
+            zIndex: 200,
+            padding: 20,
+            overflowY: 'auto',
+            boxShadow: '-4px 0 20px rgba(0,0,0,.09)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--mp)' }}>✨ AI Summary</h3>
+            <button
+              onClick={() => setAiContent(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{aiContent}</div>
+        </div>
+      )}
+
+      {/* NOTEBOOK */}
+      <div
+        id="nbdr"
+        className={nbOpen ? 'open' : ''}
+        style={{ '--nbw': `${nbWidth}px` } as CSSProperties}
+      >
+        <div id="nbrz" />
+        <div id="nbhdr">
+          <h3>📓 Notebook</h3>
+          <button id="nbaibtn" onClick={insertArticleRef} title="Insert current article reference">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+            Insert Article
+          </button>
+          <button id="nbplus" onClick={() => void addNote()}>
+            + Note
+          </button>
+          <button id="nbcl" onClick={() => setNbOpen(false)}>
+            ✕
+          </button>
+        </div>
+        <div id="nbsr">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={noteSearch}
+            onChange={(e) => setNoteSearch(e.target.value)}
+          />
+        </div>
+        <div id="nbbody">
+          <div id="nbtree">
+            {filteredNotes.length === 0 ? (
+              <div style={{ padding: '10px 8px', fontSize: 11, color: '#9ca3af' }}>No notes yet.</div>
+            ) : (
+              filteredNotes.map((n) => (
+                <div
+                  key={n.id}
+                  className={`nbt${noteId === n.id ? ' act' : ''}`}
+                  onClick={() => openNote(n.id)}
+                >
+                  {n.title || 'Untitled'}
+                </div>
+              ))
+            )}
+          </div>
+          <div id="nbew">
+            <input
+              type="text"
+              id="nbti"
+              placeholder="Untitled note..."
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+            />
+            <div id="nbtbar">
+              <button className="nbtl" onClick={() => execFormat('bold')}>
+                <b>B</b>
+              </button>
+              <button className="nbtl" onClick={() => execFormat('italic')}>
+                <i>I</i>
+              </button>
+              <button className="nbtl" onClick={() => execFormat('underline')}>
+                <u>U</u>
+              </button>
+              <button className="nbtl" onClick={() => execFormat('strikeThrough')}>
+                <s>S</s>
+              </button>
+              <button className="nbtl" onClick={() => execFormat('insertOrderedList')}>
+                1.
+              </button>
+              <button className="nbtl" onClick={() => execFormat('insertUnorderedList')}>
+                •
+              </button>
+              <select
+                onChange={(e) => {
+                  execFormat('fontSize', e.currentTarget.value);
+                  e.currentTarget.selectedIndex = 0;
+                }}
+                className="nbtl"
+                style={{ width: 46, padding: '2px 4px' }}
+                defaultValue=""
+              >
+                <option value="">Sz</option>
+                <option value="1">S</option>
+                <option value="3">M</option>
+                <option value="5">L</option>
+                <option value="7">XL</option>
+              </select>
+              <input
+                type="color"
+                onChange={(e) => execFormat('foreColor', e.currentTarget.value)}
+                className="nbtl"
+                style={{ width: 26, height: 24, padding: 0, cursor: 'pointer' }}
+                title="Color"
+              />
+            </div>
+            <div id="nbed" ref={nbedRef} contentEditable suppressContentEditableWarning spellCheck={false} />
+            <div id="nbft">
+              <button id="nbsv" onClick={() => void saveNote()}>
+                💾 Save
+              </button>
+              <button id="nbex" onClick={exportPdf}>
+                📄 PDF
+              </button>
+              <span id="nbsync" />
+            </div>
+          </div>
         </div>
       </div>
 
