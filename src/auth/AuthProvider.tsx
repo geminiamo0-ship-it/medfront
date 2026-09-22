@@ -20,6 +20,8 @@ interface AuthContextValue {
   loading: boolean;
   /** Resolves with the user; throws ApiError on bad credentials. */
   login: (email: string, password: string) => Promise<AuthUser>;
+  /** Persist a token returned by register / verify-otp / reset-password. */
+  acceptToken: (token: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -63,6 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return nextUser;
   }, []);
 
+  const acceptToken = useCallback(
+    async (token: string) => {
+      setToken(token);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const logout = useCallback(async () => {
     try {
       await logoutApi();
@@ -74,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, logout, refresh }),
-    [user, loading, login, logout, refresh],
+    () => ({ user, loading, login, acceptToken, logout, refresh }),
+    [user, loading, login, acceptToken, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

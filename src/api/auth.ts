@@ -45,12 +45,19 @@ export function login(email: string, password: string) {
   return api.post<LoginResult>('/auth/login', { email, password });
 }
 
-export function register(input: {
+export interface RegisterInput {
   name: string;
   email: string;
   password: string;
-  country: string;
-}) {
+  dateOfBirth: string;
+  phoneNumber: string;
+  country?: string;
+  nickname?: string;
+  university?: string;
+  heardAboutUsFrom?: string;
+}
+
+export function register(input: RegisterInput) {
   return api.post<LoginResult>('/auth/register', input);
 }
 
