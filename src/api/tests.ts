@@ -39,3 +39,28 @@ export function getMainBanks(step: number) {
 export function getPerformanceOverview(step: number) {
   return api.get<PerformanceOverview>('/tests/performance/overview', { params: { step } });
 }
+
+export interface QuestionBank {
+  id: number;
+  code: string;
+  step: number;
+  name?: string;
+}
+
+export interface SystemWithTopics {
+  id: number;
+  name: string;
+  topics?: Array<{ id: number; name: string }>;
+}
+
+export function getQuestionBanks() {
+  return api.get<QuestionBank[]>('/tests/metadata/question-banks');
+}
+
+export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {
+  return api.post<SystemWithTopics[]>('/tests/metadata/systems-with-topics', { step, filters });
+}
+
+export function createTest(payload: Record<string, unknown>) {
+  return api.post<{ id: number }>('/tests', payload);
+}

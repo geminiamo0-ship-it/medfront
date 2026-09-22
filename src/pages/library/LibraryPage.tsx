@@ -14,6 +14,7 @@ import {
   type LibraryCategory,
 } from '@/api/library';
 import { createNote, getNotes, updateNote, type NotebookNote } from '@/api/notebook';
+import { createTest, getQuestionBanks, getSystemsWithTopics } from '@/api/tests';
 import { MEDIA_CDN } from '@/lib/env';
 import { safeRichHtml } from '@/lib/sanitize';
 import { LIBRARY_SOURCES } from '@/lib/nav';
@@ -124,6 +125,7 @@ export default function LibraryPage() {
 
   const [aiContent, setAiContent] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [creatingTest, setCreatingTest] = useState(false);
 
   const [highYield] = useState(false);
   const [keyExam, setKeyExam] = useState(false);
@@ -365,7 +367,70 @@ export default function LibraryPage() {
     }
   }, [articleId, showToast]);
 
+  // ── Create topic test (q-bank sources) ───────────────────────────────────────
+  const createTopicTest = useCallback(async () => {
+    const title = articleTitle || 'Article';
+    if (!articleId || !title) return;
+    setCreatingTest(true);
+    try {
+      const banks = await getQuestionBanks();
+      if (!Array.isArray(banks)) throw new Error('Failed to load question banks.');
+
+      const map: Record<string, string> = {
+        pm_library_part_2: 'MRCP_PART_2',
+        passmedicine: 'MRCP_PART_1',
+        pastest_2: 'PASTEST_S5',
+        pastest: 'PASTEST_S4',
+      };
+      const code = map[source.toLowerCase()];
+      const match = code ? banks.find((b) => b.code === code) : undefined;
+      const targetBankId = match?.id ?? null;
+      const targetStep = match?.step ?? 1;
+
+      const filters = targetBankId ? { questionBankIds: [targetBankId] } : {};
+      const systems = await getSystemsWithTopics(targetStep, filters);
+
+      let finalTopicId: number | null = null;
+      if (Array.isArray(systems)) {
+        for (const sys of systems) {
+          const topic = sys.topics?.find(
+            (t) => t.name.toLowerCase().trim() === title.toLowerCase().trim(),
+          );
+          if (topic) {
+            finalTopicId = topic.id;
+            break;
+          }
+        }
+      }
+      if (!finalTopicId) {
+        throw new Error('Could not find matching topic in Q-Bank for: ' + title);
+      }
+
+      const payload: Record<string, unknown> = {
+        title: `${title} Practice`,
+        type: 'tutor',
+        mode: 'unused',
+        step: targetStep,
+        totalQuestions: 40,
+        filters: {
+          topicIds: [finalTopicId],
+          ...(targetBankId ? { questionBankIds: [targetBankId] } : {}),
+        },
+      };
+
+      const testData = await createTest(payload);
+      window.location.href = `/dashboard/test/${testData.id}`;
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : (err as Error).message || 'Test Creation Failed', true);
+    } finally {
+      setCreatingTest(false);
+    }
+  }, [articleId, articleTitle, source, showToast]);
+
   const ambossMode = source === 'amboss';
+  const qbankSource = ['passmedicine', 'pm_library_part_2', 'pastest', 'pastest_2'].includes(
+    source,
+  );
   const articleHtml = useMemo(() => {
     if (!article) return '';
     const raw =
@@ -1198,6 +1263,27 @@ export default function LibraryPage() {
                     <path d="m22 2-10 10" />
                   </svg>
                   {aiLoading ? '...' : 'AI Summary'}
+                </button>
+                <button
+                  className="abtn"
+                  id="btnct"
+                  onClick={() => void createTopicTest()}
+                  style={{
+                    display: articleId && qbankSource ? 'flex' : 'none',
+                    background: 'var(--mp)',
+                    color: '#fff',
+                    borderColor: 'var(--mps)',
+                  }}
+                  disabled={creatingTest}
+                >
+                  <svg style={{ width: 13, height: 13 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  {creatingTest ? 'Creating Test...' : 'Create Test'}
                 </button>
               </div>
             </div>
