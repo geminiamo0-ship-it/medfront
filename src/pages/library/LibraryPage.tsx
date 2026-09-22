@@ -48,19 +48,40 @@ function fixImageUrls(html: string): string {
 }
 
 /**
- * Scroll to an anchor inside a container. Tries #id / [name] / [data-anker].
- * Returns true when the target was found (and scrolled to).
+ * Scroll to an anchor inside a container.
+ * Order: #id / [name] / [data-anker] (excluding cross-ref links, which also
+ * carry data-anker and would otherwise send us to the wrong place), then a
+ * text fallback on the term.
  */
-function scrollToAnchor(container: HTMLElement | null, anchor: string): boolean {
-  if (!container || !anchor) return false;
+function scrollToAnchor(container: HTMLElement | null, anchor: string, term?: string): boolean {
+  if (!container) return false;
   let el: HTMLElement | null = null;
-  try {
-    el = container.querySelector(
-      `#${CSS.escape(anchor)}, [name="${anchor}"], [data-anker="${anchor}"]`,
-    ) as HTMLElement | null;
-  } catch {
-    el = null;
+
+  if (anchor) {
+    const a = anchor.replace(/"/g, '\\"');
+    try {
+      el = container.querySelector(
+        `#${CSS.escape(anchor)}, [name="${a}"], [data-anker="${a}"]:not(a):not(.autolink):not(.dictionary):not(.linksuggest)`,
+      ) as HTMLElement | null;
+    } catch {
+      el = null;
+    }
   }
+
+  if (!el && term) {
+    const t = term.trim().toLowerCase();
+    if (t) {
+      const heads = container.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
+      for (const h of Array.from(heads)) {
+        const txt = (h.textContent || '').trim().toLowerCase();
+        if (txt === t || txt.startsWith(t)) {
+          el = h as HTMLElement;
+          break;
+        }
+      }
+    }
+  }
+
   if (!el) return false;
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const prev = el.style.backgroundColor;
@@ -181,8 +202,11 @@ export default function LibraryPage() {
 
   const popoverTimer = useRef<number | null>(null);
   const splitRef = useRef<HTMLDivElement>(null);
-  const [pendingAnchor, setPendingAnchor] = useState<string | null>(null);
-  const [pendingSplitAnchor, setPendingSplitAnchor] = useState<string | null>(null);
+  const [pendingAnchor, setPendingAnchor] = useState<{ anchor: string; term: string } | null>(null);
+  const [pendingSplitAnchor, setPendingSplitAnchor] = useState<{
+    anchor: string;
+    term: string;
+  } | null>(null);
 
   const nbedRef = useRef<HTMLDivElement>(null);
 
@@ -594,7 +618,7 @@ export default function LibraryPage() {
 
   const openSplitScreen = useCallback(async (targetId: string, title: string, anchor = '') => {
     setPopover(null);
-    setPendingSplitAnchor(anchor || null);
+    setPendingSplitAnchor(anchor ? { anchor, term: title || '' } : null);
     setSplit({ title: title || 'Referenced Article', html: '', loading: true });
     try {
       const art = await getArticle(targetId);
@@ -717,7 +741,7 @@ export default function LibraryPage() {
       setArticleTitle(title || 'Article');
       setArticleLoading(true);
       setArticle(null);
-      setPendingAnchor(anchor || null);
+      setPendingAnchor(anchor ? { anchor, term: title || '' } : null);
       setIaQuery('');
       setIaTotal(0);
       setIaCurrent(0);
@@ -744,9 +768,14 @@ export default function LibraryPage() {
   const goToReference = useCallback(
     (targetId: string, title: string, anchor: string, mode: 'open' | 'split') => {
       setPopover(null);
-      if (anchor && scrollToAnchor(articleRef.current, anchor)) return;
-      if (mode === 'split') void openSplitScreen(targetId, title, anchor);
-      else void openArticle(targetId, title, anchor);
+      // Split always opens the split pane — even when it's the same article.
+      if (mode === 'split') {
+        void openSplitScreen(targetId, title, anchor);
+        return;
+      }
+      // Open: if the target section is already in the current article, just jump.
+      if (scrollToAnchor(articleRef.current, anchor, title)) return;
+      void openArticle(targetId, title, anchor);
     },
     [openArticle, openSplitScreen],
   );
@@ -813,7 +842,7 @@ export default function LibraryPage() {
     let tries = 0;
     let timer = 0;
     const attempt = () => {
-      if (scrollToAnchor(articleRef.current, pendingAnchor)) {
+      if (scrollToAnchor(articleRef.current, pendingAnchor.anchor, pendingAnchor.term)) {
         setPendingAnchor(null);
         return;
       }
@@ -830,7 +859,7 @@ export default function LibraryPage() {
     let tries = 0;
     let timer = 0;
     const attempt = () => {
-      if (scrollToAnchor(splitRef.current, pendingSplitAnchor)) {
+      if (scrollToAnchor(splitRef.current, pendingSplitAnchor.anchor, pendingSplitAnchor.term)) {
         setPendingSplitAnchor(null);
         return;
       }
