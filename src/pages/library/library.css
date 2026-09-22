@@ -907,6 +907,12 @@ mark.msr.cur{background:#fb923c;color:#fff}
   width: 14px !important;
   height: 14px !important;
 }
+/* Learning-tip icon: the imported markup hardcodes 24px — shrink to 16px. */
+.lamp-trigger svg,
+.lamp-content svg {
+  width: 16px !important;
+  height: 16px !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    DARK MODE — .library-root.dark-mode

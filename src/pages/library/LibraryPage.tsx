@@ -451,6 +451,27 @@ export default function LibraryPage() {
     });
   }, []);
 
+  const showTipPopover = useCallback((anchor: HTMLElement, contentHtml: string) => {
+    const rect = anchor.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.bottom + 8;
+    if (left + 360 > window.innerWidth) left = window.innerWidth - 370;
+    if (left < 12) left = 12;
+    if (top + 260 > window.innerHeight) {
+      const alt = rect.top - 268;
+      top = alt > 60 ? alt : 60;
+    }
+    if (top < 60) top = 60;
+    setPopover({
+      title: 'Learning Tip',
+      bodyHtml: safeRichHtml(contentHtml),
+      showFooter: false,
+      targetId: '',
+      left,
+      top,
+    });
+  }, []);
+
   const scheduleClosePopover = useCallback(() => {
     if (popoverTimer.current) window.clearTimeout(popoverTimer.current);
     popoverTimer.current = window.setTimeout(() => setPopover(null), 350);
@@ -516,6 +537,7 @@ export default function LibraryPage() {
     if (ambossMode) {
       setupAmbossInteractions(con, {
         onShowPopover: showPopover,
+        onShowTipPopover: showTipPopover,
         onShowHoverCard: showHoverCard,
         onHideHoverCard: hideHoverCard,
         onOpenImageViewer: openImageViewer,
@@ -532,6 +554,7 @@ export default function LibraryPage() {
     if (!con || !split?.html) return;
     setupAmbossInteractions(con, {
       onShowPopover: showPopover,
+      onShowTipPopover: showTipPopover,
       onShowHoverCard: showHoverCard,
       onHideHoverCard: hideHoverCard,
       onOpenImageViewer: openImageViewer,

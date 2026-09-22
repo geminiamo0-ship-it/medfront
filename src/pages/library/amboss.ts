@@ -98,6 +98,7 @@ export function transformToAmbossCards(html: string): string {
 
 export interface AmbossHandlers {
   onShowPopover: (el: HTMLElement) => void;
+  onShowTipPopover: (anchor: HTMLElement, contentHtml: string) => void;
   onShowHoverCard: (btn: HTMLElement) => void;
   onHideHoverCard: () => void;
   onOpenImageViewer: (imgSrc: string, title: string, desc: string, overlaySrc: string) => void;
@@ -172,20 +173,20 @@ export function setupAmbossInteractions(con: HTMLElement, h: AmbossHandlers): vo
     }
   });
 
-  // 2. Lamp tips
+  // 2. Learning tips → popover (hide the inline content box, show on click)
   con.querySelectorAll<HTMLElement>('.lamp-container').forEach((lamp) => {
     const trigger = (lamp.querySelector('.lamp-trigger') as HTMLElement) || lamp;
     let content = lamp.querySelector<HTMLElement>('.lamp-content');
     if (!content && lamp.nextElementSibling?.classList.contains('lamp-content')) {
       content = lamp.nextElementSibling as HTMLElement;
     }
-    if (content) {
-      trigger.style.cursor = 'pointer';
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        content!.style.display = content!.style.display === 'block' ? 'none' : 'block';
-      });
-    }
+    if (!content) return;
+    content.style.display = 'none';
+    trigger.style.cursor = 'pointer';
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      h.onShowTipPopover(trigger, content!.innerHTML);
+    });
   });
 
   // 3. Medical term popovers
