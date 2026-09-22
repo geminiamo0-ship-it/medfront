@@ -34,6 +34,45 @@ function fixImageUrls(html: string): string {
   );
 }
 
+function clearMarks(con: HTMLElement): void {
+  con.querySelectorAll('mark.msr').forEach((m) => {
+    const t = document.createTextNode(m.textContent || '');
+    m.parentNode?.replaceChild(t, m);
+  });
+}
+
+/** Wrap every regex match in the subtree with <mark class="msr"> (port of hlTxt). */
+function wrapMatches(node: Node, re: RegExp): void {
+  if (node.nodeType === 3) {
+    const value = node.nodeValue || '';
+    re.lastIndex = 0;
+    if (!re.test(value)) {
+      re.lastIndex = 0;
+      return;
+    }
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(value))) {
+      if (match.index > last) frag.appendChild(document.createTextNode(value.slice(last, match.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'msr';
+      mark.textContent = match[0];
+      frag.appendChild(mark);
+      last = match.index + match[0].length;
+      if (match[0].length === 0) re.lastIndex++;
+    }
+    if (last < value.length) frag.appendChild(document.createTextNode(value.slice(last)));
+    node.parentNode?.replaceChild(frag, node);
+  } else if (node.nodeType === 1) {
+    const el = node as HTMLElement;
+    if (!['SCRIPT', 'STYLE', 'MARK'].includes(el.tagName)) {
+      Array.from(node.childNodes).forEach((c) => wrapMatches(c, re));
+    }
+  }
+}
+
 export default function LibraryPage() {
   const [params, setParams] = useSearchParams();
 
@@ -62,13 +101,59 @@ export default function LibraryPage() {
   const [toast, setToast] = useState<{ msg: string; err: boolean } | null>(null);
   const toastTimer = useRef<number | null>(null);
 
+  const [iaQuery, setIaQuery] = useState('');
+  const [iaTotal, setIaTotal] = useState(0);
+  const [iaCurrent, setIaCurrent] = useState(0);
+  const [lbSrc, setLbSrc] = useState<string | null>(null);
+  const [lbZoom, setLbZoom] = useState(1);
+
   const articleRef = useRef<HTMLDivElement>(null);
+  const iaMarksRef = useRef<HTMLElement[]>([]);
+  const iaIdxRef = useRef(0);
 
   const showToast = useCallback((msg: string, err = false) => {
     setToast({ msg: String(msg ?? ''), err });
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 2800);
   }, []);
+
+  const gotoMatch = useCallback((i: number) => {
+    const marks = iaMarksRef.current;
+    if (!marks.length) return;
+    marks[iaIdxRef.current]?.classList.remove('cur');
+    const next = ((i % marks.length) + marks.length) % marks.length;
+    iaIdxRef.current = next;
+    marks[next].classList.add('cur');
+    marks[next].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setIaCurrent(next + 1);
+  }, []);
+
+  const runInArticleSearch = useCallback(
+    (q: string) => {
+      const con = articleRef.current;
+      if (!con) return;
+      clearMarks(con);
+      iaMarksRef.current = [];
+      iaIdxRef.current = 0;
+      if (!q.trim()) {
+        setIaTotal(0);
+        setIaCurrent(0);
+        return;
+      }
+      const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      wrapMatches(con, re);
+      const marks = Array.from(con.querySelectorAll('mark.msr')) as HTMLElement[];
+      iaMarksRef.current = marks;
+      if (!marks.length) {
+        setIaTotal(0);
+        setIaCurrent(0);
+        return;
+      }
+      setIaTotal(marks.length);
+      gotoMatch(0);
+    },
+    [gotoMatch],
+  );
 
   const sourceLabel = useMemo(
     () => LIBRARY_SOURCES.find((s) => s.id === source)?.label ?? 'USMLE Step 1-3',
@@ -113,6 +198,11 @@ export default function LibraryPage() {
       setArticleTitle(title || 'Article');
       setArticleLoading(true);
       setArticle(null);
+      setIaQuery('');
+      setIaTotal(0);
+      setIaCurrent(0);
+      iaMarksRef.current = [];
+      iaIdxRef.current = 0;
       try {
         const art = await getArticle(id);
         setArticle(art);
@@ -159,17 +249,39 @@ export default function LibraryPage() {
     return safeRichHtml(fixImageUrls(raw));
   }, [article]);
 
-  // Attach image handlers + size the annotation canvas after each article render.
+  // Attach image handlers after each article render.
   useEffect(() => {
     const con = articleRef.current;
     if (!con) return;
     con.querySelectorAll('img').forEach((img) => {
       img.style.cursor = 'zoom-in';
+      img.onclick = () => {
+        setLbSrc(img.src);
+        setLbZoom(1);
+      };
       img.onerror = function onerr(this: HTMLImageElement) {
         this.style.display = 'none';
       };
     });
   }, [articleHtml]);
+
+  // Esc closes the lightbox.
+  useEffect(() => {
+    if (!lbSrc) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLbSrc(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lbSrc]);
+
+  const downloadImage = useCallback(() => {
+    if (!lbSrc) return;
+    const a = document.createElement('a');
+    a.href = lbSrc;
+    a.download = 'medpark-image.jpg';
+    a.click();
+  }, [lbSrc]);
 
   // ── Source switch ────────────────────────────────────────────────────────
   const switchSource = useCallback(
@@ -293,7 +405,25 @@ export default function LibraryPage() {
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-            <input type="text" id="ias" placeholder="Search in article..." disabled />
+            <input
+              type="text"
+              id="ias"
+              placeholder="Search in article..."
+              value={iaQuery}
+              onChange={(e) => {
+                setIaQuery(e.target.value);
+                runInArticleSearch(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  gotoMatch(e.shiftKey ? iaIdxRef.current - 1 : iaIdxRef.current + 1);
+                }
+              }}
+            />
+            <span id="iac" style={{ display: iaTotal ? 'inline' : 'none', fontSize: 11, color: '#9ca3af' }}>
+              {iaCurrent}/{iaTotal}
+            </span>
           </div>
           <button
             className={`tb${dark ? ' act' : ''}`}
@@ -501,6 +631,51 @@ export default function LibraryPage() {
             </div>
           </div>
         </main>
+      </div>
+
+      {/* LIGHTBOX */}
+      <div id="lb" className={lbSrc ? 'open' : ''}>
+        <button id="lbcl" onClick={() => setLbSrc(null)}>
+          ✕
+        </button>
+        <img id="lbimg" src={lbSrc ?? ''} alt="" style={{ transform: `scale(${lbZoom})` }} />
+        <div id="lbzl">{Math.round(lbZoom * 100)}%</div>
+        <div id="lbtb">
+          <button
+            className="lbb"
+            onClick={() => setLbZoom((z) => Math.max(0.2, Math.min(6, z - 0.25)))}
+            title="Zoom Out"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
+          </button>
+          <button
+            className="lbb"
+            onClick={() => setLbZoom((z) => Math.max(0.2, Math.min(6, z + 0.25)))}
+            title="Zoom In"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="11" y1="8" x2="11" y2="14" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
+          </button>
+          <button className="lbb" onClick={() => setLbZoom(1)} title="Reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+          <button className="lbb" onClick={downloadImage} title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div id="toast" className={toast ? 'show' : ''} style={toast?.err ? { background: '#ef4444' } : undefined}>
