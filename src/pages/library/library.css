@@ -1315,14 +1315,24 @@ mark.msr.cur{background:#fb923c;color:#fff}
   color: #86efac !important;
 }
 
-/* Inline span colors that might be set by API */
-.library-root.dark-mode #acon span,
-.library-root.dark-mode .amboss-card-body span {
-  color: inherit !important;
-}
+/* Inline span colors that might be set by API.
+   NOTE: we intentionally do NOT force `color: inherit` here — that would wipe
+   the API's coloured spans. Coloured text is preserved in dark mode. */
 /* But preserve special colored spans (wichtig, leitwort etc) */
 .library-root.dark-mode .leitwort { color: #fcd34d !important; font-weight: 700; }
-.library-root.dark-mode .imppact2, .library-root.dark-mode .js-relevance-term { color: #f4f4f5 !important; font-weight: 600; }
+
+/* Key-exam highlights must stay readable in dark mode (dark text on amber). */
+.library-root.dark-mode.show-key-exam .imppact2,
+.library-root.dark-mode.show-key-exam .step-1-imppact2,
+.library-root.dark-mode.show-key-exam .step-2-imppact2,
+.library-root.dark-mode.show-key-exam .usmle-gs-imppact2,
+.library-root.dark-mode.show-key-exam .js-relevance-term,
+.library-root.dark-mode.show-key-exam .high-yield-highlight,
+.library-root.dark-mode.show-key-exam [data-high-yield="true"] {
+  background-color: #fef08a !important;
+  border-bottom: 2px solid #eab308 !important;
+  color: #0f172a !important;
+}
 
 /* p tags */
 .library-root.dark-mode #acon p,

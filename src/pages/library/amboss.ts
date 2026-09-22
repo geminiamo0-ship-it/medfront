@@ -105,7 +105,8 @@ export interface AmbossHandlers {
   onInsertArticleRef: () => void;
 }
 
-/** Strip inline background/color from article HTML so CSS dark mode wins. */
+/** Strip inline backgrounds so CSS dark mode wins. Text colors are KEPT so
+ *  coloured spans (and key-exam highlights) stay visible in dark mode. */
 export function stripInlineStylesForDark(root: HTMLElement | null): void {
   if (!root) return;
   root
@@ -120,18 +121,15 @@ export function stripInlineStylesForDark(root: HTMLElement | null): void {
       if (!h.dataset.origBg && (s.backgroundColor || s.background)) {
         h.dataset.origBg = s.backgroundColor || s.background || '';
       }
-      if (!h.dataset.origClr && s.color) h.dataset.origClr = s.color || '';
       s.removeProperty('background');
       s.removeProperty('background-color');
-      s.removeProperty('color');
     });
 }
 
 export function restoreInlineStyles(root: HTMLElement | null): void {
   if (!root) return;
-  root.querySelectorAll<HTMLElement>('[data-orig-bg], [data-orig-clr]').forEach((el) => {
+  root.querySelectorAll<HTMLElement>('[data-orig-bg]').forEach((el) => {
     if (el.dataset.origBg) el.style.backgroundColor = el.dataset.origBg;
-    if (el.dataset.origClr) el.style.color = el.dataset.origClr;
   });
 }
 export function setupAmbossInteractions(con: HTMLElement, h: AmbossHandlers): void {
