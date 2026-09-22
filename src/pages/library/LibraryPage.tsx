@@ -47,6 +47,31 @@ function fixImageUrls(html: string): string {
   );
 }
 
+/**
+ * Scroll to an anchor inside a container. Tries #id / [name] / [data-anker].
+ * Returns true when the target was found (and scrolled to).
+ */
+function scrollToAnchor(container: HTMLElement | null, anchor: string): boolean {
+  if (!container || !anchor) return false;
+  let el: HTMLElement | null = null;
+  try {
+    el = container.querySelector(
+      `#${CSS.escape(anchor)}, [name="${anchor}"], [data-anker="${anchor}"]`,
+    ) as HTMLElement | null;
+  } catch {
+    el = null;
+  }
+  if (!el) return false;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const prev = el.style.backgroundColor;
+  el.style.transition = 'background-color .3s';
+  el.style.backgroundColor = 'rgba(255,69,0,.25)';
+  window.setTimeout(() => {
+    el!.style.backgroundColor = prev;
+  }, 1200);
+  return true;
+}
+
 function clearMarks(con: HTMLElement): void {
   con.querySelectorAll('mark.msr').forEach((m) => {
     const t = document.createTextNode(m.textContent || '');
@@ -134,6 +159,7 @@ export default function LibraryPage() {
     bodyHtml: string;
     showFooter: boolean;
     targetId: string;
+    anchor: string;
     left: number;
     top: number;
   } | null>(null);
@@ -155,6 +181,8 @@ export default function LibraryPage() {
 
   const popoverTimer = useRef<number | null>(null);
   const splitRef = useRef<HTMLDivElement>(null);
+  const [pendingAnchor, setPendingAnchor] = useState<string | null>(null);
+  const [pendingSplitAnchor, setPendingSplitAnchor] = useState<string | null>(null);
 
   const nbedRef = useRef<HTMLDivElement>(null);
 
@@ -511,6 +539,7 @@ export default function LibraryPage() {
       bodyHtml: safeRichHtml(description),
       showFooter: !!targetId,
       targetId,
+      anchor: el.getAttribute('data-anker') || '',
       left,
       top,
     });
@@ -532,6 +561,7 @@ export default function LibraryPage() {
       bodyHtml: safeRichHtml(contentHtml),
       showFooter: false,
       targetId: '',
+      anchor: '',
       left,
       top,
     });
@@ -562,8 +592,9 @@ export default function LibraryPage() {
     [],
   );
 
-  const openSplitScreen = useCallback(async (targetId: string, title: string) => {
+  const openSplitScreen = useCallback(async (targetId: string, title: string, anchor = '') => {
     setPopover(null);
+    setPendingSplitAnchor(anchor || null);
     setSplit({ title: title || 'Referenced Article', html: '', loading: true });
     try {
       const art = await getArticle(targetId);
@@ -681,11 +712,12 @@ export default function LibraryPage() {
 
   // ── Article ──────────────────────────────────────────────────────────────
   const openArticle = useCallback(
-    async (id: number | string, title: string) => {
+    async (id: number | string, title: string, anchor = '') => {
       setArticleId(id);
       setArticleTitle(title || 'Article');
       setArticleLoading(true);
       setArticle(null);
+      setPendingAnchor(anchor || null);
       setIaQuery('');
       setIaTotal(0);
       setIaCurrent(0);
@@ -703,6 +735,20 @@ export default function LibraryPage() {
       }
     },
     [showToast],
+  );
+
+  /**
+   * Navigate to a cross-reference. If the anchor already exists in the open
+   * article we just scroll to it (no refetch); otherwise open/split and jump.
+   */
+  const goToReference = useCallback(
+    (targetId: string, title: string, anchor: string, mode: 'open' | 'split') => {
+      setPopover(null);
+      if (anchor && scrollToAnchor(articleRef.current, anchor)) return;
+      if (mode === 'split') void openSplitScreen(targetId, title, anchor);
+      else void openArticle(targetId, title, anchor);
+    },
+    [openArticle, openSplitScreen],
   );
 
   const onToggleRead = useCallback(async () => {
@@ -760,6 +806,40 @@ export default function LibraryPage() {
     }, 120);
     return () => window.clearTimeout(t);
   }, [article]);
+
+  // Jump to the referenced anchor once the article is rendered.
+  useEffect(() => {
+    if (!pendingAnchor) return;
+    let tries = 0;
+    let timer = 0;
+    const attempt = () => {
+      if (scrollToAnchor(articleRef.current, pendingAnchor)) {
+        setPendingAnchor(null);
+        return;
+      }
+      if (tries++ < 12) timer = window.setTimeout(attempt, 150);
+      else setPendingAnchor(null);
+    };
+    timer = window.setTimeout(attempt, 80);
+    return () => window.clearTimeout(timer);
+  }, [pendingAnchor, article]);
+
+  // Same, for the split-screen pane.
+  useEffect(() => {
+    if (!pendingSplitAnchor) return;
+    let tries = 0;
+    let timer = 0;
+    const attempt = () => {
+      if (scrollToAnchor(splitRef.current, pendingSplitAnchor)) {
+        setPendingSplitAnchor(null);
+        return;
+      }
+      if (tries++ < 12) timer = window.setTimeout(attempt, 150);
+      else setPendingSplitAnchor(null);
+    };
+    timer = window.setTimeout(attempt, 120);
+    return () => window.clearTimeout(timer);
+  }, [pendingSplitAnchor, split]);
 
   // Esc closes the lightbox.
   useEffect(() => {
@@ -1459,8 +1539,7 @@ export default function LibraryPage() {
               }}
               title="Click to view article"
               onClick={() => {
-                setPopover(null);
-                void openArticle(popover.targetId, popover.title);
+                goToReference(popover.targetId, popover.title, popover.anchor, 'open');
               }}
             >
               📖 <span id="pop-article-name">{popover.title}</span>
@@ -1482,7 +1561,7 @@ export default function LibraryPage() {
                   gap: 3,
                 }}
                 title="Open in Split Screen (Side-by-Side)"
-                onClick={() => void openSplitScreen(popover.targetId, popover.title)}
+                onClick={() => goToReference(popover.targetId, popover.title, popover.anchor, 'split')}
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
