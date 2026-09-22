@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from || '/dashboard';
+  const from = (location.state as { from?: string } | null)?.from || '/hub';
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

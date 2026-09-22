@@ -63,7 +63,7 @@ export default function CompleteProfilePage() {
       if (Object.keys(details).length) await updateProfileDetails(details);
 
       await refresh();
-      navigate('/dashboard', { replace: true });
+      navigate('/hub', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save your profile.');
     } finally {
@@ -79,7 +79,7 @@ export default function CompleteProfilePage() {
       footer={
         <button
           type="button"
-          onClick={() => navigate('/dashboard', { replace: true })}
+          onClick={() => navigate('/hub', { replace: true })}
           className="text-link hover:underline"
         >
           Skip for now

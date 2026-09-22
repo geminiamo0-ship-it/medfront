@@ -38,6 +38,20 @@ export default {
       borderRadius: {
         xl2: '0.875rem',
       },
+      keyframes: {
+        floaty: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-16px)' },
+        },
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        floaty: 'floaty 7s ease-in-out infinite',
+        'fade-up': 'fade-up 0.5s ease-out both',
+      },
     },
   },
   plugins: [],

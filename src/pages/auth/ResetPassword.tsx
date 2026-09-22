@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
       if (res.data?.token) {
         await acceptToken(res.data.token);
       }
-      navigate('/dashboard', { replace: true });
+      navigate('/hub', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Reset failed. Please try again.');
     } finally {
