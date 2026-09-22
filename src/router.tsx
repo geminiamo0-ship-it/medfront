@@ -10,6 +10,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPassword';
 import CompleteProfilePage from '@/pages/auth/CompleteProfile';
 import HubPage from '@/pages/Hub';
 import DashboardPage from '@/pages/Dashboard';
+import LibraryPage from '@/pages/library/LibraryPage';
 import { ComingSoon } from '@/pages/ComingSoon';
 
 function protect(element: ReactNode) {
@@ -27,6 +28,9 @@ export const router = createBrowserRouter([
   // Hub (own header)
   { path: '/hub', element: protect(<HubPage />) },
 
+  // Library (own full-screen header, 1:1 with libraries.html)
+  { path: '/library', element: protect(<LibraryPage />) },
+
   // Onboarding (own layout)
   { path: '/complete-profile', element: protect(<CompleteProfilePage />) },
 
@@ -36,7 +40,6 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/contests', element: <ComingSoon title="Contests" /> },
-      { path: '/library', element: <ComingSoon title="Medical Library" /> },
       { path: '/qbank', element: <ComingSoon title="Question Banks" /> },
       { path: '/ai-analyst', element: <ComingSoon title="AI Analyst" /> },
       { path: '/settings', element: <ComingSoon title="Settings" /> },
