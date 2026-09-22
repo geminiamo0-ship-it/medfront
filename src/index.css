@@ -6,27 +6,45 @@
   *,
   ::before,
   ::after {
-    border-color: #e5e7eb;
+    border-color: #232a34;
   }
 
   html {
     -webkit-text-size-adjust: 100%;
+    color-scheme: dark;
   }
 
   body {
     @apply bg-canvas font-sans text-ink antialiased;
   }
+
+  ::selection {
+    background: rgba(127, 178, 240, 0.28);
+    color: #e6edf3;
+  }
 }
 
-/* Slim, unobtrusive scrollbars (matches the library page). */
+/* Slim, unobtrusive scrollbars (Lunar Chalk). */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 6px;
+  background: #2a323d;
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #3a4553;
+}
+
+/* Autofill must not repaint inputs with a light background. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e6edf3;
+  -webkit-box-shadow: 0 0 0 1000px #161b22 inset;
+  transition: background-color 9999s ease-out 0s;
 }
