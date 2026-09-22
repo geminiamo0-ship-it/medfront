@@ -34,3 +34,22 @@ export function setPassword(newPassword: string) {
     newPassword,
   });
 }
+
+export interface HomeStats {
+  user: { name: string };
+  loginStreak: { current: number; longest: number };
+  questionStreak: { current: number; longest: number; solvedToday: boolean };
+  calendar: Array<{ date: string; count: number }>;
+  summary: { totalAllTime: number; thisWeek: number; thisMonth: number };
+  lastSuspendedTest: unknown | null;
+  recentTests: unknown[];
+  upcomingContest: unknown | null;
+  leaderboardRank: number | null;
+  monthlyBadges: Array<{ month: string; total: number; level: number }>;
+  badgeThresholds: { bronze: number; silver: number; gold: number };
+  specialBadges: unknown[];
+}
+
+export function getHomeStats() {
+  return api.get<HomeStats>('/users/home-stats');
+}

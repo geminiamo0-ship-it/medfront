@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
+import { AppLayout } from '@/components/layout/AppLayout';
 import LoginPage from '@/pages/auth/Login';
 import RegisterPage from '@/pages/auth/Register';
 import VerifyEmailPage from '@/pages/auth/VerifyEmail';
@@ -23,12 +24,24 @@ export const router = createBrowserRouter([
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
 
-  // Authenticated
+  // Hub (own header)
   { path: '/hub', element: protect(<HubPage />) },
-  { path: '/qbank', element: protect(<ComingSoon title="Question Banks" />) },
-  { path: '/library', element: protect(<ComingSoon title="Medical Library" />) },
+
+  // Onboarding (own layout)
   { path: '/complete-profile', element: protect(<CompleteProfilePage />) },
-  { path: '/dashboard', element: protect(<DashboardPage />) },
+
+  // App shell
+  {
+    element: protect(<AppLayout />),
+    children: [
+      { path: '/dashboard', element: <DashboardPage /> },
+      { path: '/contests', element: <ComingSoon title="Contests" /> },
+      { path: '/library', element: <ComingSoon title="Medical Library" /> },
+      { path: '/qbank', element: <ComingSoon title="Question Banks" /> },
+      { path: '/ai-analyst', element: <ComingSoon title="AI Analyst" /> },
+      { path: '/settings', element: <ComingSoon title="Settings" /> },
+    ],
+  },
 
   { path: '/', element: <Navigate to="/hub" replace /> },
   { path: '*', element: <Navigate to="/hub" replace /> },

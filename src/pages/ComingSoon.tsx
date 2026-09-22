@@ -3,7 +3,7 @@ import { Logo } from '@/components/Logo';
 
 export function ComingSoon({ title }: { title: string }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 text-center">
+    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
       <Logo className="h-12 w-12 animate-floaty" />
       <h1 className="mt-6 text-2xl font-bold text-ink">{title}</h1>
       <p className="mt-2 max-w-sm text-ink-muted">
