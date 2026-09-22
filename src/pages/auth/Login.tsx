@@ -90,10 +90,10 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-5 flex items-center justify-between text-sm">
-            <Link to="/forgot-password" className="text-mp hover:underline">
+            <Link to="/forgot-password" className="text-link hover:underline">
               Forgot password?
             </Link>
-            <Link to="/register" className="text-mp hover:underline">
+            <Link to="/register" className="text-link hover:underline">
               Create account
             </Link>
           </div>

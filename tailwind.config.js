@@ -4,35 +4,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Lunar Chalk ───────────────────────────────────────────────
-        // Deep cool charcoal canvas, chalk-white ink, moonlight-blue accent.
-        canvas: '#0E1116',
-        surface: '#161B22',
-        surface2: '#1C232D',
-        line: '#232A34',
+        // ── Reddit (light) ────────────────────────────────────────────
+        // Light-gray page, white cards, orangered accent, blue links.
+        canvas: '#F6F7F8', // page background
+        surface: '#FFFFFF', // cards
+        surface2: '#F0F2F5', // hover / subtle fills
+        line: '#E5EBEE', // borders
         ink: {
-          DEFAULT: '#E6EDF3', // chalk white
-          soft: '#C3CDD8',
-          muted: '#8B98A5',
-          faint: '#5C6773',
+          DEFAULT: '#1A1A1B', // primary text
+          soft: '#3D3D3E',
+          muted: '#576F76', // secondary text
+          faint: '#878A8C',
         },
         mp: {
-          DEFAULT: '#7FB2F0', // moonlight blue
-          soft: '#1B2A3D', // tinted surface for chips / active states
-          hover: '#9CC6F5',
-          strong: '#5E93D6',
+          DEFAULT: '#FF4500', // orangered
+          soft: '#FFF0EB', // tinted surface for chips / active states
+          hover: '#E03D00',
+          strong: '#D93A00',
         },
-        ok: '#4ADE80',
-        warn: '#FBBF24',
-        bad: '#F87171',
+        link: '#0079D3', // reddit link blue
+        ok: '#46D160',
+        warn: '#FFB000',
+        bad: '#FF585B',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 1px 2px rgba(0,0,0,.4)',
-        pop: '0 12px 32px rgba(0,0,0,.55)',
-        glow: '0 0 0 1px rgba(127,178,240,.25), 0 8px 30px rgba(127,178,240,.12)',
+        card: '0 1px 2px rgba(0,0,0,.06)',
+        pop: '0 8px 28px rgba(0,0,0,.14)',
+        glow: '0 0 0 1px rgba(255,69,0,.18), 0 8px 24px rgba(255,69,0,.08)',
       },
       borderRadius: {
         xl2: '0.875rem',

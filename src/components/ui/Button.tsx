@@ -7,7 +7,7 @@ const base =
   'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-mp text-canvas hover:bg-mp-hover',
+  primary: 'bg-mp text-white hover:bg-mp-hover',
   secondary: 'border border-line bg-surface text-ink hover:bg-surface2',
   ghost: 'text-ink-muted hover:bg-surface2',
 };
@@ -36,7 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {loading && (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-canvas/40 border-t-canvas" />
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
       )}
       {children}
     </button>
