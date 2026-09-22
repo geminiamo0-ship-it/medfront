@@ -901,6 +901,12 @@ mark.msr.cur{background:#fb923c;color:#fff}
   background: #ccfbf1 !important;
   transform: scale(1.15) !important;
 }
+.amboss-inline-ref-badge svg,
+.amboss-inline-img-badge svg {
+  display: block !important;
+  width: 14px !important;
+  height: 14px !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    DARK MODE — .library-root.dark-mode

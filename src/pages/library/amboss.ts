@@ -36,6 +36,10 @@ export function fixOfflineMedia(html: string): string {
 const IMG_BTN_SVG =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
 
+/** Learning-card icon (16x16) used for cross-reference / learning-tip badges. */
+const LEARNING_CARD_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16" focusable="false"><g stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 2a1 1 0 0 0-1 1v3.222L1.638 7.67c-.091.097-.236.17-.255.3a.2.2 0 0 0 0 .06c.02.13.164.203.255.3L3 9.778V13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"></path><path stroke-linecap="square" stroke-linejoin="bevel" d="M7 6h4m-4 4h4"></path></g></svg>';
+
 /**
  * Port of transformToAmbossCards: turns inline image spans into viewer buttons
  * and splits the article on <h2> into collapsible Amboss cards. Inline onclick
@@ -159,8 +163,8 @@ export function setupAmbossInteractions(con: HTMLElement, h: AmbossHandlers): vo
       }
     } else {
       el.className = 'amboss-inline-ref-badge';
-      el.innerHTML = '&#x1F4D6;';
-      el.setAttribute('title', 'Clinical Reference');
+      el.innerHTML = LEARNING_CARD_SVG;
+      el.setAttribute('title', 'Learning tip');
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         h.onShowPopover(el);
