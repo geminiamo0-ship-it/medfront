@@ -74,3 +74,30 @@ export function requestAiSummary(id: number | string) {
     {},
   );
 }
+
+export interface LibraryHighlight {
+  id?: number;
+  text?: string;
+  selectedText?: string;
+  color?: string;
+}
+
+export function getHighlights(id: number | string) {
+  return api.get<LibraryHighlight[]>(
+    `/library/article/${encodeURIComponent(String(id))}/highlights`,
+  );
+}
+
+export function createHighlight(
+  id: number | string,
+  body: { text: string; color: string; rangeIndex?: number },
+) {
+  return api.post<{ id?: number }>(
+    `/library/article/${encodeURIComponent(String(id))}/highlight`,
+    { rangeIndex: 0, ...body },
+  );
+}
+
+export function deleteHighlight(hid: number | string) {
+  return api.delete<{ success?: boolean }>(`/library/highlight/${encodeURIComponent(String(hid))}`);
+}

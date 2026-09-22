@@ -13,6 +13,7 @@ import {
 import { MEDIA_CDN } from '@/lib/env';
 import { safeRichHtml } from '@/lib/sanitize';
 import { LIBRARY_SOURCES } from '@/lib/nav';
+import { useAnnotations } from './useAnnotations';
 import './library.css';
 
 const DARK_KEY = 'dm';
@@ -110,6 +111,7 @@ export default function LibraryPage() {
   const articleRef = useRef<HTMLDivElement>(null);
   const iaMarksRef = useRef<HTMLElement[]>([]);
   const iaIdxRef = useRef(0);
+  const anncRef = useRef<SVGSVGElement>(null);
 
   const showToast = useCallback((msg: string, err = false) => {
     setToast({ msg: String(msg ?? ''), err });
@@ -154,6 +156,14 @@ export default function LibraryPage() {
     },
     [gotoMatch],
   );
+
+  const annotations = useAnnotations({
+    articleId,
+    containerRef: articleRef,
+    svgRef: anncRef,
+    onToast: showToast,
+    onToggleSidebar: () => setSidebarOpen((v) => !v),
+  });
 
   const sourceLabel = useMemo(
     () => LIBRARY_SOURCES.find((s) => s.id === source)?.label ?? 'USMLE Step 1-3',
@@ -264,6 +274,24 @@ export default function LibraryPage() {
       };
     });
   }, [articleHtml]);
+
+  // Clear + reload highlights whenever a new article renders.
+  useEffect(() => {
+    if (!article || article.id == null) return;
+    annotations.resetForArticle(Number(article.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article]);
+
+  // Size the annotation canvas to the article height.
+  useEffect(() => {
+    if (!article) return;
+    const t = window.setTimeout(() => {
+      const con = articleRef.current;
+      const cv = anncRef.current;
+      if (con && cv) cv.style.height = Math.max(con.offsetHeight, con.scrollHeight) + 'px';
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [article]);
 
   // Esc closes the lightbox.
   useEffect(() => {
@@ -398,6 +426,75 @@ export default function LibraryPage() {
             ))}
           </div>
         </div>
+
+        <div className="vdiv" />
+        <button
+          className={`tb${annotations.tool === 'pencil' ? ' act' : ''}`}
+          id="tp"
+          title="Pencil"
+          onClick={() => annotations.setTool('pencil')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          </svg>
+        </button>
+        <button
+          className={`tb${annotations.tool === 'highlighter' ? ' act' : ''}`}
+          id="th"
+          title="Highlighter"
+          onClick={() => annotations.setTool('highlighter')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m9 11-6 6v3h3l6-6" />
+            <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+          </svg>
+        </button>
+        <button
+          className={`tb${annotations.tool === 'eraser' ? ' act' : ''}`}
+          id="te"
+          title="Eraser"
+          onClick={() => annotations.setTool('eraser')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+            <path d="M22 21H7" />
+          </svg>
+        </button>
+        <button
+          className={`tb${annotations.tool === 'laser' ? ' act' : ''}`}
+          id="tl"
+          title="Laser"
+          onClick={() => annotations.setTool('laser')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+          </svg>
+        </button>
+        <div className="tsep" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          {['#facc15', '#86efac', '#93c5fd', '#fca5a5', '#c4b5fd'].map((c) => (
+            <div
+              key={c}
+              className={`cd${annotations.color === c ? ' sel' : ''}`}
+              style={{ background: c }}
+              onClick={() => annotations.setColor(c)}
+            />
+          ))}
+        </div>
+        <div className="tsep" />
+        <button className="tb" title="Undo Ctrl+Z" onClick={() => void annotations.undo()}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 7v6h6" />
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+          </svg>
+        </button>
+        <button className="tb" title="Redo Ctrl+Y" onClick={() => void annotations.redo()}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 7v6h-6" />
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+          </svg>
+        </button>
 
         <div id="navr">
           <div id="iasw">
@@ -627,6 +724,18 @@ export default function LibraryPage() {
                     dangerouslySetInnerHTML={{ __html: articleHtml }}
                   />
                 )}
+                <svg
+                  id="annc"
+                  ref={anncRef}
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={
+                    annotations.tool === 'pencil' ||
+                    annotations.tool === 'eraser' ||
+                    annotations.tool === 'laser'
+                      ? 'on'
+                      : ''
+                  }
+                />
               </div>
             </div>
           </div>
