@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import {
   getArticle,
@@ -82,10 +83,6 @@ export default function LibraryPage() {
 
   const [source, setSource] = useState(() => params.get('source') || 'usmle');
   const [sourceOpen, setSourceOpen] = useState(false);
-
-  const [categories, setCategories] = useState<LibraryCategory[]>([]);
-  const [structureLoading, setStructureLoading] = useState(true);
-  const [structureError, setStructureError] = useState(false);
 
   const [articleId, setArticleId] = useState<number | null>(null);
   const [articleTitle, setArticleTitle] = useState('');
@@ -337,24 +334,27 @@ export default function LibraryPage() {
     [source],
   );
 
-  // ── Structure ────────────────────────────────────────────────────────────
-  const loadStructure = useCallback(async (src: string) => {
-    setStructureLoading(true);
-    setStructureError(false);
-    try {
-      const data = await getStructure(src);
-      setCategories(Array.isArray(data) ? data : []);
-    } catch {
-      setStructureError(true);
-      setCategories([]);
-    } finally {
-      setStructureLoading(false);
-    }
-  }, []);
+  // ── Structure (cached + deduped per source) ────────────────────────────────
+  // TanStack Query collapses StrictMode's double-invoke into one in-flight
+  // request and reuses the result per source, so dev navigation can't trip the
+  // backend's anti-scraping limits.
+  const structureQuery = useQuery({
+    queryKey: ['library-structure', source],
+    queryFn: () => getStructure(source),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 
-  useEffect(() => {
-    void loadStructure(source);
-  }, [source, loadStructure]);
+  const categories = useMemo(
+    () => (Array.isArray(structureQuery.data) ? structureQuery.data : []),
+    [structureQuery.data],
+  );
+  const structureLoading = structureQuery.isLoading;
+  const structureError = structureQuery.isError;
+  const structureLocked =
+    structureQuery.error instanceof ApiError && structureQuery.error.status === 423
+      ? ((structureQuery.error.payload as { retryAfterSeconds?: number } | undefined) ?? {})
+      : null;
 
   const allArticlesFlat = useMemo(() => {
     const out: LibraryArticleRef[] = [];
@@ -800,8 +800,33 @@ export default function LibraryPage() {
                 </div>
               )}
               {!structureLoading && structureError && (
-                <div style={{ padding: 20, color: '#ef4444', fontSize: 13 }}>
-                  ⚠ Failed to load. Check connection.
+                <div style={{ padding: 16, color: '#ef4444', fontSize: 13 }}>
+                  {structureLocked ? (
+                    <>
+                      <div>🔒 Temporarily locked by the server.</div>
+                      <div style={{ marginTop: 4, color: '#9ca3af' }}>
+                        {structureLocked.retryAfterSeconds
+                          ? `Try again in ~${structureLocked.retryAfterSeconds}s.`
+                          : 'Please try again shortly.'}
+                      </div>
+                      <button
+                        onClick={() => void structureQuery.refetch()}
+                        style={{
+                          marginTop: 10,
+                          padding: '4px 10px',
+                          fontSize: 12,
+                          borderRadius: 6,
+                          border: '1px solid #e5e7eb',
+                          background: '#fff',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </>
+                  ) : (
+                    '⚠ Failed to load. Check connection.'
+                  )}
                 </div>
               )}
               {!structureLoading &&
