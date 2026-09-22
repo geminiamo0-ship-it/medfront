@@ -17,6 +17,13 @@ import { createNote, getNotes, updateNote, type NotebookNote } from '@/api/noteb
 import { MEDIA_CDN } from '@/lib/env';
 import { safeRichHtml } from '@/lib/sanitize';
 import { LIBRARY_SOURCES } from '@/lib/nav';
+import {
+  fixOfflineMedia,
+  restoreInlineStyles,
+  setupAmbossInteractions,
+  stripInlineStylesForDark,
+  transformToAmbossCards,
+} from './amboss';
 import { useAnnotations } from './useAnnotations';
 import './library.css';
 
@@ -84,7 +91,7 @@ export default function LibraryPage() {
   const [source, setSource] = useState(() => params.get('source') || 'usmle');
   const [sourceOpen, setSourceOpen] = useState(false);
 
-  const [articleId, setArticleId] = useState<number | null>(null);
+  const [articleId, setArticleId] = useState<number | string | null>(null);
   const [articleTitle, setArticleTitle] = useState('');
   const [article, setArticle] = useState<LibraryArticleContent | null>(null);
   const [articleLoading, setArticleLoading] = useState(false);
@@ -117,6 +124,35 @@ export default function LibraryPage() {
 
   const [aiContent, setAiContent] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+
+  const [highYield] = useState(false);
+  const [keyExam, setKeyExam] = useState(false);
+  const [popover, setPopover] = useState<{
+    title: string;
+    bodyHtml: string;
+    showFooter: boolean;
+    targetId: string;
+    left: number;
+    top: number;
+  } | null>(null);
+  const [hoverCard, setHoverCard] = useState<{
+    imgSrc: string;
+    title: string;
+    left: number;
+    top: number;
+  } | null>(null);
+  const [imageViewer, setImageViewer] = useState<{
+    imgSrc: string;
+    title: string;
+    descHtml: string;
+    overlaySrc: string;
+    showOverlay: boolean;
+    zoom: number;
+  } | null>(null);
+  const [split, setSplit] = useState<{ title: string; html: string; loading: boolean } | null>(null);
+
+  const popoverTimer = useRef<number | null>(null);
+  const splitRef = useRef<HTMLDivElement>(null);
 
   const nbedRef = useRef<HTMLDivElement>(null);
 
@@ -329,6 +365,193 @@ export default function LibraryPage() {
     }
   }, [articleId, showToast]);
 
+  const ambossMode = source === 'amboss';
+  const articleHtml = useMemo(() => {
+    if (!article) return '';
+    const raw =
+      article.contentHtml ||
+      article.content_html ||
+      article.content ||
+      '<p style="color:#9ca3af">No content.</p>';
+    let html = safeRichHtml(fixImageUrls(raw));
+    if (ambossMode) html = transformToAmbossCards(html);
+    return html;
+  }, [article, ambossMode]);
+
+  // ── Amboss mode handlers ─────────────────────────────────────────────────────
+  const hideHoverCard = useCallback(() => setHoverCard(null), []);
+
+  const showHoverCard = useCallback((btn: HTMLElement) => {
+    const imgSrc = btn.dataset.imgSrc || '';
+    if (!imgSrc) return;
+    const title = btn.dataset.title || 'Image';
+    const rect = btn.getBoundingClientRect();
+    let left = rect.left - 70;
+    let top = rect.bottom + 8;
+    if (left < 10) left = 10;
+    if (left + 180 > window.innerWidth) left = window.innerWidth - 190;
+    if (top + 140 > window.innerHeight) top = rect.top - 140;
+    setHoverCard({ imgSrc, title, left, top });
+  }, []);
+
+  const showPopover = useCallback((el: HTMLElement) => {
+    if (popoverTimer.current) window.clearTimeout(popoverTimer.current);
+    let title = el.getAttribute('data-title') || el.textContent?.trim() || '';
+    try {
+      if (title && /^[A-Za-z0-9+/=]+$/.test(title) && title.length > 8) {
+        title = decodeURIComponent(escape(atob(title)));
+      }
+    } catch {
+      try {
+        title = atob(title);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    let description = el.getAttribute('data-offline-popover') || '';
+    if (!description && el.getAttribute('data-content')) {
+      const c = el.getAttribute('data-content') as string;
+      try {
+        description = decodeURIComponent(escape(atob(c)));
+      } catch {
+        try {
+          description = atob(c);
+        } catch {
+          description = c;
+        }
+      }
+    }
+    const targetId =
+      el.getAttribute('data-learningcard-id') || el.getAttribute('data-lxid') || '';
+    if (!description && !targetId) return;
+    if (!description) {
+      description = '<p style="color:#64748b; font-style:italic;">Clinical definition reference</p>';
+    }
+    description = fixOfflineMedia(description);
+
+    const rect = el.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.bottom + 8;
+    if (left + 360 > window.innerWidth) left = window.innerWidth - 370;
+    if (left < 12) left = 12;
+    if (top + 260 > window.innerHeight) {
+      const alt = rect.top - 268;
+      top = alt > 60 ? alt : 60;
+    }
+    if (top < 60) top = 60;
+
+    setPopover({
+      title: title || 'Medical Term',
+      bodyHtml: safeRichHtml(description),
+      showFooter: !!targetId,
+      targetId,
+      left,
+      top,
+    });
+  }, []);
+
+  const scheduleClosePopover = useCallback(() => {
+    if (popoverTimer.current) window.clearTimeout(popoverTimer.current);
+    popoverTimer.current = window.setTimeout(() => setPopover(null), 350);
+  }, []);
+
+  const openImageViewer = useCallback(
+    (imgSrc: string, title: string, desc: string, overlaySrc: string) => {
+      const overlay = overlaySrc
+        ? overlaySrc.replace(/^(?:\/?offline_media\/|\/+)/, MEDIA_CDN + 'offline_media/')
+        : '';
+      setImageViewer({
+        imgSrc,
+        title: title || 'Medical Illustration',
+        descHtml: safeRichHtml(
+          desc || '<p>No detailed clinical description available for this image.</p>',
+        ),
+        overlaySrc: overlay,
+        showOverlay: false,
+        zoom: 1,
+      });
+      setHoverCard(null);
+    },
+    [],
+  );
+
+  const openSplitScreen = useCallback(async (targetId: string, title: string) => {
+    setPopover(null);
+    setSplit({ title: title || 'Referenced Article', html: '', loading: true });
+    try {
+      const art = await getArticle(targetId);
+      let html = art.contentHtml || art.content_html || art.content || '<p>No content.</p>';
+      html = safeRichHtml(fixImageUrls(html));
+      html = transformToAmbossCards(html);
+      setSplit({ title: art.name || art.title || title, html, loading: false });
+    } catch {
+      setSplit({
+        title,
+        html: '<div style="padding:20px;color:#ef4444">⚠ Could not load referenced article.</div>',
+        loading: false,
+      });
+    }
+  }, []);
+
+  const toggleKeyExam = useCallback(() => {
+    setKeyExam((v) => {
+      const next = !v;
+      showToast(next ? '🔑 Key exam info ON' : 'Key exam info OFF');
+      return next;
+    });
+  }, [showToast]);
+
+  const toggleAllCards = useCallback(() => {
+    const cards = articleRef.current?.querySelectorAll('.amboss-card');
+    if (!cards?.length) return;
+    const anyOpen = Array.from(cards).some((c) => !c.classList.contains('collapsed'));
+    cards.forEach((c) => c.classList.toggle('collapsed', anyOpen));
+  }, []);
+
+  // Wire Amboss interactions + dark-mode style stripping after each render.
+  useEffect(() => {
+    const con = articleRef.current;
+    if (!con || !article) return;
+    if (ambossMode) {
+      setupAmbossInteractions(con, {
+        onShowPopover: showPopover,
+        onShowHoverCard: showHoverCard,
+        onHideHoverCard: hideHoverCard,
+        onOpenImageViewer: openImageViewer,
+        onInsertArticleRef: insertArticleRef,
+      });
+    }
+    if (dark) stripInlineStylesForDark(con);
+    else restoreInlineStyles(con);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articleHtml, ambossMode, dark]);
+
+  useEffect(() => {
+    const con = splitRef.current;
+    if (!con || !split?.html) return;
+    setupAmbossInteractions(con, {
+      onShowPopover: showPopover,
+      onShowHoverCard: showHoverCard,
+      onHideHoverCard: hideHoverCard,
+      onOpenImageViewer: openImageViewer,
+      onInsertArticleRef: insertArticleRef,
+    });
+    if (dark) stripInlineStylesForDark(con);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [split, dark]);
+
+  // 'k' toggles key-exam mode while in Amboss mode.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+      if (e.key.toLowerCase() === 'k' && ambossMode) toggleKeyExam();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [ambossMode, toggleKeyExam]);
+
   const sourceLabel = useMemo(
     () => LIBRARY_SOURCES.find((s) => s.id === source)?.label ?? 'USMLE Step 1-3',
     [source],
@@ -370,7 +593,7 @@ export default function LibraryPage() {
 
   // ── Article ──────────────────────────────────────────────────────────────
   const openArticle = useCallback(
-    async (id: number, title: string) => {
+    async (id: number | string, title: string) => {
       setArticleId(id);
       setArticleTitle(title || 'Article');
       setArticleLoading(true);
@@ -415,16 +638,6 @@ export default function LibraryPage() {
       showToast('Failed', true);
     }
   }, [articleId, isBookmarked, showToast]);
-
-  const articleHtml = useMemo(() => {
-    if (!article) return '';
-    const raw =
-      article.contentHtml ||
-      article.content_html ||
-      article.content ||
-      '<p style="color:#9ca3af">No content.</p>';
-    return safeRichHtml(fixImageUrls(raw));
-  }, [article]);
 
   // Attach image handlers after each article render.
   useEffect(() => {
@@ -546,7 +759,11 @@ export default function LibraryPage() {
   };
 
   return (
-    <div className={`library-root${dark ? ' dark-mode' : ''}`}>
+    <div
+      className={`library-root${dark ? ' dark-mode' : ''}${ambossMode ? ' amboss-mode' : ''}${
+        keyExam ? ' show-key-exam' : ''
+      }${highYield ? ' show-high-yield' : ''}`}
+    >
       {/* NAV */}
       <nav id="nav">
         <button
@@ -857,8 +1074,29 @@ export default function LibraryPage() {
           </svg>
         </button>
 
-        <main id="main">
-          <div id="pane-primary">
+        <main
+          id="main"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'row',
+            overflow: 'hidden',
+            minWidth: 0,
+            position: 'relative',
+          }}
+        >
+          <div
+            id="pane-primary"
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              height: '100%',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
             <div id="ahdr">
               <span
                 id="atitle"
@@ -867,6 +1105,37 @@ export default function LibraryPage() {
                 {articleId ? articleTitle : 'Select an article from the sidebar'}
               </span>
               <div id="aacts">
+                <div
+                  id="amboss-controls"
+                  style={{
+                    display: ambossMode ? 'flex' : 'none',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginRight: 8,
+                  }}
+                >
+                  <button
+                    className={`amboss-toggle-btn${keyExam ? ' active-ke' : ''}`}
+                    id="btn-ke"
+                    onClick={toggleKeyExam}
+                    title="Shortcut: K"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="m21 2-2 2m-6 6 7 7-3 3-7-7m-4 4L2 22l6-6m2-2 1-1" />
+                    </svg>
+                    <span id="txt-ke">{keyExam ? 'Key exam info on' : 'Key exam info off'}</span>
+                  </button>
+                  <button
+                    className="amboss-toggle-btn"
+                    onClick={toggleAllCards}
+                    title="Expand or collapse all sections"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="7 15 12 9 17 15" />
+                    </svg>
+                    Toggle All
+                  </button>
+                </div>
                 <button
                   className={`abtn${isRead ? ' ra' : ''}`}
                   id="btnr"
@@ -955,8 +1224,313 @@ export default function LibraryPage() {
               </div>
             </div>
           </div>
+          {split && (
+            <div
+              id="pane-sec"
+              style={{
+                display: 'flex',
+                width: '50%',
+                borderLeft: '2px solid #cbd5e1',
+                background: '#fff',
+                flexDirection: 'column',
+                height: '100%',
+                minWidth: 320,
+                overflow: 'hidden',
+                position: 'relative',
+                zIndex: 20,
+                boxShadow: '-4px 0 16px rgba(0,0,0,.08)',
+              }}
+            >
+              <div
+                id="pane-sec-header"
+                style={{
+                  padding: '10px 16px',
+                  borderBottom: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#f8fafc',
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="12" y1="3" x2="12" y2="21" />
+                  </svg>
+                  <span id="pane-sec-title">{split.title}</span>
+                </div>
+                <button
+                  onClick={() => setSplit(null)}
+                  style={{ background: 'none', border: 'none', fontSize: 17, cursor: 'pointer', color: '#64748b', padding: '2px 6px', borderRadius: 4 }}
+                  title="Close Split View"
+                >
+                  ✕
+                </button>
+              </div>
+              <div id="pane-sec-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: '#f8fafc' }}>
+                {split.loading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+                    <div className="sp" />
+                  </div>
+                ) : (
+                  <div
+                    id="pane-sec-content"
+                    ref={splitRef}
+                    className="amboss-mode"
+                    style={{ maxWidth: 800, margin: '0 auto' }}
+                    dangerouslySetInnerHTML={{ __html: split.html }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
+
+      {/* AMBOSS POPOVER */}
+      {popover && (
+        <div
+          id="amboss-popover"
+          style={{ display: 'block', left: popover.left, top: popover.top }}
+          onMouseEnter={() => {
+            if (popoverTimer.current) window.clearTimeout(popoverTimer.current);
+          }}
+          onMouseLeave={scheduleClosePopover}
+        >
+          <div className="pop-title">
+            <span id="pop-title-text">{popover.title}</span>
+            <button className="pop-close" onClick={() => setPopover(null)}>
+              ✕
+            </button>
+          </div>
+          <div
+            id="pop-body-text"
+            style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 8 }}
+            dangerouslySetInnerHTML={{ __html: popover.bodyHtml }}
+          />
+          <div
+            id="pop-footer"
+            style={{
+              display: popover.showFooter ? 'flex' : 'none',
+              background: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
+              padding: '8px 12px',
+              margin: '8px -16px -14px',
+              borderRadius: '0 0 8px 8px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+            }}
+          >
+            <div
+              id="pop-link-title"
+              style={{
+                color: '#0d9488',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title="Click to view article"
+              onClick={() => {
+                setPopover(null);
+                void openArticle(popover.targetId, popover.title);
+              }}
+            >
+              📖 <span id="pop-article-name">{popover.title}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <button
+                id="pop-btn-split"
+                style={{
+                  background: '#e2e8f0',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '3px 7px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                }}
+                title="Open in Split Screen (Side-by-Side)"
+                onClick={() => void openSplitScreen(popover.targetId, popover.title)}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="12" y1="3" x2="12" y2="21" />
+                </svg>
+                Split
+              </button>
+              <button
+                id="pop-btn-open"
+                style={{ background: '#0d9488', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 7px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                title="Direct Navigate"
+                onClick={() => {
+                  setPopover(null);
+                  void openArticle(popover.targetId, popover.title);
+                }}
+              >
+                ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AMBOSS IMAGE HOVER CARD */}
+      {hoverCard && (
+        <div
+          id="amboss-img-hover-card"
+          style={{ display: 'block', left: hoverCard.left, top: hoverCard.top }}
+        >
+          <img
+            id="aih-img"
+            src={hoverCard.imgSrc}
+            alt="Thumbnail"
+            onClick={() => openImageViewer(hoverCard.imgSrc, hoverCard.title, '', '')}
+          />
+          <div id="aih-caption" className="hover-caption">
+            {hoverCard.title}
+          </div>
+        </div>
+      )}
+
+      {/* AMBOSS IMAGE VIEWER */}
+      {imageViewer && (
+        <div id="amboss-image-viewer-modal" className="open">
+          <div id="aiv-sidebar">
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <div className="tab-pill active" style={{ cursor: 'default' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="9" y1="9" x2="15" y2="9" />
+                  <line x1="9" y1="13" x2="15" y2="13" />
+                </svg>
+                Description
+              </div>
+              {imageViewer.overlaySrc && (
+                <div
+                  className="tab-pill"
+                  id="aiv-overlay-btn"
+                  onClick={() => setImageViewer((v) => (v ? { ...v, showOverlay: !v.showOverlay } : v))}
+                  style={{
+                    cursor: 'pointer',
+                    background: imageViewer.showOverlay ? '#38bdf8' : 'transparent',
+                    border: '1px solid #38bdf8',
+                    color: imageViewer.showOverlay ? '#0f172a' : '#38bdf8',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                  Overlay
+                </div>
+              )}
+            </div>
+            <div id="aiv-title">{imageViewer.title}</div>
+            <div id="aiv-desc" dangerouslySetInnerHTML={{ __html: imageViewer.descHtml }} />
+            <div id="aiv-copy">© AMBOSS • MedPark Medical Library</div>
+          </div>
+          <div id="aiv-canvas">
+            <button id="aiv-close-btn" onClick={() => setImageViewer(null)}>
+              ✕
+            </button>
+            <div
+              id="aiv-img-wrapper"
+              style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <img
+                id="aiv-img"
+                src={imageViewer.imgSrc}
+                alt=""
+                style={{
+                  maxWidth: '92%',
+                  maxHeight: '88%',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  transition: 'transform .2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  userSelect: 'none',
+                  zIndex: 1,
+                  position: 'relative',
+                  transform: `scale(${imageViewer.zoom})`,
+                }}
+              />
+              <img
+                id="aiv-overlay"
+                src={imageViewer.overlaySrc}
+                alt=""
+                style={{
+                  position: 'absolute',
+                  maxWidth: '92%',
+                  maxHeight: '88%',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  pointerEvents: 'none',
+                  display: imageViewer.showOverlay ? 'block' : 'none',
+                  zIndex: 2,
+                  transition: 'transform .2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: `scale(${imageViewer.zoom})`,
+                }}
+              />
+            </div>
+            <div id="aiv-toolbar">
+              <button
+                className="aiv-tb-btn"
+                onClick={() => setImageViewer((v) => (v ? { ...v, zoom: Math.max(0.4, Math.min(4, v.zoom - 0.25)) } : v))}
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <button
+                className="aiv-tb-btn"
+                onClick={() => setImageViewer((v) => (v ? { ...v, zoom: Math.max(0.4, Math.min(4, v.zoom + 0.25)) } : v))}
+                title="Zoom In"
+              >
+                +
+              </button>
+              <button className="aiv-tb-btn" onClick={() => setImageViewer((v) => (v ? { ...v, zoom: 1 } : v))} title="Reset Zoom">
+                ↺
+              </button>
+              <button
+                className="aiv-tb-btn"
+                title="Download"
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = imageViewer.imgSrc;
+                  a.download = 'amboss-image.jpg';
+                  a.click();
+                }}
+              >
+                ↓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LIGHTBOX */}
       <div id="lb" className={lbSrc ? 'open' : ''}>
@@ -1162,7 +1736,7 @@ function CategoryNode({
   cat: LibraryCategory;
   depth: number;
   defaultOpen?: boolean;
-  activeId: number | null;
+  activeId: number | string | null;
   onOpen: (id: number, title: string) => void;
 }) {
   const [open, setOpen] = useState(!!defaultOpen);

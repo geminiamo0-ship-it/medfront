@@ -27,7 +27,7 @@ interface UndoAction {
 }
 
 interface Options {
-  articleId: number | null;
+  articleId: number | string | null;
   containerRef: RefObject<HTMLDivElement>;
   svgRef: RefObject<SVGSVGElement>;
   onToast: (msg: string, err?: boolean) => void;
@@ -51,7 +51,7 @@ export function useAnnotations({
 
   const toolRef = useRef<AnnotationTool>(null);
   const colorRef = useRef('#facc15');
-  const articleIdRef = useRef<number | null>(null);
+  const articleIdRef = useRef<number | string | null>(null);
 
   const drw = useRef(false);
   const cp = useRef<SVGPathElement | null>(null);
