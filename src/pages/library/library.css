@@ -1176,12 +1176,14 @@ mark.msr.cur{background:#fb923c;color:#fff}
    targeted wildcard overrides on known containers.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Force ALL elements inside article content to dark — EXCEPT marks/highlights */
-.library-root.dark-mode #acon *:not(mark):not(mark *),
-.library-root.dark-mode .amboss-card-body *:not(mark):not(mark *),
-.library-root.dark-mode #pane-sec-content *:not(mark):not(mark *) {
+/* Neutralise imported inline backgrounds — EXCEPT marks and coloured
+   callouts / key-exam highlights, which must keep their own background+color.
+   NOTE: we deliberately do NOT force `color: inherit` so API coloured spans
+   (red/green/etc.) stay visible in dark mode. */
+.library-root.dark-mode #acon *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]):not(.wichtig):not(.cave):not(.merkspruch):not(.merke):not(.content-box):not(.lamp-content),
+.library-root.dark-mode .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]):not(.wichtig):not(.cave):not(.merkspruch):not(.merke):not(.content-box):not(.lamp-content),
+.library-root.dark-mode #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]):not(.wichtig):not(.cave):not(.merkspruch):not(.merke):not(.content-box):not(.lamp-content) {
   background-color: transparent !important;
-  color: inherit !important;
   border-color: #3f3f46 !important;
 }
 
