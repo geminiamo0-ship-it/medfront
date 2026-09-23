@@ -486,32 +486,15 @@ mark.msr.cur{background:#fb923c;color:#fff}
   -webkit-text-fill-color: #0f172a !important;
 }
 
-/* ─── 2. HIGH-YIELD MODE ONLY (.show-high-yield) ─── */
-/* High-yield ON hides the "condensed" (extra / lower-yield) content. Shown by
-   default when high-yield is OFF. */
+/* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
+/* The toggle ONLY hides the "condensed" (extra / lower-yield) content.
+   Shown by default; "High-yield on" hides it. No other styling. */
 .library-root.show-high-yield .condensed-hidden,
 .library-root.show-high-yield .condensed-hidden-step2,
 .library-root.show-high-yield .condensed-hidden-step1,
 .library-root.show-high-yield .step-1-condensed,
 .library-root.show-high-yield .step-2-condensed {
   display: none !important;
-}
-.library-root.show-high-yield .amboss-card-body {
-  color: #64748b !important;
-}
-.library-root.show-high-yield .imppact2,
-.library-root.show-high-yield .step-1-imppact2,
-.library-root.show-high-yield .step-2-imppact2,
-.library-root.show-high-yield .usmle-gs-imppact2,
-.library-root.show-high-yield .js-relevance-term,
-.library-root.show-high-yield .leitwort,
-.library-root.show-high-yield .wichtig,
-.library-root.show-high-yield .merkspruch,
-.library-root.show-high-yield strong,
-.library-root.show-high-yield b {
-  color: #0f172a !important;
-  opacity: 1 !important;
-  font-weight: 700;
 }
 
 /* Condensed content is shown by default; the High-yield toggle hides it
