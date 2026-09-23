@@ -487,33 +487,17 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
-/* High-yield ON fades the condensed/extra and short-condensed variants to a
-   faint 20% preview (Amboss style). Nothing is removed from the layout.
-   Key terms / bold are re-spotlighted against the dimmed card body. */
+/* High-yield ON hides ONLY the extra detail blocks (.condensed-hidden*).
+   It deliberately does NOT hide .step-1-condensed / .step-2-condensed — those
+   are the short "condensed" versions that stay visible in high-yield mode. */
 .library-root.show-high-yield .condensed-hidden,
-.library-root.show-high-yield .condensed-hidden-step2,
 .library-root.show-high-yield .condensed-hidden-step1,
-.library-root.show-high-yield .step-1-condensed,
-.library-root.show-high-yield .step-2-condensed {
-  opacity: 0.2 !important;
+.library-root.show-high-yield .condensed-hidden-step2 {
+  display: none !important;
 }
-.library-root.show-high-yield .amboss-card-body {
-  color: #64748b !important;
-}
-.library-root.show-high-yield .imppact2,
-.library-root.show-high-yield .step-1-imppact2,
-.library-root.show-high-yield .step-2-imppact2,
-.library-root.show-high-yield .usmle-gs-imppact2,
-.library-root.show-high-yield .js-relevance-term,
-.library-root.show-high-yield .leitwort,
-.library-root.show-high-yield .wichtig,
-.library-root.show-high-yield .merkspruch,
-.library-root.show-high-yield strong,
-.library-root.show-high-yield b {
-  color: #0f172a !important;
-  opacity: 1 !important;
-  font-weight: 700;
-}
+
+/* Condensed content is shown by default; the High-yield toggle hides it
+   (rule is in section 2 above). */
 
 /* Amboss Topbar Toggle Buttons */
 .amboss-toggle-btn {
