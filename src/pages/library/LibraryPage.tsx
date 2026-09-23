@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
@@ -36,6 +36,7 @@ import { SplitPane, type SplitData } from './SplitPane';
 import { AmbossToolbar } from './AmbossToolbar';
 import { LibrarySidebar } from './LibrarySidebar';
 import { LibraryNavbar } from './LibraryNavbar';
+import { NotebookDrawer } from './NotebookDrawer';
 import {
   clearMarks,
   DARK_KEY,
@@ -1120,115 +1121,24 @@ export default function LibraryPage() {
       {aiContent !== null && <AiSummaryPanel content={aiContent} onClose={() => setAiContent(null)} />}
 
       {/* NOTEBOOK */}
-      <div
-        id="nbdr"
-        className={nbOpen ? 'open' : ''}
-        style={{ '--nbw': `${nbWidth}px` } as CSSProperties}
-      >
-        <div id="nbrz" />
-        <div id="nbhdr">
-          <h3>📓 Notebook</h3>
-          <button id="nbaibtn" onClick={insertArticleRef} title="Insert current article reference">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
-            Insert Article
-          </button>
-          <button id="nbplus" onClick={() => void addNote()}>
-            + Note
-          </button>
-          <button id="nbcl" onClick={() => setNbOpen(false)}>
-            ✕
-          </button>
-        </div>
-        <div id="nbsr">
-          <input
-            type="text"
-            placeholder="Search notes..."
-            value={noteSearch}
-            onChange={(e) => setNoteSearch(e.target.value)}
-          />
-        </div>
-        <div id="nbbody">
-          <div id="nbtree">
-            {filteredNotes.length === 0 ? (
-              <div style={{ padding: '10px 8px', fontSize: 11, color: '#9ca3af' }}>No notes yet.</div>
-            ) : (
-              filteredNotes.map((n) => (
-                <div
-                  key={n.id}
-                  className={`nbt${noteId === n.id ? ' act' : ''}`}
-                  onClick={() => openNote(n.id)}
-                >
-                  {n.title || 'Untitled'}
-                </div>
-              ))
-            )}
-          </div>
-          <div id="nbew">
-            <input
-              type="text"
-              id="nbti"
-              placeholder="Untitled note..."
-              value={noteTitle}
-              onChange={(e) => setNoteTitle(e.target.value)}
-            />
-            <div id="nbtbar">
-              <button className="nbtl" onClick={() => execFormat('bold')}>
-                <b>B</b>
-              </button>
-              <button className="nbtl" onClick={() => execFormat('italic')}>
-                <i>I</i>
-              </button>
-              <button className="nbtl" onClick={() => execFormat('underline')}>
-                <u>U</u>
-              </button>
-              <button className="nbtl" onClick={() => execFormat('strikeThrough')}>
-                <s>S</s>
-              </button>
-              <button className="nbtl" onClick={() => execFormat('insertOrderedList')}>
-                1.
-              </button>
-              <button className="nbtl" onClick={() => execFormat('insertUnorderedList')}>
-                •
-              </button>
-              <select
-                onChange={(e) => {
-                  execFormat('fontSize', e.currentTarget.value);
-                  e.currentTarget.selectedIndex = 0;
-                }}
-                className="nbtl"
-                style={{ width: 46, padding: '2px 4px' }}
-                defaultValue=""
-              >
-                <option value="">Sz</option>
-                <option value="1">S</option>
-                <option value="3">M</option>
-                <option value="5">L</option>
-                <option value="7">XL</option>
-              </select>
-              <input
-                type="color"
-                onChange={(e) => execFormat('foreColor', e.currentTarget.value)}
-                className="nbtl"
-                style={{ width: 26, height: 24, padding: 0, cursor: 'pointer' }}
-                title="Color"
-              />
-            </div>
-            <div id="nbed" ref={nbedRef} contentEditable suppressContentEditableWarning spellCheck={false} />
-            <div id="nbft">
-              <button id="nbsv" onClick={() => void saveNote()}>
-                💾 Save
-              </button>
-              <button id="nbex" onClick={exportPdf}>
-                📄 PDF
-              </button>
-              <span id="nbsync" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <NotebookDrawer
+        open={nbOpen}
+        width={nbWidth}
+        bodyRef={nbedRef}
+        onClose={() => setNbOpen(false)}
+        onInsertArticleRef={insertArticleRef}
+        onAddNote={() => void addNote()}
+        noteSearch={noteSearch}
+        onNoteSearchChange={setNoteSearch}
+        notes={filteredNotes}
+        activeNoteId={noteId}
+        onOpenNote={openNote}
+        noteTitle={noteTitle}
+        onNoteTitleChange={setNoteTitle}
+        onExecFormat={(cmd, val) => execFormat(cmd, val)}
+        onSaveNote={() => void saveNote()}
+        onExportPdf={exportPdf}
+      />
 
       <Toast toast={toast} />
     </div>
