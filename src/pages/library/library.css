@@ -497,36 +497,17 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
-/* Ported 1:1 from libraries.html. High-yield ON fades the condensed /
-   condensed-hidden / step-condensed content to 20% — it stays in the layout
-   (never display:none), so no section is ever "removed". The card body then
-   dims and key terms, leitwort labels and bold text are re-spotlighted
-   (opacity back to 1). The spotlight rule is intentionally LAST so labels
-   that also carry .condensed-hidden (e.g. "Process") stay readable, exactly
-   like the original. */
-.library-root.show-high-yield .condensed-hidden,
-.library-root.show-high-yield .condensed-hidden-step2,
-.library-root.show-high-yield .condensed-hidden-step1,
-.library-root.show-high-yield .step-1-condensed,
-.library-root.show-high-yield .step-2-condensed {
-  opacity: 0.2 !important;
-}
-.library-root.show-high-yield .amboss-card-body {
-  color: #64748b !important;
-}
-.library-root.show-high-yield .imppact2,
-.library-root.show-high-yield .step-1-imppact2,
-.library-root.show-high-yield .step-2-imppact2,
-.library-root.show-high-yield .usmle-gs-imppact2,
-.library-root.show-high-yield .js-relevance-term,
-.library-root.show-high-yield .leitwort,
-.library-root.show-high-yield .wichtig,
-.library-root.show-high-yield .merkspruch,
-.library-root.show-high-yield strong,
-.library-root.show-high-yield b {
-  color: #0f172a !important;
-  opacity: 1 !important;
-  font-weight: 700;
+/* High-yield ON HIDES only the small inline fragments (span.condensed-hidden*)
+   — mid-sentence detail bits, tiny explanations, inline extra smears.
+   Block-level elements are deliberately NOT matched: several sections carry
+   condensed classes on their WRAPPER (e.g. <ul class="condensed-hidden-step2">
+   around a whole section, <div class="table-wrapper condensed-hidden-step2">,
+   <h2 class="condensed-hidden">), and hiding those removed entire sections.
+   Never hide blocks. */
+.library-root.show-high-yield span.condensed-hidden,
+.library-root.show-high-yield span.condensed-hidden-step1,
+.library-root.show-high-yield span.condensed-hidden-step2 {
+  display: none !important;
 }
 
 /* Amboss Topbar Toggle Buttons */
