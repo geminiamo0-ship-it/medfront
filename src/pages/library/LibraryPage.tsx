@@ -31,6 +31,7 @@ import { Toast } from './Toast';
 import { Lightbox } from './Lightbox';
 import { AmbossImageViewer, type ImageViewerData } from './AmbossImageViewer';
 import { ImageHoverCard } from './ImageHoverCard';
+import { AmbossPopover, type PopoverData } from './AmbossPopover';
 import {
   clearMarks,
   DARK_KEY,
@@ -83,15 +84,7 @@ export default function LibraryPage() {
 
   const [highYield, setHighYield] = useState(false);
   const [keyExam, setKeyExam] = useState(false);
-  const [popover, setPopover] = useState<{
-    title: string;
-    bodyHtml: string;
-    showFooter: boolean;
-    targetId: string;
-    anchor: string;
-    left: number;
-    top: number;
-  } | null>(null);
+  const [popover, setPopover] = useState<PopoverData | null>(null);
   const [hoverCard, setHoverCard] = useState<{
     imgSrc: string;
     title: string;
@@ -1431,98 +1424,19 @@ export default function LibraryPage() {
 
       {/* AMBOSS POPOVER */}
       {popover && (
-        <div
-          id="amboss-popover"
-          style={{ display: 'block', left: popover.left, top: popover.top }}
-          onMouseEnter={() => {
+        <AmbossPopover
+          data={popover}
+          onEnter={() => {
             if (popoverTimer.current) window.clearTimeout(popoverTimer.current);
           }}
-          onMouseLeave={scheduleClosePopover}
-        >
-          <div className="pop-title">
-            <span id="pop-title-text">{popover.title}</span>
-            <button className="pop-close" onClick={() => setPopover(null)}>
-              ✕
-            </button>
-          </div>
-          <div
-            id="pop-body-text"
-            style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 8 }}
-            dangerouslySetInnerHTML={{ __html: popover.bodyHtml }}
-          />
-          <div
-            id="pop-footer"
-            style={{
-              display: popover.showFooter ? 'flex' : 'none',
-              background: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-              padding: '8px 12px',
-              margin: '8px -16px -14px',
-              borderRadius: '0 0 8px 8px',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-            }}
-          >
-            <div
-              id="pop-link-title"
-              style={{
-                color: '#0d9488',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-              title="Click to view article"
-              onClick={() => {
-                goToReference(popover.targetId, popover.title, popover.anchor, 'open');
-              }}
-            >
-              📖 <span id="pop-article-name">{popover.title}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              <button
-                id="pop-btn-split"
-                style={{
-                  background: '#e2e8f0',
-                  border: 'none',
-                  borderRadius: 4,
-                  padding: '3px 7px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                }}
-                title="Open in Split Screen (Side-by-Side)"
-                onClick={() => goToReference(popover.targetId, popover.title, popover.anchor, 'split')}
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <line x1="12" y1="3" x2="12" y2="21" />
-                </svg>
-                Split
-              </button>
-              <button
-                id="pop-btn-open"
-                style={{ background: '#0d9488', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 7px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-                title="Direct Navigate"
-                onClick={() => {
-                  setPopover(null);
-                  void openArticle(popover.targetId, popover.title);
-                }}
-              >
-                ↗
-              </button>
-            </div>
-          </div>
-        </div>
+          onLeave={scheduleClosePopover}
+          onClose={() => setPopover(null)}
+          onGoToReference={(targetId, title, anchor, mode) => goToReference(targetId, title, anchor, mode)}
+          onOpenDirect={(targetId, title) => {
+            setPopover(null);
+            void openArticle(targetId, title);
+          }}
+        />
       )}
 
       {/* AMBOSS IMAGE HOVER CARD */}
