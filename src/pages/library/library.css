@@ -104,6 +104,11 @@
 #acon h4{font-size:15px;font-weight:600;margin:.8em 0 .25em}
 #acon p{margin:.6em 0}
 #acon ul,#acon ol{padding-left:1.5em;margin:.5em 0}
+/* Tailwind Preflight removes list markers; restore them for article content. */
+#acon ul{list-style:disc}
+#acon ol{list-style:decimal}
+#acon ul ul{list-style:circle}
+#acon ul ul ul{list-style:square}
 #acon li{margin:.25em 0;line-height:1.7}
 #acon img{max-width:100%;height:auto;border-radius:8px;margin:14px auto;display:block;cursor:zoom-in;transition:opacity .15s}
 #acon img:hover{opacity:.88}
@@ -263,6 +268,11 @@ mark.msr.cur{background:#fb923c;color:#fff}
   padding-left: 1.6em;
   margin: .6em 0;
 }
+/* Tailwind Preflight removes list markers; restore them for article content. */
+.amboss-card-body ul { list-style: disc; }
+.amboss-card-body ol { list-style: decimal; }
+.amboss-card-body ul ul { list-style: circle; }
+.amboss-card-body ul ul ul { list-style: square; }
 .amboss-card-body li {
   margin: .35em 0;
   line-height: 1.7;
@@ -487,18 +497,37 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
-/* High-yield ON hides ONLY the small inline supplementary fragments
-   (span.condensed-hidden*) — mid-sentence detail bits, tiny explanations,
-   extra inline smears. Whole blocks — <h2>/<h3> sections, lists, tables,
-   mnemonic paragraphs — must ALWAYS stay visible (real Amboss keeps them). */
-.library-root.show-high-yield span.condensed-hidden,
-.library-root.show-high-yield span.condensed-hidden-step1,
-.library-root.show-high-yield span.condensed-hidden-step2 {
-  display: none !important;
+/* Ported 1:1 from libraries.html. High-yield ON fades the condensed /
+   condensed-hidden / step-condensed content to 20% — it stays in the layout
+   (never display:none), so no section is ever "removed". The card body then
+   dims and key terms, leitwort labels and bold text are re-spotlighted
+   (opacity back to 1). The spotlight rule is intentionally LAST so labels
+   that also carry .condensed-hidden (e.g. "Process") stay readable, exactly
+   like the original. */
+.library-root.show-high-yield .condensed-hidden,
+.library-root.show-high-yield .condensed-hidden-step2,
+.library-root.show-high-yield .condensed-hidden-step1,
+.library-root.show-high-yield .step-1-condensed,
+.library-root.show-high-yield .step-2-condensed {
+  opacity: 0.2 !important;
 }
-
-/* Condensed content is shown by default; the High-yield toggle hides only
-   inline fragments (rule is in section 2 above). */
+.library-root.show-high-yield .amboss-card-body {
+  color: #64748b !important;
+}
+.library-root.show-high-yield .imppact2,
+.library-root.show-high-yield .step-1-imppact2,
+.library-root.show-high-yield .step-2-imppact2,
+.library-root.show-high-yield .usmle-gs-imppact2,
+.library-root.show-high-yield .js-relevance-term,
+.library-root.show-high-yield .leitwort,
+.library-root.show-high-yield .wichtig,
+.library-root.show-high-yield .merkspruch,
+.library-root.show-high-yield strong,
+.library-root.show-high-yield b {
+  color: #0f172a !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
 
 /* Amboss Topbar Toggle Buttons */
 .amboss-toggle-btn {
