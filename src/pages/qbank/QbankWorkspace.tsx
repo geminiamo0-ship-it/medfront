@@ -1,6 +1,6 @@
-import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getMainBanks } from '@/api/tests';
+import { getQuestionBanks } from '@/api/tests';
 import { providerGradient, providerInitials } from './bankTheme';
 
 const STUB_ITEMS = ['Performance', 'Search', 'Notes', 'Flashcards', 'My Notebook', 'Help'] as const;
@@ -19,14 +19,31 @@ export default function QbankWorkspace() {
   const stepParam = new URLSearchParams(location.search).get('step');
   const step = stepParam && Number(stepParam) >= 1 && Number(stepParam) <= 5 ? Number(stepParam) : 1;
 
-  const banksQuery = useQuery({
-    queryKey: ['main-banks', step],
-    queryFn: () => getMainBanks(step),
+  // bankId is a question-bank id (e.g. 19 = "UW (Step 1)"); resolve it to get
+  // the provider branding and the qBankCode for statistics.
+  const qbQuery = useQuery({
+    queryKey: ['question-bank', step, id],
+    queryFn: () => getQuestionBanks(step),
   });
-  const bank = banksQuery.data?.find((b) => b.id === id) ?? null;
+  const questionBank = qbQuery.data?.find((b) => b.id === id) ?? null;
 
-  if (!banksQuery.isLoading && !bank) {
-    return <Navigate to="/qbank" replace />;
+  if (!qbQuery.isLoading && !questionBank) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="rounded-2xl border border-line bg-surface p-10 shadow-card">
+          <h1 className="text-lg font-extrabold text-ink">Bank not found</h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            This bank doesn't exist for Step {step}, or it failed to load.
+          </p>
+          <Link
+            to={`/qbank?step=${step}`}
+            className="mt-6 inline-block rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-mp-hover"
+          >
+            Back to banks
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -37,12 +54,12 @@ export default function QbankWorkspace() {
           <div className="flex items-center gap-3">
             <span
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white shadow-pop"
-              style={{ background: providerGradient(bank?.code ?? '') }}
+              style={{ background: providerGradient(questionBank?.code ?? '') }}
             >
-              {providerInitials(bank?.name ?? 'Bank')}
+              {providerInitials(questionBank?.name ?? 'Bank')}
             </span>
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold">{bank?.name ?? 'Loading…'}</div>
+              <div className="truncate text-sm font-bold">{questionBank?.name ?? 'Loading…'}</div>
               <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">
                 QBank
               </div>
@@ -106,7 +123,22 @@ export default function QbankWorkspace() {
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-          <Outlet context={{ bank, step, bankId: id }} />
+          <Outlet
+            context={{
+              bank: questionBank
+                ? {
+                    id: questionBank.id,
+                    name: questionBank.name,
+                    code: questionBank.code,
+                    displayOrder: questionBank.displayOrder,
+                    isPremium: questionBank.isPremium,
+                    isLocked: questionBank.isLocked,
+                  }
+                : null,
+              step,
+              bankId: id,
+            }}
+          />
         </main>
       </div>
     </div>
