@@ -26,7 +26,6 @@ import {
   transformToAmbossCards,
 } from './amboss';
 import { useAnnotations } from './useAnnotations';
-import { CategoryNode } from './CategoryNode';
 import { Toast } from './Toast';
 import { Lightbox } from './Lightbox';
 import { AmbossImageViewer, type ImageViewerData } from './AmbossImageViewer';
@@ -35,6 +34,7 @@ import { AmbossPopover, type PopoverData } from './AmbossPopover';
 import { AiSummaryPanel } from './AiSummaryPanel';
 import { SplitPane, type SplitData } from './SplitPane';
 import { AmbossToolbar } from './AmbossToolbar';
+import { LibrarySidebar } from './LibrarySidebar';
 import {
   clearMarks,
   DARK_KEY,
@@ -1034,133 +1034,27 @@ export default function LibraryPage() {
 
       {/* LAYOUT */}
       <div id="layout">
-        <aside id="sb" className={sidebarOpen ? '' : 'col'}>
-          <div id="sbin">
-            <div id="sbtop">
-              <div id="sw">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-                <input
-                  type="text"
-                  id="si"
-                  placeholder="Search articles..."
-                  autoComplete="off"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              <div className="smm">
-                <button
-                  className={`smb${searchMode === 'title' ? ' act' : ''}`}
-                  onClick={() => setSearchMode('title')}
-                >
-                  Title
-                </button>
-                <button
-                  className={`smb${searchMode === 'advanced' ? ' act' : ''}`}
-                  onClick={() => setSearchMode('advanced')}
-                >
-                  Advanced
-                </button>
-              </div>
-              <div id="sr" style={{ display: results ? 'block' : 'none' }}>
-                {searching && (
-                  <div style={{ padding: '10px 12px', fontSize: 12, color: '#9ca3af' }}>
-                    Searching...
-                  </div>
-                )}
-                {results && !searching && results.length === 0 && (
-                  <div style={{ padding: 12, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
-                    No articles found.
-                  </div>
-                )}
-                {results?.slice(0, 25).map((a) => (
-                  <div
-                    key={a.id}
-                    className="sri"
-                    onClick={() => {
-                      void openArticle(Number(a.id), a.title || a.name || 'Untitled');
-                      setQuery('');
-                      setResults(null);
-                    }}
-                  >
-                    <div style={{ fontWeight: 500, color: '#1f2937', fontSize: 13 }}>
-                      {a.title || a.name}
-                    </div>
-                    <div className="sc" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{a.category}</span>
-                      <span style={{ display: 'flex', gap: 3 }}>
-                        {a.isRead && <span style={{ color: '#10b981', fontSize: 10 }}>✓</span>}
-                        {a.isBookmarked && <span style={{ color: '#f59e0b', fontSize: 10 }}>★</span>}
-                      </span>
-                    </div>
-                    {searchMode === 'advanced' && a.excerpt && (
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{a.excerpt}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div id="tw">
-              {structureLoading && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180 }}>
-                  <div className="sp" />
-                </div>
-              )}
-              {!structureLoading && structureError && (
-                <div style={{ padding: 16, color: '#ef4444', fontSize: 13 }}>
-                  {structureLocked ? (
-                    <>
-                      <div>🔒 Temporarily locked by the server.</div>
-                      <div style={{ marginTop: 4, color: '#9ca3af' }}>
-                        {structureLocked.retryAfterSeconds
-                          ? `Try again in ~${structureLocked.retryAfterSeconds}s.`
-                          : 'Please try again shortly.'}
-                      </div>
-                      <button
-                        onClick={() => void structureQuery.refetch()}
-                        style={{
-                          marginTop: 10,
-                          padding: '4px 10px',
-                          fontSize: 12,
-                          borderRadius: 6,
-                          border: '1px solid #e5e7eb',
-                          background: '#fff',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Retry
-                      </button>
-                    </>
-                  ) : (
-                    '⚠ Failed to load. Check connection.'
-                  )}
-                </div>
-              )}
-              {!structureLoading &&
-                !structureError &&
-                (categories.length === 0 ? (
-                  <div style={{ padding: 20, color: '#9ca3af', fontSize: 13 }}>
-                    No articles found.
-                  </div>
-                ) : (
-                  categories.map((c, i) => (
-                    <CategoryNode
-                      key={c.id ?? i}
-                      cat={c}
-                      depth={0}
-                      defaultOpen={i === 0}
-                      activeId={articleId}
-                      onOpen={openArticle}
-                    />
-                  ))
-                ))}
-            </div>
-          </div>
-        </aside>
+        <LibrarySidebar
+          collapsed={!sidebarOpen}
+          query={query}
+          onQueryChange={setQuery}
+          searchMode={searchMode}
+          onSearchModeChange={(m) => setSearchMode(m)}
+          results={results}
+          searching={searching}
+          onOpenSearchResult={(id, title) => {
+            void openArticle(id, title);
+            setQuery('');
+            setResults(null);
+          }}
+          structureLoading={structureLoading}
+          structureError={structureError}
+          structureLocked={structureLocked}
+          onRetryStructure={() => void structureQuery.refetch()}
+          categories={categories}
+          activeId={articleId}
+          onOpenArticle={(id, title) => void openArticle(id, title)}
+        />
 
         <button id="sbh" onClick={() => setSidebarOpen((v) => !v)} title="Toggle Sidebar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
