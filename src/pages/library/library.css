@@ -487,17 +487,18 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
-/* High-yield ON hides ONLY the extra detail blocks (.condensed-hidden*).
-   It deliberately does NOT hide .step-1-condensed / .step-2-condensed — those
-   are the short "condensed" versions that stay visible in high-yield mode. */
-.library-root.show-high-yield .condensed-hidden,
-.library-root.show-high-yield .condensed-hidden-step1,
-.library-root.show-high-yield .condensed-hidden-step2 {
+/* High-yield ON hides ONLY the small inline supplementary fragments
+   (span.condensed-hidden*) — mid-sentence detail bits, tiny explanations,
+   extra inline smears. Whole blocks — <h2>/<h3> sections, lists, tables,
+   mnemonic paragraphs — must ALWAYS stay visible (real Amboss keeps them). */
+.library-root.show-high-yield span.condensed-hidden,
+.library-root.show-high-yield span.condensed-hidden-step1,
+.library-root.show-high-yield span.condensed-hidden-step2 {
   display: none !important;
 }
 
-/* Condensed content is shown by default; the High-yield toggle hides it
-   (rule is in section 2 above). */
+/* Condensed content is shown by default; the High-yield toggle hides only
+   inline fragments (rule is in section 2 above). */
 
 /* Amboss Topbar Toggle Buttons */
 .amboss-toggle-btn {
