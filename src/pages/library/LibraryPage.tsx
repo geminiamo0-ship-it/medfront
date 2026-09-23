@@ -27,6 +27,7 @@ import {
 } from './amboss';
 import { useAnnotations } from './useAnnotations';
 import { CategoryNode } from './CategoryNode';
+import { Toast } from './Toast';
 import {
   clearMarks,
   DARK_KEY,
@@ -1850,9 +1851,7 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div id="toast" className={toast ? 'show' : ''} style={toast?.err ? { background: '#ef4444' } : undefined}>
-        {toast ? toast.msg : ''}
-      </div>
+      <Toast toast={toast} />
     </div>
   );
 }
