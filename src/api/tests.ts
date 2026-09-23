@@ -76,6 +76,89 @@ export interface SystemWithTopics {
   topics?: Array<{ id: number; name: string }>;
 }
 
+export interface QbankStatistics {
+  success: boolean;
+  data: {
+    qBankName: string;
+    score: { percentage: string; totalCorrect: number; totalIncorrect: number; totalOmitted: number };
+    answerChanges: { correctToIncorrect: number; incorrectToCorrect: number; incorrectToIncorrect: number };
+    usage: { percentage: string; usedQuestions: number; unusedQuestions: number; totalQuestions: number };
+    testCount: { created: number; completed: number; suspended: number };
+    percentileRank: number;
+    medianScore: number;
+    medianPercentile: number;
+    yourAverageTimeSpent: number;
+    othersAverageTimeSpent: number;
+  };
+}
+
+/** GET /tests/performance/statistics — per-qbank scoreboard (Welcome page). */
+export function getQbankStatistics(qBankCode: string, step: number) {
+  return api.get<QbankStatistics>('/tests/performance/statistics', {
+    params: { qBankCode, step },
+  });
+}
+
+export interface QuestionCounts {
+  all: number;
+  unused: number;
+  used: number;
+  incorrect: number;
+  correct: number;
+  marked: number;
+  marked_correct: number;
+  marked_incorrect: number;
+  omitted: number;
+  suspended: number;
+}
+
+/** POST /tests/counts — per-mode question counts for the given filters. */
+export function getQuestionCounts(step: number, filters: Record<string, unknown>) {
+  return api.post<QuestionCounts>('/tests/counts', { step, filters });
+}
+
+export interface SubjectCount {
+  id: number;
+  name: string;
+  displayOrder: number;
+  questionCount: number;
+  columnIndex: number;
+  position: number;
+}
+
+/** POST /tests/metadata/subjects — subjects with counts (Create Test page). */
+export function getSubjects(step: number, questionBankIds: number[], mode = 'all') {
+  return api.post<SubjectCount[]>('/tests/metadata/subjects', {
+    step,
+    questionBankIds,
+    mode,
+  });
+}
+
+export interface TestListItem {
+  id: number;
+  title: string;
+  type: string;
+  mode: string;
+  step: number;
+  status: string;
+  totalQuestions: number;
+  answeredQuestions: number;
+  correctAnswers: number;
+  percentageScore: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+/** GET /tests — the user's tests, optionally scoped to step/qbank. */
+export function getPreviousTests(step?: number, qBankId?: number) {
+  const params: Record<string, number> = {};
+  if (step !== undefined) params.step = step;
+  if (qBankId !== undefined) params.qBankId = qBankId;
+  return api.get<TestListItem[]>('/tests', { params });
+}
+
 export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {
   return api.post<SystemWithTopics[]>('/tests/metadata/systems-with-topics', { step, filters });
 }

@@ -11,6 +11,11 @@ import CompleteProfilePage from '@/pages/auth/CompleteProfile';
 import HubPage from '@/pages/Hub';
 import DashboardPage from '@/pages/Dashboard';
 import QbankPage from '@/pages/QbankPage';
+import QbankWorkspace from '@/pages/qbank/QbankWorkspace';
+import WelcomePage from '@/pages/qbank/WelcomePage';
+import CreateTestPage from '@/pages/qbank/CreateTestPage';
+import PreviousTestsPage from '@/pages/qbank/PreviousTestsPage';
+import TestPage from '@/pages/TestPage';
 import LibraryPage from '@/pages/library/LibraryPage';
 import { ComingSoon } from '@/pages/ComingSoon';
 
@@ -41,7 +46,17 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/contests', element: <ComingSoon title="Contests" /> },
+      {
+        path: '/qbank/:bankId',
+        element: <QbankWorkspace />,
+        children: [
+          { index: true, element: <WelcomePage /> },
+          { path: 'create-test', element: <CreateTestPage /> },
+          { path: 'previous-tests', element: <PreviousTestsPage /> },
+        ],
+      },
       { path: '/qbank', element: <QbankPage /> },
+      { path: '/test/:testId', element: <TestPage /> },
       { path: '/ai-analyst', element: <ComingSoon title="AI Analyst" /> },
       { path: '/settings', element: <ComingSoon title="Settings" /> },
     ],

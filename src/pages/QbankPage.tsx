@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { providerGradient, providerInitials } from './qbank/bankTheme';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   getMainBanks,
@@ -10,33 +11,6 @@ import {
 import { STEPS, stepLabel } from '@/lib/nav';
 
 const STEP_KEY = 'mp_step';
-
-/** Per-provider gradients, mirroring the backend main-bank seeds. */
-const PROVIDER_GRADIENTS: Array<[prefix: string, gradient: string]> = [
-  ['UWORLD', 'linear-gradient(135deg, #1e3c72 0%, #2a69ac 100%)'],
-  ['AMBOSS', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'],
-  ['MEHLMAN', 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'],
-  ['NBME', 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)'],
-  ['CMS', 'linear-gradient(135deg, #f39c12 0%, #f1c40f 100%)'],
-  ['PASS_MED', 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)'],
-  ['PASTEST', 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'],
-  ['PAST_PAPERS', 'linear-gradient(135deg, #475569 0%, #334155 100%)'],
-  ['ONEXAM', 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'],
-  ['MRCP_PART', 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)'],
-  ['MEDPARK', 'linear-gradient(135deg, #ff4500 0%, #ff7849 100%)'],
-];
-
-function providerGradient(code: string): string {
-  const normalized = code.trim().toUpperCase();
-  for (const [prefix, gradient] of PROVIDER_GRADIENTS) {
-    if (normalized.startsWith(prefix)) return gradient;
-  }
-  return 'linear-gradient(135deg, #ff4500 0%, #ff7849 100%)';
-}
-
-function providerInitials(name: string): string {
-  return name.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
-}
 
 function PremiumBadge() {
   return (
@@ -188,7 +162,7 @@ export default function QbankPage() {
             )}
 
             {questionBanks.map((bank) => (
-              <BankCard key={bank.id} bank={bank} />
+              <BankCard key={bank.id} bank={bank} step={step} />
             ))}
           </div>
         </section>
@@ -288,15 +262,28 @@ function ProviderCard({
   );
 }
 
-function BankCard({ bank }: { bank: QuestionBankWithProgress }) {
+function BankCard({ bank, step }: { bank: QuestionBankWithProgress; step: number }) {
+  const navigate = useNavigate();
   const total = Math.max(0, bank.totalQuestions);
   const used = Math.min(Math.max(0, bank.usedQuestions), total);
   const pct = total > 0 ? Math.round((used / total) * 100) : 0;
 
   return (
     <div
+      role={bank.isLocked ? undefined : 'button'}
+      tabIndex={bank.isLocked ? undefined : 0}
+      onClick={bank.isLocked ? undefined : () => navigate(`/qbank/${bank.id}?step=${step}`)}
+      onKeyDown={
+        bank.isLocked
+          ? undefined
+          : (e) => {
+              if (e.key === 'Enter') navigate(`/qbank/${bank.id}?step=${step}`);
+            }
+      }
       className={`group flex flex-col rounded-2xl border bg-surface p-6 shadow-card transition-all duration-300 ${
-        bank.isLocked ? 'border-line opacity-75' : 'border-line hover:-translate-y-1 hover:border-mp/40 hover:shadow-pop'
+        bank.isLocked
+          ? 'border-line opacity-75'
+          : 'cursor-pointer border-line hover:-translate-y-1 hover:border-mp/40 hover:shadow-pop'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
