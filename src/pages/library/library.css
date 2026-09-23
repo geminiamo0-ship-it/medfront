@@ -487,13 +487,12 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD BUTTON (.show-high-yield) ─── */
-/* The toggle ONLY hides the "condensed" (extra / lower-yield) content.
-   Shown by default; "High-yield on" hides it. No other styling. */
+/* High-yield ON hides ONLY the extra detail blocks (.condensed-hidden*).
+   It deliberately does NOT hide .step-1-condensed / .step-2-condensed — those
+   are the short "condensed" versions that stay visible in high-yield mode. */
 .library-root.show-high-yield .condensed-hidden,
-.library-root.show-high-yield .condensed-hidden-step2,
 .library-root.show-high-yield .condensed-hidden-step1,
-.library-root.show-high-yield .step-1-condensed,
-.library-root.show-high-yield .step-2-condensed {
+.library-root.show-high-yield .condensed-hidden-step2 {
   display: none !important;
 }
 
