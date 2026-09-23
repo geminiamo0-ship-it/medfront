@@ -487,12 +487,14 @@ mark.msr.cur{background:#fb923c;color:#fff}
 }
 
 /* ─── 2. HIGH-YIELD MODE ONLY (.show-high-yield) ─── */
+/* High-yield ON hides the "condensed" (extra / lower-yield) content. Shown by
+   default when high-yield is OFF. */
 .library-root.show-high-yield .condensed-hidden,
 .library-root.show-high-yield .condensed-hidden-step2,
 .library-root.show-high-yield .condensed-hidden-step1,
 .library-root.show-high-yield .step-1-condensed,
 .library-root.show-high-yield .step-2-condensed {
-  opacity: 0.2 !important;
+  display: none !important;
 }
 .library-root.show-high-yield .amboss-card-body {
   color: #64748b !important;
@@ -512,21 +514,8 @@ mark.msr.cur{background:#fb923c;color:#fff}
   font-weight: 700;
 }
 
-/* ─── CONDENSED CONTENT TOGGLE (.show-condensed) ───
-   The imported Amboss HTML marks the "extra / less important" text with
-   .condensed-hidden / -step1 / -step2. Hidden by default; the "Condensed"
-   button reveals it. (Nested wrappers are handled because each matching
-   element is toggled independently.) */
-.library-root .condensed-hidden,
-.library-root .condensed-hidden-step1,
-.library-root .condensed-hidden-step2 {
-  display: none;
-}
-.library-root.show-condensed .condensed-hidden,
-.library-root.show-condensed .condensed-hidden-step1,
-.library-root.show-condensed .condensed-hidden-step2 {
-  display: revert;
-}
+/* Condensed content is shown by default; the High-yield toggle hides it
+   (rule is in section 2 above). */
 
 /* Amboss Topbar Toggle Buttons */
 .amboss-toggle-btn {

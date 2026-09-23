@@ -177,9 +177,8 @@ export default function LibraryPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [creatingTest, setCreatingTest] = useState(false);
 
-  const [highYield] = useState(false);
+  const [highYield, setHighYield] = useState(false);
   const [keyExam, setKeyExam] = useState(false);
-  const [condensed, setCondensed] = useState(false);
   const [popover, setPopover] = useState<{
     title: string;
     bodyHtml: string;
@@ -964,7 +963,7 @@ export default function LibraryPage() {
     <div
       className={`library-root${dark ? ' dark-mode' : ''}${ambossMode ? ' amboss-mode' : ''}${
         keyExam ? ' show-key-exam' : ''
-      }${highYield ? ' show-high-yield' : ''}${condensed ? ' show-condensed' : ''}`}
+      }${highYield ? ' show-high-yield' : ''}`}
     >
       {/* NAV */}
       <nav id="nav">
@@ -1338,14 +1337,14 @@ export default function LibraryPage() {
                     Toggle All
                   </button>
                   <button
-                    className={`amboss-toggle-btn${condensed ? ' active-ke' : ''}`}
-                    onClick={() => setCondensed((v) => !v)}
+                    className={`amboss-toggle-btn${highYield ? ' active-ke' : ''}`}
+                    onClick={() => setHighYield((v) => !v)}
                     title="Show or hide condensed (extra) content"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M4 6h16M4 12h10M4 18h16" />
                     </svg>
-                    {condensed ? 'Condensed on' : 'Condensed off'}
+                    {highYield ? 'High-yield on' : 'High-yield off'}
                   </button>
                 </div>
                 <button
