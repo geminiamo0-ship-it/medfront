@@ -436,8 +436,8 @@ mark.msr.cur{background:#fb923c;color:#fff}
   padding: 0 3px;
   font-weight: 600;
 }
-/* Force the text INSIDE a highlight (e.g. popover terms that carry inline /
-   teal colours) to the same dark ink, so nothing disappears on the amber. */
+/* Force the text INSIDE a highlight (popover terms that carry inline / teal
+   colours) to the same dark ink, so nothing disappears on the amber. */
 .library-root.show-key-exam .imppact2 *,
 .library-root.show-key-exam .step-1-imppact2 *,
 .library-root.show-key-exam .step-2-imppact2 *,
@@ -445,34 +445,45 @@ mark.msr.cur{background:#fb923c;color:#fff}
 .library-root.show-key-exam .js-relevance-term *,
 .library-root.show-key-exam .high-yield-highlight *,
 .library-root.show-key-exam [data-high-yield="true"] *,
-.library-root.show-key-exam [data-type="highlight"] *,
-.library-root.show-key-exam .api,
-.library-root.show-key-exam .dictionary,
-.library-root.show-key-exam .linksuggest {
+.library-root.show-key-exam [data-type="highlight"] * {
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
 }
 
-/* ─── KEY EXAM MODE: cancel inline/native text colours so the amber highlight
-   reads cleanly (no colour-on-amber interference). Marks and the key-exam
-   highlight spans are excluded so they keep their own colours. Removing the
-   .show-key-exam class restores the original colours automatically. ─── */
-.library-root.show-key-exam #acon *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]),
-.library-root.show-key-exam .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]),
-.library-root.show-key-exam #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]) {
+/* ── KEY EXAM (LIGHT): cancel inline/native text colours → dark text. ── */
+.library-root:not(.dark-mode).show-key-exam #acon *:not(mark):not(mark *),
+.library-root:not(.dark-mode).show-key-exam .amboss-card-body *:not(mark):not(mark *),
+.library-root:not(.dark-mode).show-key-exam #pane-sec-content *:not(mark):not(mark *) {
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
 }
-/* Dark mode: keep non-highlighted text light for readability (highlight spans
-   still render dark-on-amber via their own rule above). */
-/* Dark mode: keep non-highlighted text light for readability. Wrapped in
-   :where() so it has ZERO specificity and never beats the key-exam highlight
-   rules (which force dark-on-amber text, including popover terms inside). */
-:where(.library-root.dark-mode.show-key-exam #acon *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])),
-:where(.library-root.dark-mode.show-key-exam .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])),
-:where(.library-root.dark-mode.show-key-exam #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])) {
+
+/* ── KEY EXAM (DARK): non-highlighted text stays light; popover terms carry
+   inline colours so they're forced explicitly. Inside a highlight they must be
+   dark-on-amber — those rules win by higher specificity. ── */
+.library-root.dark-mode.show-key-exam .api,
+.library-root.dark-mode.show-key-exam .dictionary,
+.library-root.dark-mode.show-key-exam .linksuggest,
+.library-root.dark-mode.show-key-exam [style*="color"] {
   color: #f4f4f5 !important;
   -webkit-text-fill-color: #f4f4f5 !important;
+}
+.library-root.dark-mode.show-key-exam .js-relevance-term .api,
+.library-root.dark-mode.show-key-exam .js-relevance-term .dictionary,
+.library-root.dark-mode.show-key-exam .js-relevance-term .linksuggest,
+.library-root.dark-mode.show-key-exam .js-relevance-term [style*="color"],
+.library-root.dark-mode.show-key-exam .imppact2 .api,
+.library-root.dark-mode.show-key-exam .imppact2 .dictionary,
+.library-root.dark-mode.show-key-exam .imppact2 [style*="color"],
+.library-root.dark-mode.show-key-exam .step-1-imppact2 .api,
+.library-root.dark-mode.show-key-exam .step-2-imppact2 .api,
+.library-root.dark-mode.show-key-exam .usmle-gs-imppact2 .api,
+.library-root.dark-mode.show-key-exam [data-type="highlight"] .api,
+.library-root.dark-mode.show-key-exam [data-type="highlight"] .dictionary,
+.library-root.dark-mode.show-key-exam [data-type="highlight"] .linksuggest,
+.library-root.dark-mode.show-key-exam [data-type="highlight"] [style*="color"] {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }
 
 /* ─── 2. HIGH-YIELD MODE ONLY (.show-high-yield) ─── */
