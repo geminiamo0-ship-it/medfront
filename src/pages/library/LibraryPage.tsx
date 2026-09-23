@@ -30,6 +30,7 @@ import { CategoryNode } from './CategoryNode';
 import { Toast } from './Toast';
 import { Lightbox } from './Lightbox';
 import { AmbossImageViewer, type ImageViewerData } from './AmbossImageViewer';
+import { ImageHoverCard } from './ImageHoverCard';
 import {
   clearMarks,
   DARK_KEY,
@@ -1526,20 +1527,10 @@ export default function LibraryPage() {
 
       {/* AMBOSS IMAGE HOVER CARD */}
       {hoverCard && (
-        <div
-          id="amboss-img-hover-card"
-          style={{ display: 'block', left: hoverCard.left, top: hoverCard.top }}
-        >
-          <img
-            id="aih-img"
-            src={hoverCard.imgSrc}
-            alt="Thumbnail"
-            onClick={() => openImageViewer(hoverCard.imgSrc, hoverCard.title, '', '')}
-          />
-          <div id="aih-caption" className="hover-caption">
-            {hoverCard.title}
-          </div>
-        </div>
+        <ImageHoverCard
+          data={hoverCard}
+          onOpenViewer={(imgSrc, title) => openImageViewer(imgSrc, title, '', '')}
+        />
       )}
 
       {/* AMBOSS IMAGE VIEWER */}
