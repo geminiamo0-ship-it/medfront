@@ -60,8 +60,12 @@ function scrollToAnchor(container: HTMLElement | null, anchor: string, term?: st
   if (anchor) {
     const a = anchor.replace(/"/g, '\\"');
     try {
+      // The real anchor target is `#Z…` / `<span data-type="anker" id="Z…">`.
+      // Do NOT match `[data-anker]` — that attribute lives on the SOURCE link
+      // (a span), which appears earlier in the doc and would scroll us to the
+      // wrong place.
       el = container.querySelector(
-        `#${CSS.escape(anchor)}, [name="${a}"], [data-anker="${a}"]:not(a):not(.autolink):not(.dictionary):not(.linksuggest)`,
+        `#${CSS.escape(anchor)}, [name="${a}"], [data-type="anker"][id="${a}"]`,
       ) as HTMLElement | null;
     } catch {
       el = null;
@@ -175,6 +179,7 @@ export default function LibraryPage() {
 
   const [highYield] = useState(false);
   const [keyExam, setKeyExam] = useState(false);
+  const [condensed, setCondensed] = useState(false);
   const [popover, setPopover] = useState<{
     title: string;
     bodyHtml: string;
@@ -959,7 +964,7 @@ export default function LibraryPage() {
     <div
       className={`library-root${dark ? ' dark-mode' : ''}${ambossMode ? ' amboss-mode' : ''}${
         keyExam ? ' show-key-exam' : ''
-      }${highYield ? ' show-high-yield' : ''}`}
+      }${highYield ? ' show-high-yield' : ''}${condensed ? ' show-condensed' : ''}`}
     >
       {/* NAV */}
       <nav id="nav">
@@ -1331,6 +1336,16 @@ export default function LibraryPage() {
                       <polyline points="7 15 12 9 17 15" />
                     </svg>
                     Toggle All
+                  </button>
+                  <button
+                    className={`amboss-toggle-btn${condensed ? ' active-ke' : ''}`}
+                    onClick={() => setCondensed((v) => !v)}
+                    title="Show or hide condensed (extra) content"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M4 6h16M4 12h10M4 18h16" />
+                    </svg>
+                    {condensed ? 'Condensed on' : 'Condensed off'}
                   </button>
                 </div>
                 <button

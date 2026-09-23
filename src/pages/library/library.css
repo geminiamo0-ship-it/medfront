@@ -431,9 +431,26 @@ mark.msr.cur{background:#fb923c;color:#fff}
   background-color: #fef08a !important; /* Amboss Amber Gold */
   border-bottom: 2px solid #eab308 !important;
   color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
   border-radius: 2px;
   padding: 0 3px;
   font-weight: 600;
+}
+/* Force the text INSIDE a highlight (e.g. popover terms that carry inline /
+   teal colours) to the same dark ink, so nothing disappears on the amber. */
+.library-root.show-key-exam .imppact2 *,
+.library-root.show-key-exam .step-1-imppact2 *,
+.library-root.show-key-exam .step-2-imppact2 *,
+.library-root.show-key-exam .usmle-gs-imppact2 *,
+.library-root.show-key-exam .js-relevance-term *,
+.library-root.show-key-exam .high-yield-highlight *,
+.library-root.show-key-exam [data-high-yield="true"] *,
+.library-root.show-key-exam [data-type="highlight"] *,
+.library-root.show-key-exam .api,
+.library-root.show-key-exam .dictionary,
+.library-root.show-key-exam .linksuggest {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }
 
 /* ─── KEY EXAM MODE: cancel inline/native text colours so the amber highlight
@@ -444,13 +461,18 @@ mark.msr.cur{background:#fb923c;color:#fff}
 .library-root.show-key-exam .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]),
 .library-root.show-key-exam #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]) {
   color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }
 /* Dark mode: keep non-highlighted text light for readability (highlight spans
    still render dark-on-amber via their own rule above). */
-.library-root.dark-mode.show-key-exam #acon *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]),
-.library-root.dark-mode.show-key-exam .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]),
-.library-root.dark-mode.show-key-exam #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"]) {
+/* Dark mode: keep non-highlighted text light for readability. Wrapped in
+   :where() so it has ZERO specificity and never beats the key-exam highlight
+   rules (which force dark-on-amber text, including popover terms inside). */
+:where(.library-root.dark-mode.show-key-exam #acon *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])),
+:where(.library-root.dark-mode.show-key-exam .amboss-card-body *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])),
+:where(.library-root.dark-mode.show-key-exam #pane-sec-content *:not(mark):not(mark *):not(.imppact2):not(.step-1-imppact2):not(.step-2-imppact2):not(.usmle-gs-imppact2):not(.js-relevance-term):not(.high-yield-highlight):not([data-high-yield="true"])) {
   color: #f4f4f5 !important;
+  -webkit-text-fill-color: #f4f4f5 !important;
 }
 
 /* ─── 2. HIGH-YIELD MODE ONLY (.show-high-yield) ─── */
@@ -477,6 +499,22 @@ mark.msr.cur{background:#fb923c;color:#fff}
   color: #0f172a !important;
   opacity: 1 !important;
   font-weight: 700;
+}
+
+/* ─── CONDENSED CONTENT TOGGLE (.show-condensed) ───
+   The imported Amboss HTML marks the "extra / less important" text with
+   .condensed-hidden / -step1 / -step2. Hidden by default; the "Condensed"
+   button reveals it. (Nested wrappers are handled because each matching
+   element is toggled independently.) */
+.library-root .condensed-hidden,
+.library-root .condensed-hidden-step1,
+.library-root .condensed-hidden-step2 {
+  display: none;
+}
+.library-root.show-condensed .condensed-hidden,
+.library-root.show-condensed .condensed-hidden-step1,
+.library-root.show-condensed .condensed-hidden-step2 {
+  display: revert;
 }
 
 /* Amboss Topbar Toggle Buttons */
