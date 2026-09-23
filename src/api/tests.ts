@@ -40,21 +40,40 @@ export function getPerformanceOverview(step: number) {
   return api.get<PerformanceOverview>('/tests/performance/overview', { params: { step } });
 }
 
-export interface QuestionBank {
+export interface QuestionBankWithProgress {
   id: number;
+  mainBankId: number | null;
+  name: string;
   code: string;
+  description: string | null;
   step: number;
-  name?: string;
+  totalQuestions: number;
+  usedQuestions: number;
+  isPremium: boolean;
+  isBlockBank: boolean;
+  blockSize: number;
+  icon: string | null;
+  gradient: string | null;
+  displayOrder: number;
+  isLocked: boolean;
+}
+
+/**
+ * Question banks underneath a main bank (provider), with the caller's
+ * progress. Omit both params to get every active bank across all steps;
+ * pass `step` (+ optionally `mainBankId`) to scope the list.
+ */
+export function getQuestionBanks(step?: number, mainBankId?: number) {
+  const params: Record<string, number> = {};
+  if (step !== undefined) params.step = step;
+  if (mainBankId !== undefined) params.mainBankId = mainBankId;
+  return api.get<QuestionBankWithProgress[]>('/tests/metadata/question-banks', { params });
 }
 
 export interface SystemWithTopics {
   id: number;
   name: string;
   topics?: Array<{ id: number; name: string }>;
-}
-
-export function getQuestionBanks() {
-  return api.get<QuestionBank[]>('/tests/metadata/question-banks');
 }
 
 export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {

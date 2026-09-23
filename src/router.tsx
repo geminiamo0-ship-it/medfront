@@ -10,6 +10,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPassword';
 import CompleteProfilePage from '@/pages/auth/CompleteProfile';
 import HubPage from '@/pages/Hub';
 import DashboardPage from '@/pages/Dashboard';
+import QbankPage from '@/pages/QbankPage';
 import LibraryPage from '@/pages/library/LibraryPage';
 import { ComingSoon } from '@/pages/ComingSoon';
 
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/contests', element: <ComingSoon title="Contests" /> },
-      { path: '/qbank', element: <ComingSoon title="Question Banks" /> },
+      { path: '/qbank', element: <QbankPage /> },
       { path: '/ai-analyst', element: <ComingSoon title="AI Analyst" /> },
       { path: '/settings', element: <ComingSoon title="Settings" /> },
     ],
