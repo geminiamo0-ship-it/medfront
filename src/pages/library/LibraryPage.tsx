@@ -34,6 +34,7 @@ import { ImageHoverCard } from './ImageHoverCard';
 import { AmbossPopover, type PopoverData } from './AmbossPopover';
 import { AiSummaryPanel } from './AiSummaryPanel';
 import { SplitPane, type SplitData } from './SplitPane';
+import { AmbossToolbar } from './AmbossToolbar';
 import {
   clearMarks,
   DARK_KEY,
@@ -1198,47 +1199,14 @@ export default function LibraryPage() {
                 {articleId ? articleTitle : 'Select an article from the sidebar'}
               </span>
               <div id="aacts">
-                <div
-                  id="amboss-controls"
-                  style={{
-                    display: ambossMode ? 'flex' : 'none',
-                    alignItems: 'center',
-                    gap: 6,
-                    marginRight: 8,
-                  }}
-                >
-                  <button
-                    className={`amboss-toggle-btn${keyExam ? ' active-ke' : ''}`}
-                    id="btn-ke"
-                    onClick={toggleKeyExam}
-                    title="Shortcut: K"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="m21 2-2 2m-6 6 7 7-3 3-7-7m-4 4L2 22l6-6m2-2 1-1" />
-                    </svg>
-                    <span id="txt-ke">{keyExam ? 'Key exam info on' : 'Key exam info off'}</span>
-                  </button>
-                  <button
-                    className="amboss-toggle-btn"
-                    onClick={toggleAllCards}
-                    title="Expand or collapse all sections"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="7 15 12 9 17 15" />
-                    </svg>
-                    Toggle All
-                  </button>
-                  <button
-                    className={`amboss-toggle-btn${highYield ? ' active-ke' : ''}`}
-                    onClick={() => setHighYield((v) => !v)}
-                    title="Show or hide condensed (extra) content"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M4 6h16M4 12h10M4 18h16" />
-                    </svg>
-                    {highYield ? 'High-yield on' : 'High-yield off'}
-                  </button>
-                </div>
+                <AmbossToolbar
+                  visible={ambossMode}
+                  keyExam={keyExam}
+                  highYield={highYield}
+                  onToggleKeyExam={toggleKeyExam}
+                  onToggleAllCards={toggleAllCards}
+                  onToggleHighYield={() => setHighYield((v) => !v)}
+                />
                 <button
                   className={`abtn${isRead ? ' ra' : ''}`}
                   id="btnr"
