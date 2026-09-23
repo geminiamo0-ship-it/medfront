@@ -78,6 +78,34 @@ export function useAnnotations({
   }, []);
 
   // ── Highlights ───────────────────────────────────────────────────────────
+  const eraseHighlightEl = useCallback(
+    async (m: HTMLElement) => {
+      const hid = m.dataset.hid || '';
+      const curCol = m.style.background || colorRef.current;
+      const related = hid
+        ? Array.from(document.querySelectorAll(`mark[data-hid="${hid}"]`)) as HTMLElement[]
+        : [m];
+      const txt = related.map((rm) => rm.textContent || '').join('');
+
+      related.forEach((rm) => {
+        if (rm.parentNode) rm.replaceWith(...Array.from(rm.childNodes));
+      });
+
+      undoStack.current.push({ type: 'erase_highlight', hid, txt, col: curCol });
+      redoStack.current = [];
+
+      if (hid) {
+        try {
+          await deleteHighlight(hid);
+        } catch {
+          /* ignore */
+        }
+      }
+      onToast('Highlight erased');
+    },
+    [onToast],
+  );
+
   const applyRange = useCallback((rng: Range, col: string, hid: string | number): HTMLElement[] => {
     const nodes: Text[] = [];
     const root = rng.commonAncestorContainer;
@@ -118,7 +146,7 @@ export function useAnnotations({
       }
     }
     return marks;
-  }, []);
+  }, [eraseHighlightEl]);
 
   const applyHighlight = useCallback(
     (hl: LibraryHighlight) => {
@@ -176,34 +204,6 @@ export function useAnnotations({
       }
     },
     [applyHighlight],
-  );
-
-  const eraseHighlightEl = useCallback(
-    async (m: HTMLElement) => {
-      const hid = m.dataset.hid || '';
-      const curCol = m.style.background || colorRef.current;
-      const related = hid
-        ? Array.from(document.querySelectorAll(`mark[data-hid="${hid}"]`)) as HTMLElement[]
-        : [m];
-      const txt = related.map((rm) => rm.textContent || '').join('');
-
-      related.forEach((rm) => {
-        if (rm.parentNode) rm.replaceWith(...Array.from(rm.childNodes));
-      });
-
-      undoStack.current.push({ type: 'erase_highlight', hid, txt, col: curCol });
-      redoStack.current = [];
-
-      if (hid) {
-        try {
-          await deleteHighlight(hid);
-        } catch {
-          /* ignore */
-        }
-      }
-      onToast('Highlight erased');
-    },
-    [onToast],
   );
 
   const clearAnnotations = useCallback(() => {

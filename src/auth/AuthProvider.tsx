@@ -49,9 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- bootstrap on mount is
+     intentional: persisted token -> user session */
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await loginApi(email, password);
