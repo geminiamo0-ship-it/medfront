@@ -70,6 +70,21 @@ export function getQuestionBanks(step?: number, mainBankId?: number) {
   return api.get<QuestionBankWithProgress[]>('/tests/metadata/question-banks', { params });
 }
 
+/** POST /tests/counts/mixed — exact deduplicated count across combined modes. */
+export function getMixedModeCount(step: number, filters: Record<string, unknown>) {
+  return api.post<{ count: number }>('/tests/counts/mixed', { step, filters });
+}
+
+export type DifficultyTier = 'very_hard' | 'hard' | 'medium' | 'easy' | 'very_easy';
+
+/** POST /tests/metadata/difficulty-counts — per-tier counts for a bank set. */
+export function getDifficultyCounts(step: number, questionBankIds: number[]) {
+  return api.post<Record<DifficultyTier, number>>('/tests/metadata/difficulty-counts', {
+    step,
+    questionBankIds,
+  });
+}
+
 export interface SystemWithTopics {
   id: number;
   name: string;
