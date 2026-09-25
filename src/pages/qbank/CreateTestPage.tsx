@@ -8,6 +8,7 @@ import {
   getQuestionCounts,
   getSubjects,
   getSystemsWithTopics,
+  retrieveTestQuestions,
   type DifficultyTier,
   type QuestionCounts,
 } from '@/api/tests';
@@ -73,14 +74,36 @@ export default function CreateTestPage() {
   const { bank, step, bankId } = useOutletContext<WorkspaceContext>();
   const navigate = useNavigate();
   const [timed, setTimed] = useState(false);
+  const [questionTab, setQuestionTab] = useState<'standard' | 'custom'>('standard');
   const [modes, setModes] = useState<Array<keyof QuestionCounts>>(['unused']);
   const [tiers, setTiers] = useState<DifficultyTier[]>([]);
   const [subjectIds, setSubjectIds] = useState<number[]>([]);
   const [systemIds, setSystemIds] = useState<number[]>([]);
   const [topicIds, setTopicIds] = useState<number[]>([]);
   const [numQuestions, setNumQuestions] = useState(40);
+  const [testName, setTestName] = useState('');
+  const [uwIdsText, setUwIdsText] = useState('');
+  const [retrieveId, setRetrieveId] = useState('');
+  const [retrieving, setRetrieving] = useState(false);
+  const [retrieveMsg, setRetrieveMsg] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Custom mode: parse the comma-separated UW ID list (max 50, unique).
+  const customIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          uwIdsText
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+            .map(Number)
+            .filter((n) => Number.isFinite(n)),
+        ),
+      ).slice(0, 50),
+    [uwIdsText],
+  );
 
   const filters = useMemo(
     () => ({
@@ -154,14 +177,25 @@ export default function CreateTestPage() {
     setCreating(true);
     setError(null);
     try {
+      const isCustom = questionTab === 'custom';
       const single = modes.length === 1 ? modes[0] : null;
+      const total = isCustom
+        ? customIds.length
+        : Math.max(1, Math.min(200, numQuestions));
       const res = await createTest({
-        title: `${bank?.name ?? 'Bank'} — ${modes.length === 1 ? single : 'mixed'}`,
+        title:
+          testName.trim() ||
+          (isCustom
+            ? `${bank?.name ?? 'Bank'} — custom`
+            : `${bank?.name ?? 'Bank'} — ${modes.length === 1 ? single : 'mixed'}`),
         type: timed ? 'timed' : 'tutor',
-        mode: single ?? 'mixed',
+        mode: isCustom ? 'all' : (single ?? 'mixed'),
         step,
-        totalQuestions: Math.max(1, Math.min(200, numQuestions)),
-        filters: single ? filters : { ...filters, modes },
+        totalQuestions: Math.max(1, total),
+        // Timed tests require a time limit server-side (~90s per question).
+        ...(timed ? { timeLimitSeconds: Math.max(60, total * 90) } : {}),
+        filters: isCustom ? { questionBankIds: [bankId] } : single ? filters : { ...filters, modes },
+        ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
       });
       const testId = (res as { id?: number }).id ?? null;
       if (testId) navigate(`/test/${testId}`);
@@ -173,6 +207,29 @@ export default function CreateTestPage() {
     }
   }
 
+  async function handleRetrieve() {
+    const id = Number(retrieveId.trim());
+    setRetrieveMsg(null);
+    if (!Number.isFinite(id) || id <= 0) {
+      setRetrieveMsg('Enter a numeric test ID.');
+      return;
+    }
+    setRetrieving(true);
+    try {
+      const ids = await retrieveTestQuestions(id);
+      if (!Array.isArray(ids) || ids.length === 0) {
+        setRetrieveMsg('No questions found for that test ID.');
+      } else {
+        setUwIdsText(ids.join(','));
+        setRetrieveMsg(`Loaded ${ids.length} question ID${ids.length === 1 ? '' : 's'} from test #${id}.`);
+      }
+    } catch {
+      setRetrieveMsg('Could not retrieve questions for that test ID.');
+    } finally {
+      setRetrieving(false);
+    }
+  }
+
   return (
     <div>
       <h1 className="text-xl font-extrabold tracking-tight text-ink">Create Test</h1>
@@ -181,30 +238,137 @@ export default function CreateTestPage() {
         <div className="mt-4 rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">{error}</div>
       )}
 
-      {/* Standard Mode */}
+      {/* QUESTION MODE — Standard / Custom */}
       <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex items-baseline gap-3 border-b border-line px-6 py-4">
-          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Standard Mode</h2>
-          <span className="text-xs font-semibold text-ink-muted">
-            Available: <span className="font-bold text-link">{available ?? '…'}</span>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
+          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Question Mode</h2>
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-muted">
+            Total Available
+            <span className="rounded-full bg-mp/10 px-2 py-0.5 text-[11px] font-bold text-mp">
+              {counts?.all ?? '…'}
+            </span>
           </span>
+          <div className="ml-auto flex items-center rounded-full bg-surface2 p-1">
+            <button
+              type="button"
+              onClick={() => setQuestionTab('standard')}
+              className={`rounded-full px-5 py-1.5 text-sm font-bold transition-all ${
+                questionTab === 'standard'
+                  ? 'bg-surface text-ink shadow-card'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Standard
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuestionTab('custom')}
+              className={`rounded-full px-5 py-1.5 text-sm font-bold transition-all ${
+                questionTab === 'custom'
+                  ? 'bg-surface text-ink shadow-card'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Custom
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-5">
-          {MODES.map((m) => (
-            <label key={m.key} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
-              <input
-                type="checkbox"
-                checked={modes.includes(m.key)}
-                onChange={() => toggleMode(m.key)}
-                className="h-4 w-4 accent-mp"
-              />
-              <span className={modes.includes(m.key) ? 'font-bold text-ink' : ''}>{m.label}</span>
-              <CountPill n={counts?.[m.key]} />
-            </label>
-          ))}
-        </div>
+        {questionTab === 'standard' && (
+          <>
+            <div className="px-6 py-4 text-xs font-semibold text-ink-muted">
+              Available: <span className="font-bold text-link">{available ?? '…'}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 pb-5">
+              {MODES.map((m) => (
+                <label key={m.key} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+                  <input
+                    type="checkbox"
+                    checked={modes.includes(m.key)}
+                    onChange={() => toggleMode(m.key)}
+                    className="h-4 w-4 accent-mp"
+                  />
+                  <span className={modes.includes(m.key) ? 'font-bold text-ink' : ''}>{m.label}</span>
+                  <CountPill n={counts?.[m.key]} />
+                </label>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
+      {questionTab === 'custom' && (
+        <section className="mt-5 rounded-2xl border border-line bg-surface p-6 shadow-card">
+          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Test Name</h2>
+          <input
+            value={testName}
+            onChange={(e) => setTestName(e.target.value)}
+            placeholder="Optional — defaults to the bank name"
+            className="mt-3 w-full rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+          />
+
+          <div className="mt-5 rounded-xl border border-link/20 bg-link/5 p-4">
+            <h3 className="text-sm font-bold text-ink">Instructions on using Custom mode</h3>
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+              This mode lets you hand-pick exact questions by their UWorld IDs — for faculty/group
+              review, or to rebuild the same test inside a group. Only <strong>unused</strong>{' '}
+              questions from the selected bank can be used, and the maximum number of questions is{' '}
+              <strong>50</strong>. Invalid IDs are rejected.
+            </p>
+          </div>
+
+          <h2 className="mt-6 text-sm font-extrabold uppercase tracking-wide text-ink">
+            Retrieve questions of a test #
+          </h2>
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              value={retrieveId}
+              onChange={(e) => setRetrieveId(e.target.value)}
+              placeholder="Enter Test ID"
+              className="w-full max-w-xl rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void handleRetrieve()}
+              disabled={retrieving}
+              className="rounded-lg bg-link px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-link/90 disabled:opacity-50"
+            >
+              {retrieving ? 'Retrieving…' : 'Retrieve'}
+            </button>
+          </div>
+          {retrieveMsg && <p className="mt-2 text-xs font-semibold text-ink-muted">{retrieveMsg}</p>}
+
+          <div className="my-6 flex items-center gap-4">
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">or</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
+            Enter UW IDs separated by comma (,)
+          </h2>
+          <textarea
+            value={uwIdsText}
+            onChange={(e) => setUwIdsText(e.target.value)}
+            placeholder="e.g. 101,102,103"
+            rows={4}
+            className="mt-3 w-full resize-y rounded-lg border border-line bg-surface2 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+          />
+          <div className="mt-1.5 flex items-center justify-between text-xs">
+            <span className="text-ink-faint">Make sure the text does not end with a comma.</span>
+            <span
+              className={`font-bold ${
+                customIds.length > 50 ? 'text-bad' : customIds.length > 0 ? 'text-link' : 'text-ink-faint'
+              }`}
+            >
+              {customIds.length} / 50 selected
+            </span>
+          </div>
+        </section>
+      )}
+
+      {/* Standard-only filters */}
+      {questionTab === 'standard' && (
+        <>
       {/* Difficulty */}
       <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
         <div className="flex items-baseline gap-3 border-b border-line px-6 py-4">
@@ -297,6 +461,8 @@ export default function CreateTestPage() {
         onClearSystems={() => setSystemIds([])}
         onDropSystemTopics={(topicIdSet) => setTopicIds((prev) => prev.filter((t) => !topicIdSet.has(t)))}
       />
+        </>
+      )}
 
       {/* Test mode + count + create */}
       <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-6 shadow-card">
@@ -306,21 +472,28 @@ export default function CreateTestPage() {
           <ModeToggle active={timed} label="Timed" onClick={() => setTimed(true)} />
         </div>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-3 text-sm text-ink-soft">
-            <span className="font-bold text-ink">Questions</span>
-            <input
-              type="number"
-              min={1}
-              max={200}
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(Number(e.target.value))}
-              className="w-24 rounded-lg border border-line px-3 py-2 text-sm focus:border-mp focus:outline-none"
-            />
-          </label>
+          {questionTab === 'standard' && (
+            <label className="flex items-center gap-3 text-sm text-ink-soft">
+              <span className="font-bold text-ink">Questions</span>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={numQuestions}
+                onChange={(e) => setNumQuestions(Number(e.target.value))}
+                className="w-24 rounded-lg border border-line px-3 py-2 text-sm focus:border-mp focus:outline-none"
+              />
+            </label>
+          )}
           <button
             type="button"
             onClick={() => void handleCreate()}
-            disabled={creating || available == null || available === 0}
+            disabled={
+              creating ||
+              (questionTab === 'standard'
+                ? available == null || available === 0
+                : customIds.length === 0)
+            }
             className="rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white shadow-card transition-colors hover:bg-mp-hover disabled:opacity-50"
           >
             {creating ? 'Creating…' : 'Create Test'}

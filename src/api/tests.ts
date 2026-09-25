@@ -75,6 +75,11 @@ export function getMixedModeCount(step: number, filters: Record<string, unknown>
   return api.post<{ count: number }>('/tests/counts/mixed', { step, filters });
 }
 
+/** POST /tests/retrieve-questions — the UW external IDs contained in a test. */
+export function retrieveTestQuestions(testId: number) {
+  return api.post<number[]>('/tests/retrieve-questions', { testId });
+}
+
 export type DifficultyTier = 'very_hard' | 'hard' | 'medium' | 'easy' | 'very_easy';
 
 /** POST /tests/metadata/difficulty-counts — per-tier counts for a bank set. */
