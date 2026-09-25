@@ -51,6 +51,24 @@ function splitColumns<T>(items: T[]): T[][] {
   return cols;
 }
 
+/** Collapse topics that share a name into a single row: ids grouped, counts summed. */
+function mergeTopicsByName(
+  topics: Array<{ id: number; name: string; questionCount?: number }>,
+): Array<{ ids: number[]; name: string; count: number }> {
+  const byName = new Map<string, { ids: number[]; name: string; count: number }>();
+  for (const t of topics) {
+    const key = t.name.trim().toLowerCase();
+    const entry = byName.get(key);
+    if (entry) {
+      if (!entry.ids.includes(t.id)) entry.ids.push(t.id);
+      entry.count += t.questionCount ?? 0;
+    } else {
+      byName.set(key, { ids: [t.id], name: t.name, count: t.questionCount ?? 0 });
+    }
+  }
+  return Array.from(byName.values());
+}
+
 export default function CreateTestPage() {
   const { bank, step, bankId } = useOutletContext<WorkspaceContext>();
   const navigate = useNavigate();
@@ -350,11 +368,11 @@ function SystemsSection({
     }
   }
 
-  function toggleTopicRow(sys: SystemWithTopics, topicId: number) {
-    if (topicIds.includes(topicId)) {
-      onToggleTopic((prev) => prev.filter((t) => t !== topicId));
+  function toggleTopicRow(sys: SystemWithTopics, ids: number[]) {
+    if (ids.every((id) => topicIds.includes(id))) {
+      onToggleTopic((prev) => prev.filter((t) => !ids.includes(t)));
     } else {
-      onToggleTopic((prev) => [...prev, topicId]);
+      onToggleTopic((prev) => [...new Set([...prev, ...ids])]);
       if (!systemIds.includes(sys.id)) {
         onToggleSystem((prev) => [...prev, sys.id]);
       }
@@ -459,15 +477,16 @@ function SystemsSection({
 
                     {isOpen && (
                       <div className="mb-2 ml-9 space-y-0.5 border-l-2 border-line pl-3">
-                        {(sys.topics ?? []).length === 0 ? (
+                        {mergeTopicsByName(sys.topics ?? []).length === 0 ? (
                           <p className="py-1 text-xs text-ink-faint">No topics with questions.</p>
                         ) : (
-                          (sys.topics ?? []).map((t) => {
-                            const checked = topicIds.includes(t.id);
-                            const zero = (t.questionCount ?? 0) === 0;
+                          mergeTopicsByName(sys.topics ?? []).map((t) => {
+                            const allSelected = t.ids.every((id) => topicIds.includes(id));
+                            const someSelected = t.ids.some((id) => topicIds.includes(id));
+                            const zero = t.count === 0;
                             return (
                               <label
-                                key={t.id}
+                                key={t.ids[0]}
                                 className={`flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm transition-colors ${
                                   zero
                                     ? 'cursor-not-allowed text-ink-faint'
@@ -476,13 +495,16 @@ function SystemsSection({
                               >
                                 <input
                                   type="checkbox"
-                                  checked={checked}
+                                  checked={allSelected}
+                                  ref={(el) => {
+                                    if (el) el.indeterminate = someSelected && !allSelected;
+                                  }}
                                   disabled={zero}
-                                  onChange={() => toggleTopicRow(sys, t.id)}
+                                  onChange={() => toggleTopicRow(sys, t.ids)}
                                   className="h-3.5 w-3.5 shrink-0 accent-mp"
                                 />
                                 <span className="min-w-0 flex-1 truncate">{t.name}</span>
-                                <CountPill n={t.questionCount} />
+                                <CountPill n={t.count} />
                               </label>
                             );
                           })
