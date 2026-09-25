@@ -88,7 +88,9 @@ export function getDifficultyCounts(step: number, questionBankIds: number[]) {
 export interface SystemWithTopics {
   id: number;
   name: string;
-  topics?: Array<{ id: number; name: string }>;
+  description?: string | null;
+  questionCount?: number;
+  topics?: Array<{ id: number; name: string; questionCount?: number }>;
 }
 
 export interface QbankStatistics {
