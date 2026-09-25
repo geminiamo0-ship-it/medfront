@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { SectionLoader } from '@/components/PulseLoader';
 import { getMainBanks, getPerformanceOverview, type MainBank } from '@/api/tests';
 import { STEPS, stepLabel } from '@/lib/nav';
 
@@ -101,10 +102,11 @@ export default function DashboardPage() {
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {banksQuery.isLoading &&
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-56 animate-pulse rounded-2xl border border-line bg-surface" />
-            ))}
+          {banksQuery.isLoading && (
+            <div className="col-span-full">
+              <SectionLoader minHeight={230} label="Loading banks" />
+            </div>
+          )}
 
           {banksQuery.isError && (
             <div className="col-span-full rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">

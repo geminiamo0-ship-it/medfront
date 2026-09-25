@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getQbankStatistics } from '@/api/tests';
 import { ApiError } from '@/api/client';
+import { SectionLoader } from '@/components/PulseLoader';
 import type { MainBank } from '@/api/tests';
 
 export interface WorkspaceContext {
@@ -118,13 +119,7 @@ export default function WelcomePage() {
     (statsError.status === 423 || /locked/i.test(statsError.message ?? ''));
 
   if (statsQuery.isLoading) {
-    return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-64 animate-pulse rounded-2xl border border-line bg-surface" />
-        ))}
-      </div>
-    );
+    return <SectionLoader minHeight={420} label="Loading statistics" />;
   }
 
   if (statsQuery.isError && locked) {

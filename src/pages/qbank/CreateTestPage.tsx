@@ -14,6 +14,7 @@ import {
 } from '@/api/tests';
 import type { SystemWithTopics } from '@/api/tests';
 import { type WorkspaceContext } from './WelcomePage';
+import { SectionLoader } from '@/components/PulseLoader';
 
 /** Checkbox order mirrors the real UWorld Create Test screen. */
 const MODES: Array<{ key: keyof QuestionCounts; label: string }> = [
@@ -421,7 +422,9 @@ export default function CreateTestPage() {
           </h2>
         </div>
         {subjectsQuery.isLoading ? (
-          <div className="mt-4 h-32 animate-pulse rounded-xl bg-surface2" />
+          <div className="mt-4">
+            <SectionLoader minHeight={130} label="Loading subjects" />
+          </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
             {subjectColumns.map((col, ci) => (
@@ -608,7 +611,9 @@ function SystemsSection({
           Select at least one subject to unlock systems and their topics.
         </p>
       ) : systemsQueryIsLoading ? (
-        <div className="mt-4 h-32 animate-pulse rounded-xl bg-surface2" />
+        <div className="mt-4">
+          <SectionLoader minHeight={130} label="Loading systems" />
+        </div>
       ) : systems.length === 0 ? (
         <p className="mt-3 text-sm text-ink-muted">No systems available for this selection.</p>
       ) : (

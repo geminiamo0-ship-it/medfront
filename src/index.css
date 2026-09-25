@@ -48,3 +48,58 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 9999s ease-out 0s;
 }
+/* ── Heartbeat loader: MedPark logo beats like a heart with a flowing ECG mark ── */
+@keyframes mp-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.18);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.12);
+  }
+  56% {
+    transform: scale(1);
+  }
+}
+.mp-heartbeat {
+  animation: mp-heartbeat 1.2s ease-in-out infinite;
+  transform-origin: center;
+  filter: drop-shadow(0 0 6px rgba(255, 69, 0, 0.35));
+}
+
+/* ECG trace draws itself around the ring, like a monitor sweep. */
+@keyframes mp-ecg-flow {
+  from {
+    stroke-dashoffset: 96;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.mp-ecg-flow {
+  stroke-dasharray: 34 62;
+  animation: mp-ecg-flow 1.4s linear infinite;
+}
+
+/* Soft ring breathing behind the beating logo. */
+@keyframes mp-ring-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+.mp-ring-breathe {
+  animation: mp-ring-breathe 1.2s ease-in-out infinite;
+  transform-origin: center;
+}

@@ -1,4 +1,5 @@
 import type { LibraryArticleRef, LibraryCategory } from '@/api/library';
+import { PulseLoader } from '@/components/PulseLoader';
 import { CategoryNode } from './CategoryNode';
 
 export interface StructureLocked {
@@ -110,7 +111,7 @@ export function LibrarySidebar({
         <div id="tw">
           {structureLoading && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180 }}>
-              <div className="sp" />
+              <PulseLoader size={56} label="Loading library" />
             </div>
           )}
           {!structureLoading && structureError && (

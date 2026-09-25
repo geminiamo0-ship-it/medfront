@@ -26,6 +26,7 @@ import {
   transformToAmbossCards,
 } from './amboss';
 import { useAnnotations } from './useAnnotations';
+import { PulseLoader } from '@/components/PulseLoader';
 import { Toast } from './Toast';
 import { Lightbox } from './Lightbox';
 import { AmbossImageViewer, type ImageViewerData } from './AmbossImageViewer';
@@ -1037,10 +1038,21 @@ export default function LibraryPage() {
               <div id="art-wrap">
                 {articleLoading && (
                   <div id="acon" style={{ display: 'block' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="sk" style={{ height: 26, width: i === 0 ? '55%' : '100%' }} />
-                      ))}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 18,
+                        padding: '18px 0',
+                      }}
+                    >
+                      <PulseLoader size={64} label="Loading article" />
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="sk" style={{ height: 26, width: i === 0 ? '55%' : '100%' }} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

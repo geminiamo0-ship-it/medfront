@@ -1,6 +1,7 @@
 import { Link, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getPreviousTests } from '@/api/tests';
+import { SectionLoader } from '@/components/PulseLoader';
 import { type WorkspaceContext } from './WelcomePage';
 
 function formatDate(iso: string | null): string {
@@ -24,11 +25,7 @@ export default function PreviousTestsPage() {
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {testsQuery.isLoading ? (
-          <div className="space-y-3 p-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-surface2" />
-            ))}
-          </div>
+          <SectionLoader minHeight={260} label="Loading tests" />
         ) : testsQuery.isError ? (
           <div className="border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">Could not load tests. Please refresh.</div>
         ) : tests.length === 0 ? (

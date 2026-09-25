@@ -2,6 +2,7 @@
 import { providerGradient, providerInitials } from './qbank/bankTheme';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { SectionLoader } from '@/components/PulseLoader';
 import {
   getMainBanks,
   getQuestionBanks,
@@ -144,10 +145,11 @@ export default function QbankPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {questionBanksQuery.isLoading &&
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-52 animate-pulse rounded-2xl border border-line bg-surface" />
-              ))}
+            {questionBanksQuery.isLoading && (
+              <div className="col-span-full">
+                <SectionLoader minHeight={220} label="Loading banks" />
+              </div>
+            )}
 
             {questionBanksQuery.isError && (
               <div className="col-span-full rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">
@@ -177,10 +179,11 @@ export default function QbankPage() {
           </p>
 
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {banksListQuery.isLoading &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-44 animate-pulse rounded-2xl border border-line bg-surface" />
-              ))}
+            {banksListQuery.isLoading && (
+              <div className="col-span-full">
+                <SectionLoader minHeight={200} label="Loading banks" />
+              </div>
+            )}
 
             {banksListQuery.isError && (
               <div className="col-span-full rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">

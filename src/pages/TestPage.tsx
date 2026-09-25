@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
+import { PulseLoader } from '@/components/PulseLoader';
 
 export default function TestPage() {
   const { testId } = useParams();
@@ -22,10 +23,12 @@ export default function TestPage() {
         <h1 className="mt-5 text-xl font-extrabold tracking-tight text-ink">
           {test?.title ?? `Test #${testId}`}
         </h1>
-        <p className="mt-2 text-sm text-ink-muted">
-          {test
-            ? `${test.status?.replace('_', ' ')} · ${test.totalQuestions} questions`
-            : 'Loading…'}
+        <p className="mt-2 flex min-h-20 items-center justify-center text-sm text-ink-muted">
+          {test ? (
+            `${test.status?.replace('_', ' ')} · ${test.totalQuestions} questions`
+          ) : (
+            <PulseLoader size={56} label="Loading test" />
+          )}
         </p>
         <p className="mt-6 rounded-xl bg-mp/5 px-4 py-3 text-sm text-ink-soft">
           The question runner is coming in the next round. Your test has been created and saved.
