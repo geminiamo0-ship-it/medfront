@@ -1,6 +1,8 @@
 import { useOutletContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getQbankStatistics } from '@/api/tests';
+import { ApiError } from '@/api/client';
 import type { MainBank } from '@/api/tests';
 
 export interface WorkspaceContext {
@@ -108,12 +110,43 @@ export default function WelcomePage() {
   const scorePct = stats ? Number(stats.score.percentage) : 0;
   const usagePct = stats ? Number(stats.usage.percentage) : 0;
 
+  // Block banks (NBME forms, Self Assessments) return HTTP 423 until every
+  // block is completed — show a friendly locked state instead of an error.
+  const statsError = statsQuery.error;
+  const locked =
+    statsError instanceof ApiError &&
+    (statsError.status === 423 || /locked/i.test(statsError.message ?? ''));
+
   if (statsQuery.isLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-64 animate-pulse rounded-2xl border border-line bg-surface" />
         ))}
+      </div>
+    );
+  }
+
+  if (statsQuery.isError && locked) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-line bg-surface p-10 text-center shadow-card">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-warn/10">
+          <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7 text-warn" stroke="currentColor" strokeWidth="2">
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </svg>
+        </span>
+        <h2 className="mt-4 text-lg font-extrabold text-ink">Results are locked</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          {statsError instanceof ApiError ? statsError.message : 'Results are locked.'} Finish this
+          bank's blocks to unlock your statistics.
+        </p>
+        <Link
+          to="create-test"
+          className="mt-6 inline-block rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-mp-hover"
+        >
+          Continue with a new test
+        </Link>
       </div>
     );
   }
