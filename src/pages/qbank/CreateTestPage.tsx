@@ -211,12 +211,33 @@ export default function CreateTestPage() {
         </div>
       </section>
 
-      {/* Subjects — two-column matrix */}
+      {/* Subjects — two-column matrix with a select-all master checkbox */}
       <section className="mt-5 rounded-2xl border border-line bg-surface px-6 py-5 shadow-card">
-        <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
-          Subjects{' '}
-          {subjectIds.length > 0 && <span className="text-mp">({subjectIds.length} selected)</span>}
-        </h2>
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            aria-label="Select all subjects"
+            checked={subjects.length > 0 && subjectIds.length === subjects.length}
+            ref={(el) => {
+              if (el) el.indeterminate = subjectIds.length > 0 && subjectIds.length < subjects.length;
+            }}
+            onChange={() => {
+              if (subjectIds.length === subjects.length) {
+                // Clearing subjects orphans system/topic constraints — reset them.
+                setSubjectIds([]);
+                setSystemIds([]);
+                setTopicIds([]);
+              } else {
+                setSubjectIds(subjects.map((s) => s.id));
+              }
+            }}
+            className="h-4 w-4 accent-mp"
+          />
+          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
+            Subjects{' '}
+            {subjectIds.length > 0 && <span className="text-mp">({subjectIds.length} selected)</span>}
+          </h2>
+        </div>
         {subjectsQuery.isLoading ? (
           <div className="mt-4 h-32 animate-pulse rounded-xl bg-surface2" />
         ) : (
@@ -244,8 +265,10 @@ export default function CreateTestPage() {
         )}
       </section>
 
-      {/* Systems — two-column matrix with expandable topics + global topic search */}
+      {/* Systems — two-column matrix with expandable topics + global topic search.
+          Disabled until the user picks at least one subject. */}
       <SystemsSection
+        disabled={subjectIds.length === 0}
         systemsQueryIsLoading={systemsQuery.isLoading}
         systemColumns={systemColumns}
         systems={systems}
@@ -253,6 +276,7 @@ export default function CreateTestPage() {
         topicIds={topicIds}
         onToggleSystem={setSystemIds}
         onToggleTopic={setTopicIds}
+        onClearSystems={() => setSystemIds([])}
         onDropSystemTopics={(topicIdSet) => setTopicIds((prev) => prev.filter((t) => !topicIdSet.has(t)))}
       />
 
@@ -292,6 +316,7 @@ export default function CreateTestPage() {
 /* ── Systems: matrix + per-system topic expander + global topic search ── */
 
 function SystemsSection({
+  disabled,
   systemsQueryIsLoading,
   systemColumns,
   systems,
@@ -299,8 +324,10 @@ function SystemsSection({
   topicIds,
   onToggleSystem,
   onToggleTopic,
+  onClearSystems,
   onDropSystemTopics,
 }: {
+  disabled: boolean;
   systemsQueryIsLoading: boolean;
   systemColumns: SystemWithTopics[][];
   systems: SystemWithTopics[];
@@ -308,6 +335,7 @@ function SystemsSection({
   topicIds: number[];
   onToggleSystem: (setter: (prev: number[]) => number[]) => void;
   onToggleTopic: (setter: (prev: number[]) => number[]) => void;
+  onClearSystems: () => void;
   onDropSystemTopics: (topicIdSet: Set<number>) => void;
 }) {
   const [expanded, setExpanded] = useState<number[]>([]);
@@ -333,9 +361,33 @@ function SystemsSection({
     }
   }
 
+  const allSystemsSelected = systems.length > 0 && systemIds.length === systems.length;
+
   return (
-    <section className="relative mt-5 rounded-2xl border border-line bg-surface px-6 py-5 shadow-card">
+    <section
+      className={`relative mt-5 rounded-2xl border bg-surface px-6 py-5 shadow-card transition-opacity ${
+        disabled ? 'pointer-events-none opacity-50 border-dashed' : 'border-line'
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-4">
+        <input
+          type="checkbox"
+          aria-label="Select all systems"
+          disabled={disabled}
+          checked={allSystemsSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = systemIds.length > 0 && systemIds.length < systems.length;
+          }}
+          onChange={() => {
+            if (allSystemsSelected) {
+              onClearSystems();
+              onDropSystemTopics(new Set(topicIds));
+            } else {
+              onToggleSystem(() => systems.map((s) => s.id));
+            }
+          }}
+          className="h-4 w-4 accent-mp"
+        />
         <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
           Systems{' '}
           {systemIds.length > 0 && <span className="text-mp">({systemIds.length} selected)</span>}
@@ -360,7 +412,11 @@ function SystemsSection({
         />
       </div>
 
-      {systemsQueryIsLoading ? (
+      {disabled ? (
+        <p className="mt-3 text-sm text-ink-muted">
+          Select at least one subject to unlock systems and their topics.
+        </p>
+      ) : systemsQueryIsLoading ? (
         <div className="mt-4 h-32 animate-pulse rounded-xl bg-surface2" />
       ) : systems.length === 0 ? (
         <p className="mt-3 text-sm text-ink-muted">No systems available for this selection.</p>
@@ -462,25 +518,43 @@ function TopicSearchButton({
   const [pending, setPending] = useState<number[]>(topicIds);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // All topics flattened, with their parent system name for context.
-  const allTopics = useMemo(
-    () =>
-      systems.flatMap((sys) =>
-        (sys.topics ?? []).map((t) => ({
-          id: t.id,
-          name: t.name,
-          count: t.questionCount ?? 0,
-          systemName: sys.name,
-        })),
-      ),
-    [systems],
-  );
+  // All topics flattened, then MERGED by name: topics that share a name across
+  // different systems/subjects appear once, with counts summed and the parent
+  // systems listed for context. Selecting a merged row selects every underlying
+  // topic id, so the backend filter stays exact.
+  const allTopics = useMemo(() => {
+    const byName = new Map<
+      string,
+      { ids: number[]; name: string; count: number; systemNames: string[] }
+    >();
+    for (const sys of systems) {
+      for (const t of sys.topics ?? []) {
+        const key = t.name.trim().toLowerCase();
+        const entry = byName.get(key);
+        if (entry) {
+          if (!entry.ids.includes(t.id)) entry.ids.push(t.id);
+          entry.count += t.questionCount ?? 0;
+          if (!entry.systemNames.includes(sys.name)) entry.systemNames.push(sys.name);
+        } else {
+          byName.set(key, {
+            ids: [t.id],
+            name: t.name,
+            count: t.questionCount ?? 0,
+            systemNames: [sys.name],
+          });
+        }
+      }
+    }
+    return Array.from(byName.values());
+  }, [systems]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return allTopics;
     return allTopics.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.systemName.toLowerCase().includes(q),
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.systemNames.some((s) => s.toLowerCase().includes(q)),
     );
   }, [allTopics, query]);
 
@@ -538,28 +612,36 @@ function TopicSearchButton({
                 <p className="px-3 py-6 text-center text-sm text-ink-muted">No topics match.</p>
               ) : (
                 filtered.map((t) => {
-                  const checked = pending.includes(t.id);
+                  const allSelected = t.ids.every((id) => pending.includes(id));
+                  const someSelected = t.ids.some((id) => pending.includes(id));
                   const zero = t.count === 0;
                   return (
                     <label
-                      key={`${t.id}-${t.systemName}`}
+                      key={t.ids[0]}
                       className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors ${
                         zero ? 'cursor-not-allowed text-ink-faint' : 'cursor-pointer text-ink-soft hover:bg-surface2'
                       }`}
                     >
                       <input
                         type="checkbox"
-                        checked={checked}
+                        checked={allSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someSelected && !allSelected;
+                        }}
                         disabled={zero}
                         onChange={() =>
                           setPending((prev) =>
-                            prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id],
+                            allSelected
+                              ? prev.filter((x) => !t.ids.includes(x))
+                              : [...new Set([...prev, ...t.ids])],
                           )
                         }
                         className="h-4 w-4 shrink-0 accent-mp"
                       />
                       <span className="min-w-0 flex-[1.2] truncate font-medium text-ink">{t.name}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs text-ink-faint">{t.systemName}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs text-ink-faint">
+                        {t.systemNames.join(' · ')}
+                      </span>
                       <span className="inline-flex min-w-9 shrink-0 justify-center rounded-full border border-line px-2 py-0.5 text-[11px] font-bold text-ink-soft">
                         {t.count}
                       </span>
