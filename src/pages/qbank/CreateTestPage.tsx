@@ -11,13 +11,15 @@ import {
   retrieveTestQuestions,
   type DifficultyTier,
   type QuestionCounts,
+  type QuestionStatusMode,
+  type TestFilters,
 } from '@/api/tests';
 import type { SystemWithTopics } from '@/api/tests';
 import { type WorkspaceContext } from './WelcomePage';
 import { SectionLoader } from '@/components/PulseLoader';
 
 /** Checkbox order mirrors the real UWorld Create Test screen. */
-const MODES: Array<{ key: keyof QuestionCounts; label: string }> = [
+const MODES: Array<{ key: QuestionStatusMode; label: string }> = [
   { key: 'all', label: 'All' },
   { key: 'unused', label: 'Unused' },
   { key: 'used', label: 'Used' },
@@ -37,6 +39,47 @@ const TIERS: Array<{ key: DifficultyTier; label: string }> = [
   { key: 'easy', label: 'Easy' },
   { key: 'very_easy', label: 'Very Easy' },
 ];
+
+const MAX_CUSTOM_IDS = 50;
+const MAX_QUESTION_ID = 2_147_483_647;
+
+interface ParsedCustomIds {
+  ids: number[];
+  invalidTokens: string[];
+}
+
+function parseCustomIds(value: string): ParsedCustomIds {
+  const ids: number[] = [];
+  const invalidTokens: string[] = [];
+  const seenIds = new Set<number>();
+  const seenInvalid = new Set<string>();
+
+  for (const token of value.split(',').map((part) => part.trim()).filter(Boolean)) {
+    if (!/^\d+$/.test(token)) {
+      if (!seenInvalid.has(token)) {
+        seenInvalid.add(token);
+        invalidTokens.push(token);
+      }
+      continue;
+    }
+
+    const id = Number(token);
+    if (!Number.isSafeInteger(id) || id <= 0 || id > MAX_QUESTION_ID) {
+      if (!seenInvalid.has(token)) {
+        seenInvalid.add(token);
+        invalidTokens.push(token);
+      }
+      continue;
+    }
+
+    if (!seenIds.has(id)) {
+      seenIds.add(id);
+      ids.push(id);
+    }
+  }
+
+  return { ids, invalidTokens };
+}
 
 function CountPill({ n }: { n: number | undefined }) {
   return (
@@ -76,7 +119,7 @@ export default function CreateTestPage() {
   const navigate = useNavigate();
   const [timed, setTimed] = useState(false);
   const [questionTab, setQuestionTab] = useState<'standard' | 'custom'>('standard');
-  const [modes, setModes] = useState<Array<keyof QuestionCounts>>(['unused']);
+  const [modes, setModes] = useState<QuestionStatusMode[]>(['unused']);
   const [tiers, setTiers] = useState<DifficultyTier[]>([]);
   const [subjectIds, setSubjectIds] = useState<number[]>([]);
   const [systemIds, setSystemIds] = useState<number[]>([]);
@@ -90,23 +133,16 @@ export default function CreateTestPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Custom mode: parse the comma-separated UW ID list (max 50, unique).
-  const customIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          uwIdsText
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0)
-            .map(Number)
-            .filter((n) => Number.isFinite(n)),
-        ),
-      ).slice(0, 50),
-    [uwIdsText],
-  );
+  const customIdState = useMemo(() => parseCustomIds(uwIdsText), [uwIdsText]);
+  const customIds = customIdState.ids;
+  const customHasInvalidTokens = customIdState.invalidTokens.length > 0;
+  const customTooMany = customIds.length > MAX_CUSTOM_IDS;
+  const customCanCreate = customIds.length > 0 && !customHasInvalidTokens && !customTooMany;
+  const invalidCustomPreview = customIdState.invalidTokens.slice(0, 8).join(', ');
+  const invalidCustomMore = Math.max(0, customIdState.invalidTokens.length - 8);
 
-  const filters = useMemo(
+  // Final availability/create filters include the learner's system/topic selections.
+  const filters = useMemo<TestFilters>(
     () => ({
       questionBankIds: [bankId],
       ...(subjectIds.length > 0 ? { subjectIds } : {}),
@@ -115,6 +151,18 @@ export default function CreateTestPage() {
       ...(tiers.length > 0 ? { difficulty: tiers } : {}),
     }),
     [bankId, subjectIds, systemIds, topicIds, tiers],
+  );
+
+  // Systems/topics metadata must describe the available matrix, not shrink to
+  // the rows already selected by the learner. Subject/difficulty can scope the
+  // metadata universe; system/topic selections only scope availability/create.
+  const metadataFilters = useMemo<TestFilters>(
+    () => ({
+      questionBankIds: [bankId],
+      ...(subjectIds.length > 0 ? { subjectIds } : {}),
+      ...(tiers.length > 0 ? { difficulty: tiers } : {}),
+    }),
+    [bankId, subjectIds, tiers],
   );
 
   const countsQuery = useQuery({
@@ -154,8 +202,8 @@ export default function CreateTestPage() {
   const subjectColumns = useMemo(() => splitColumns(subjects), [subjects]);
 
   const systemsQuery = useQuery({
-    queryKey: ['test-systems', step, filters],
-    queryFn: () => getSystemsWithTopics(step, filters),
+    queryKey: ['test-systems', step, metadataFilters],
+    queryFn: () => getSystemsWithTopics(step, metadataFilters),
   });
   const systems = useMemo(
     () => (systemsQuery.data ?? []) as SystemWithTopics[],
@@ -163,7 +211,7 @@ export default function CreateTestPage() {
   );
   const systemColumns = useMemo(() => splitColumns(systems), [systems]);
 
-  function toggleMode(key: keyof QuestionCounts) {
+  function toggleMode(key: QuestionStatusMode) {
     setModes((prev) => {
       const next = prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key];
       return next.length > 0 ? next : prev;
@@ -175,10 +223,22 @@ export default function CreateTestPage() {
   }
 
   async function handleCreate() {
+    const isCustom = questionTab === 'custom';
+
+    if (isCustom && !customCanCreate) {
+      if (customHasInvalidTokens) {
+        setError('Fix the invalid UWorld IDs before creating the test.');
+      } else if (customTooMany) {
+        setError(`Custom tests support a maximum of ${MAX_CUSTOM_IDS} unique UWorld IDs.`);
+      } else {
+        setError('Enter at least one valid UWorld ID.');
+      }
+      return;
+    }
+
     setCreating(true);
     setError(null);
     try {
-      const isCustom = questionTab === 'custom';
       const single = modes.length === 1 ? modes[0] : null;
       const total = isCustom
         ? customIds.length
@@ -190,7 +250,7 @@ export default function CreateTestPage() {
             ? `${bank?.name ?? 'Bank'} — custom`
             : `${bank?.name ?? 'Bank'} — ${modes.length === 1 ? single : 'mixed'}`),
         type: timed ? 'timed' : 'tutor',
-        mode: isCustom ? 'all' : (single ?? 'mixed'),
+        mode: isCustom ? 'all' : (single ?? 'mixed_modes'),
         step,
         totalQuestions: Math.max(1, total),
         // Timed tests require a time limit server-side (~90s per question).
@@ -198,7 +258,7 @@ export default function CreateTestPage() {
         filters: isCustom ? { questionBankIds: [bankId] } : single ? filters : { ...filters, modes },
         ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
       });
-      const testId = (res as { id?: number }).id ?? null;
+      const testId = res.id ?? null;
       if (testId) navigate(`/test/${testId}`);
       else setError('Test created but no ID returned.');
     } catch (e) {
@@ -276,8 +336,15 @@ export default function CreateTestPage() {
         </div>
         {questionTab === 'standard' && (
           <>
-            <div className="px-6 py-4 text-xs font-semibold text-ink-muted">
-              Available: <span className="font-bold text-link">{available ?? '…'}</span>
+            <div className="flex flex-wrap items-center gap-2 px-6 py-4 text-xs font-semibold text-ink-muted">
+              <span>
+                Available: <span className="font-bold text-link">{available ?? '…'}</span>
+              </span>
+              {modes.length > 1 && (
+                <span className="rounded-full border border-mp/20 bg-mp/10 px-2.5 py-1 text-[11px] font-bold text-mp">
+                  Mixed · {modes.length} selected
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 pb-5">
               {MODES.map((m) => (
@@ -352,18 +419,39 @@ export default function CreateTestPage() {
             onChange={(e) => setUwIdsText(e.target.value)}
             placeholder="e.g. 101,102,103"
             rows={4}
-            className="mt-3 w-full resize-y rounded-lg border border-line bg-surface2 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+            aria-invalid={customHasInvalidTokens || customTooMany}
+            aria-describedby="custom-id-feedback"
+            className={`mt-3 w-full resize-y rounded-lg border bg-surface2 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none ${
+              customHasInvalidTokens || customTooMany
+                ? 'border-bad/60 focus:border-bad'
+                : 'border-line focus:border-mp'
+            }`}
           />
-          <div className="mt-1.5 flex items-center justify-between text-xs">
-            <span className="text-ink-faint">Make sure the text does not end with a comma.</span>
+          <div id="custom-id-feedback" className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="text-ink-faint">Use comma-separated positive integer UWorld IDs.</span>
             <span
               className={`font-bold ${
-                customIds.length > 50 ? 'text-bad' : customIds.length > 0 ? 'text-link' : 'text-ink-faint'
+                customTooMany || customHasInvalidTokens
+                  ? 'text-bad'
+                  : customIds.length > 0
+                    ? 'text-link'
+                    : 'text-ink-faint'
               }`}
             >
-              {customIds.length} / 50 selected
+              {customIds.length} / {MAX_CUSTOM_IDS} selected
             </span>
           </div>
+          {customHasInvalidTokens && (
+            <p className="mt-2 text-xs font-semibold text-bad" role="alert">
+              Invalid ID{customIdState.invalidTokens.length === 1 ? '' : 's'}: {invalidCustomPreview}
+              {invalidCustomMore > 0 ? ` …and ${invalidCustomMore} more` : ''}. Use positive whole numbers only.
+            </p>
+          )}
+          {customTooMany && (
+            <p className="mt-2 text-xs font-semibold text-bad" role="alert">
+              Maximum {MAX_CUSTOM_IDS} unique UWorld IDs. Your input is preserved; remove {customIds.length - MAX_CUSTOM_IDS} to continue.
+            </p>
+          )}
         </section>
       )}
 
@@ -495,7 +583,7 @@ export default function CreateTestPage() {
               creating ||
               (questionTab === 'standard'
                 ? available == null || available === 0
-                : customIds.length === 0)
+                : !customCanCreate)
             }
             className="rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white shadow-card transition-colors hover:bg-mp-hover disabled:opacity-50"
           >
