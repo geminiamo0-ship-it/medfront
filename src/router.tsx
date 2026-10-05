@@ -40,21 +40,23 @@ export const router = createBrowserRouter([
   // Onboarding (own layout)
   { path: '/complete-profile', element: protect(<CompleteProfilePage />) },
 
-  // App shell
+  // Selected-bank QBank workspace owns its own navigation shell.
+  {
+    path: '/qbank/:bankId',
+    element: protect(<QbankWorkspace />),
+    children: [
+      { index: true, element: <WelcomePage /> },
+      { path: 'create-test', element: <CreateTestPage /> },
+      { path: 'previous-tests', element: <PreviousTestsPage /> },
+    ],
+  },
+
+  // Global app shell
   {
     element: protect(<AppLayout />),
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/contests', element: <ComingSoon title="Contests" /> },
-      {
-        path: '/qbank/:bankId',
-        element: <QbankWorkspace />,
-        children: [
-          { index: true, element: <WelcomePage /> },
-          { path: 'create-test', element: <CreateTestPage /> },
-          { path: 'previous-tests', element: <PreviousTestsPage /> },
-        ],
-      },
       { path: '/qbank', element: <QbankPage /> },
       { path: '/test/:testId', element: <TestPage /> },
       { path: '/ai-analyst', element: <ComingSoon title="AI Analyst" /> },
