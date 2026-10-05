@@ -1,53 +1,108 @@
-# Backend overview
+# Backend Overview
 
-Source lives on the **`backend`** branch of `geminiamo0-ship-it/medfront` (`medpark-backend` v1.0.0). This document describes that service; the frontend docs live on `main`.
+## Canonical source
+
+The **canonical/live MedPark backend** is:
+
+```text
+geminiamo0-ship-it/medhvgg
+branch: main
+```
+
+The `backend` branch inside this `medfront` repository is a **reference-only imported snapshot** with a separate root history. It is useful for historical docs/code archaeology, but it must not be developed, deployed or treated as the source of current API truth.
+
+When a frontend task depends on backend behavior, inspect current `medhvgg/main` controller/DTO/service/entity code.
 
 ## Stack
 
-NestJS 10 · TypeORM 0.3 · PostgreSQL (`pg`) · Passport (JWT + local) · Redis (`ioredis`, `@keyv/redis`, `cache-manager`) · `@nestjs/throttler` (rate limiting) · `@nestjs/schedule` · `@nestjs/swagger` · Helmet · `class-validator` / `class-transformer` · `bcryptjs` · Resend (email) · OpenAI SDK + `@google/genai` (AI) · `geoip-lite` · `jszip` · `sqlite3` (import tooling) · `esbuild` + `wrangler` (Cloudflare Worker build)
+The current canonical backend uses NestJS 10, TypeORM 0.3, PostgreSQL (`pg`), JWT/Passport, Redis/cache infrastructure, Nest throttling/scheduling, Swagger, Helmet/security middleware, validation/transformation, email/AI integrations, import tooling, and deployment/build tooling including Cloudflare-related scripts.
 
-## Modules
+## Architecture/modules
 
-`activity` · `admin` · `affiliate` · `auth` · `cache` · `careers` · `contests` · `database` · `email` · `encryption` · `filters` · `finance` · `flashcards` · `health` · `integrations` · `lab-values` · `library` · `media` · `messages` · `notes` · `notebook` · `rate-limit` · `revision` · `scripts` · `security` · `settings` · `subscriptions` · `support` · `tests` · `tickets` · `users` · `utils`
+The canonical backend tree currently contains mature domain areas including:
 
-Plus `src/entities/` (data model) and `src/migrations/` (~90 TypeORM migrations).
+- auth;
+- users;
+- tests/QBank/exam execution;
+- library;
+- notebook and question notes;
+- flashcards;
+- revision;
+- contests;
+- subscriptions/pricing/manual payments;
+- messages;
+- tickets/support;
+- affiliate/coupons;
+- careers;
+- lab values/media;
+- admin;
+- finance;
+- activity;
+- settings;
+- security/rate limit;
+- health/database monitoring;
+- encryption/caching/integrations;
+- entities/migrations/import scripts.
 
-Cross-cutting subsystems: response-encryption interceptor, security guards (IP block, quotas, watermark, content-security), Helmet + CSP, Redis caching with a safe-cache wrapper, geoip activity logging, analytics snapshots/daily stats, wallets/ledger/payroll/finance, subscriptions and manual payments, contests, jobs & careers, tickets/support, notifications, admin tooling (gate, expenses, coupons, badges, notes).
+`src/app.module.ts` wires global application concerns including throttling/roles/security guards and interceptors such as maintenance/encryption behavior. `src/main.ts` applies production bootstrap concerns such as environment validation, Helmet/CSP, CORS, global validation and API prefixing.
 
-## npm scripts
+For a product-oriented map, see [`BACKEND_CAPABILITY_MAP.md`](BACKEND_CAPABILITY_MAP.md).
 
-| Group | Scripts |
-|---|---|
-| Run | `start`, `start:dev`, `start:debug`, `start:prod`, `dev:worker`, `deploy` |
-| Quality | `build`, `lint`, `format`, `test`, `test:watch`, `test:cov`, `test:debug`, `test:e2e` |
-| DB | `typeorm`, `migration:run`, `migration:run:dev`, `migration:revert`, `migration:revert:dev`, `migration:generate`, `migration:create`, `migration:show`, `db:reset` |
-| Seed | `seed`, `seed:profiles`, `seed:uworld-s1-order` |
-| Import | `import:all`, `import:all:step1`, `import:all:step2`, `import:all:step3`, `import:step1`, `import:step2`, `import:step3`, `import:library-articles`, `import:amboss-library`, `import:pastest-library`, `import:pastest-library-2`, `import:passmedicine-library`, `import:passmed-library-part2`, `import:passmed-diagram-library`, `import:passmed-index-library`, `import:one-exam-library`, `import:mrcp1`, `import:mrcp2`, `import:question-groupings` |
-| Maintenance | `list:question-banks`, `verify:question-groupings`, `gen:question-groupings-bank-map`, `cleanup:untouched-block-tests`, `health:watch` |
+## Exam/test engine
 
-## Environment
+`src/tests/` is a mature, multi-service domain rather than a CRUD controller. It separates responsibilities such as:
 
-Copy `.env.example` → `.env`. Key groups:
+- creation and question selection;
+- execution/submission/lifecycle;
+- retrieval;
+- metadata;
+- analytics;
+- analytics aggregation;
+- AI explanations;
+- block generation;
+- question search;
+- access/security handling.
 
-| Group | Keys |
-|---|---|
-| Core | `NODE_ENV`, `PORT`, `API_PREFIX`, `FRONTEND_URL`, `CORS_ORIGIN` |
-| Database | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`, `DB_SSL` |
-| Auth | `JWT_SECRET`, `JWT_EXPIRATION`, `ADMIN_GATE_SECRET` |
-| Rate limits | `RATE_LIMIT_BLOCK_DURATION`, `RATE_LIMIT_BACKOFF_*`, `AUTH_RATE_LIMIT_*`, `PUBLIC_RESOURCE_*`, `TEST_CREATE_*`, `MEDIA_*`, `AI_BURST_*`, `JOB_APPLICATION_*`, `CONTEST_RATE_LIMIT_MAX` |
-| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_PREFIX`, `REDIS_TTL` |
-| OAuth | `GOOGLE_CALLBACK_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_MONITOR_BOT_TOKEN`, `TELEGRAM_MONITOR_CHAT_ID` |
-| Email | `RESEND_API_KEY`, `FROM_EMAIL` |
-| Library | `LIBRARY_CACHE_WARM`, `LIBRARY_CACHE_WARM_SOURCE` |
-| **Encryption** | `RESPONSE_ENCRYPTION_KEY` — must match the frontend's key or payloads cannot be read |
+The frontend should orchestrate this contract rather than recreate correctness, scoring, filtering, completion or result-locking rules.
 
-## Cloudflare Worker deployment
+See [`BACKEND_TESTS_MODULE.md`](BACKEND_TESTS_MODULE.md) plus current canonical backend code before Runner implementation.
 
-`wrangler.toml` (name `mdpark-back`, entry `dist/_worker.mjs`, `nodejs_compat`) contains **non-secret** `[vars]` only: `NODE_ENV`, `API_PREFIX`, `DB_PORT=26257`, `DB_SSL_MODE=verify-full`, `JWT_EXPIRATION=7d`, `CORS_ORIGIN`, rate limits, `TELEGRAM_MONITOR_CHAT_ID`. Real secrets (`DB_PASSWORD`, `JWT_SECRET`, `REDIS_PASSWORD`, `TELEGRAM_*_TOKEN`) are injected with `npx wrangler secret put <NAME>`.
+## Database and migrations
 
-## Documentation shipped with the backend
+The backend uses TypeORM/PostgreSQL with an extensive migration history. Backend schema/business changes belong in the backend repository and must use migrations rather than frontend workarounds or schema synchronization shortcuts.
 
-`README.md` · `QUICK_START.md` · `DATABASE_ARCHITECTURE.md` · `DATABASE_SETUP.md` · `SECURITY_AUDIT_REPORT.md` · `SECURITY_GUIDELINES.md` · `TEST_CREATION_API.md` · `FRONTEND_INTEGRATION.md` · `FRONTEND_REGISTRATION_GUIDE.md` · `FRONTEND_UPDATED.md` · `BACKEND_ROADMAP.md` · `BACKLOG_TEST_FEATURES.md` · `BEHAVIORAL_ANALYTICS_GUIDE.md` · `ENTITIES_COMPLETE_SUMMARY.md` · `SEEDING_GUIDE.md` · `SEEDING_PROFILES.md` · `NAVIGATION_ENHANCEMENTS.md` · `PASSMEDICINE_DEPLOYMENT.md` · `docs/ANALYTICS-DATA-SOURCES.md` · `docs/CACHING.md` · `docs/DATABASE-POOL.md` · `MedPark-API.postman_collection.json`
+The historical reference snapshot also contains database/caching/pooling/analytics docs that can be valuable context, but current `medhvgg/main` code remains authoritative when they disagree.
 
-For the question/test engine specifically, see [BACKEND_TESTS_MODULE.md](BACKEND_TESTS_MODULE.md).
+## Security/access
+
+Current backend infrastructure includes authentication/role guards, throttling/rate limits, content-security checks, quotas, protected-content watermarking, response encryption and operational security/monitoring modules.
+
+Frontend implications:
+- do not infer access/entitlement as authority;
+- preserve backend response/status semantics;
+- do not strip watermarks;
+- sanitize HTML client-side through the established path;
+- treat old audit findings as items to re-test, not guaranteed present-day vulnerabilities.
+
+## Reference snapshot documentation
+
+The `medfront/backend` branch contains many useful historical documents such as older setup/roadmap/security/entity/import/deployment notes and newer operational notes around analytics, caching and database pools.
+
+Use them for:
+- discovering intended historical behavior;
+- understanding old frontend features;
+- identifying risks to re-check;
+- recovering product intent.
+
+Do **not** use them to override current canonical backend code.
+
+## Frontend integration rule
+
+For every active page:
+
+1. inspect the exact current backend contract in `medhvgg/main`;
+2. record required endpoints and authoritative rules in the page spec;
+3. add typed frontend API helpers;
+4. implement presentation/orchestration only;
+5. verify real access/error/lifecycle behavior where applicable;
+6. update API/page docs if the verified contract differs from existing documentation.
