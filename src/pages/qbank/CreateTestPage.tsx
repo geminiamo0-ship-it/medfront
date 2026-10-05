@@ -48,6 +48,8 @@ const TIERS: Array<{ key: DifficultyTier; label: string }> = [
   { key: 'very_easy', label: 'Very Easy' },
 ];
 
+// Product/UI limit. The canonical backend currently supports a higher ceiling,
+// so increasing this later remains a frontend product decision.
 const MAX_CUSTOM_IDS = 50;
 const MAX_QUESTION_ID = 2_147_483_647;
 
@@ -572,7 +574,7 @@ export default function CreateTestPage() {
         </div>
         <div className="flex items-center gap-4">
           {questionTab === 'standard' && (
-            <label className="flex items-center gap-3 text-sm text-ink-soft">
+            <label className="flex flex-wrap items-center gap-3 text-sm text-ink-soft">
               <span className="font-bold text-ink">Questions</span>
               <input
                 type="number"
@@ -582,6 +584,9 @@ export default function CreateTestPage() {
                 onChange={(e) => setNumQuestions(Number(e.target.value))}
                 className="w-24 rounded-lg border border-line px-3 py-2 text-sm focus:border-mp focus:outline-none"
               />
+              <span className="whitespace-nowrap text-xs font-semibold text-ink-muted">
+                Available: <span className="font-bold text-link">{available ?? '…'}</span>
+              </span>
             </label>
           )}
           <button
