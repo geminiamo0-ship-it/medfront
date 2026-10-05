@@ -15,10 +15,21 @@ The user confirmed that the normal Create Test question-count field works above 
 - The service emits an abuse-alert notification when `totalQuestions > 100`, but it does not reject the request for that reason.
 - The custom-question branch resolves all unique submitted external/UWorld IDs and does not impose a 50-ID cap. The number 50 in that branch is only the maximum count shown in an error-message preview for invalid IDs.
 
-## Correction
-The frontend `MAX_CUSTOM_IDS = 50` rule and any spec wording that describes 50 as a canonical backend maximum are not backend-authoritative and must be corrected before Create Test is marked Done.
+## Resolution
+The frontend `MAX_CUSTOM_IDS = 50` rule is **not** a backend limit. After the canonical backend re-check, the user explicitly chose to retain **50 as an intentional frontend product/UX limit**.
 
-For the current frontend request shape, Custom should align with the canonical `totalQuestions` request limit of 200 unless product requirements intentionally introduce a stricter UX limit and that decision is separately approved/documented.
+This gives the product a conservative current limit while preserving backend headroom. If the product later wants 100 or 200 Custom IDs, the intended path is to change the frontend product constant and re-run verification; no backend limit change is currently required unless the canonical backend contract changes.
+
+The frontend/spec must therefore describe this correctly as:
+
+- frontend Custom product limit: **50**;
+- canonical backend `totalQuestions` maximum: **200**;
+- backend `customQuestionIds`: no 50-item DTO cap.
 
 ## Verification implication
-The earlier manual test plan item `>50 Custom IDs must be blocked` is invalid and must not be used as an acceptance criterion. Replace it with verification around the canonical 200-request limit and preservation of raw Custom input on validation errors.
+The correct manual acceptance case is now intentional product behavior:
+
+- 50 valid unique Custom IDs may proceed if otherwise valid;
+- 51 valid unique Custom IDs remain fully visible in the textarea and **Create Test is disabled by the frontend**;
+- the UI must not silently truncate the input;
+- this 50-ID block must not be described as a backend security/schema limit.
