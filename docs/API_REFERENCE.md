@@ -1,31 +1,41 @@
 # API reference (frontend helpers)
 
-Base URL comes from `VITE_API_URL` (e.g. `https://medhvgg-production.up.railway.app/api`). All requests carry `Authorization: Bearer <token>` where required, and responses may be AES-256-GCM encrypted envelopes — `src/api/client.ts` handles both.
+The frontend talks to the **canonical backend** in `geminiamo0-ship-it/medhvgg/main`; the deployed base URL currently comes from `VITE_API_URL` (for example `https://medhvgg-production.up.railway.app/api`).
 
-## QBank & tests — `src/api/tests.ts`
+All authenticated requests carry `Authorization: Bearer <token>`. Responses may be AES-256-GCM encrypted envelopes; `src/api/client.ts` handles transport decryption before data reaches callers.
+
+> `medfront/backend` is a reference snapshot only. When a contract matters, verify it against current `medhvgg/main` controller/DTO/service code.
+
+## QBank & tests — current `src/api/tests.ts`
 
 | Helper | Endpoint | Parameters | Returns |
 |---|---|---|---|
-| `getMainBanks(step)` | `GET /tests/metadata/main-banks` | `step` | `MainBank[]` (id, name, code, step) |
+| `getMainBanks(step)` | `GET /tests/metadata/main-banks` | `step` | `MainBank[]` |
 | `getQuestionBanks(step?, mainBankId?)` | `GET /tests/metadata/question-banks` | `step`, `mainBankId` | `QuestionBankWithProgress[]` |
-| `getPerformanceOverview(step)` | `GET /tests/performance/overview` | `step` | `PerformanceOverview` + `PerformanceSummary` |
-| `getQbankStatistics(qBankCode, step)` | `GET /tests/performance/statistics` | `qBankCode`, `step` | `QbankStatistics` — **423 when the block is locked** |
-| `getQuestionCounts(step, filters)` | `GET /tests/counts` | `step`, filters | `QuestionCounts` per mode |
-| `getMixedModeCount(step, filters)` | `GET /tests/counts/mixed` | `step`, filters incl. `modes` | `{ count }` |
-| `getDifficultyCounts(step, questionBankIds)` | `GET /tests/metadata/difficulty-counts` | `step`, bank ids | per-tier counts |
-| `getSubjects(step, questionBankIds, mode='all')` | `GET /tests/metadata/subjects` | `step`, bank ids, `mode` | `SubjectCount[]` |
-| `getSystemsWithTopics(step, filters)` | `GET /tests/metadata/systems-with-topics` | `step`, filters | `SystemWithTopics[]` (systems with topics + counts) |
-| `getPreviousTests(step?, qBankId?)` | `GET /tests` | `step`, `qBankId` | `TestListItem[]` |
-| `createTest(payload)` | `POST /tests` | see `CreateTestDto` | created test |
-| `retrieveTestQuestions(testId)` | `POST /tests/retrieve-questions` | test id | external / UW question IDs |
+| `getPerformanceOverview(step)` | `GET /tests/performance/overview` | `step` | `PerformanceOverview` + summary |
+| `getQbankStatistics(qBankCode, step)` | `GET /tests/performance/statistics` | `qBankCode`, `step` | `QbankStatistics`; block data may return **423** when locked |
+| `getQuestionCounts(step, filters)` | `POST /tests/counts` | body `{ step, filters }` | `QuestionCounts` per mode |
+| `getMixedModeCount(step, filters)` | `POST /tests/counts/mixed` | body `{ step, filters }` incl. `modes` | `{ count }` |
+| `getDifficultyCounts(step, questionBankIds)` | `POST /tests/metadata/difficulty-counts` | body | per-tier counts |
+| `getSubjects(step, questionBankIds, mode='all')` | `POST /tests/metadata/subjects` | body | `SubjectCount[]` |
+| `getSystemsWithTopics(step, filters)` | `POST /tests/metadata/systems-with-topics` | body | `SystemWithTopics[]` |
+| `getPreviousTests(step?, qBankId?)` | `GET /tests` | query `step`, `qBankId` | `TestListItem[]` |
+| `createTest(payload)` | `POST /tests` | `CreateTestDto`-shaped body | created test id/current server response |
+| `retrieveTestQuestions(testId)` | `POST /tests/retrieve-questions` | body `{ testId }` | imported/UW question IDs |
 
-### Exported types
+### Exported frontend types
+
+Current module exports types including:
 
 `MainBank` · `PerformanceSummary` · `PerformanceOverview` · `QuestionBankWithProgress` · `QuestionCounts` · `SubjectCount` · `SystemWithTopics` · `QbankStatistics` · `TestListItem` · `DifficultyTier`
 
 `DifficultyTier = 'very_hard' | 'hard' | 'medium' | 'easy' | 'very_easy'`
 
+Some current helpers still use broad request/response types. Tighten them when the related feature is active rather than propagating unsafe casts into new code.
+
 ### Filters used by count/metadata endpoints
+
+Conceptually:
 
 ```ts
 {
@@ -34,50 +44,69 @@ Base URL comes from `VITE_API_URL` (e.g. `https://medhvgg-production.up.railway.
   systemIds?: number[],
   topicIds?: number[],
   difficulty?: DifficultyTier[],
-  modes?: string[],          // mixed-mode counting only
+  modes?: string[],
 }
 ```
 
-## Test lifecycle endpoints (used by the upcoming runner)
+The exact DTO validation is backend-authoritative. In particular, multi-mode test creation uses the backend enum value `mixed_modes`, not `mixed`.
 
-Not yet wrapped by frontend helpers, but available and verified in the backend:
+## Test lifecycle endpoints for the Exam Runner
+
+These are available in the canonical backend but are not all wrapped by the current frontend helper module yet. Re-verify DTOs immediately before implementing the runner.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /tests/:id` | Full test + watermarked questions/options/explanations; includes `currentQuestionId`, `totalQuestions`, `answeredQuestions`, `timeLimitSeconds`, `blockResultsLocked` |
-| `POST /tests/:id/submit` | Submit one answer (`SubmitAnswerDto`) |
-| `POST /tests/:id/submit-batch` | Bulk submit for timed End-Block (`SubmitAnswersBatchDto`) |
-| `PUT /tests/:id/complete` · `/suspend` · `/resume` | Lifecycle |
-| `GET /tests/:id/results` | Results + analytics |
-| `GET /tests/:id/questions/:questionId/explanation` | Explanation HTML |
-| `POST /tests/:id/questions/:questionId/ai-explain` (+ cache GET) | AI-generated explanation |
-| `PATCH /tests/:id/mark` | Toggle "marked for review" (does not create a submission) |
-| `PATCH /tests/:id/highlights` | Persist highlights |
-| `PATCH /tests/:id/name` · `DELETE /tests/:id` | Rename / delete test |
-| `GET /tests/practice/:questionId` · `POST /tests/practice/:questionId/submit` | Single-question practice mode |
-| `GET /tests/search/questions` | Question search |
-| `POST /tests/feedback` | Question feedback |
+| `GET /tests/:id` | Full owned test + watermarked question/option/explanation content and test state |
+| `POST /tests/:id/submit` | Submit/update one answer (`SubmitAnswerDto`) |
+| `POST /tests/:id/submit-batch` | Atomic timed-mode End-Block batch submit (`SubmitAnswersBatchDto`) |
+| `PATCH /tests/:id/mark` | Persist mark-for-review independently of answer submission |
+| `PATCH /tests/:id/highlights` | Persist question highlights |
+| `GET /tests/:id/questions/:questionId/explanation` | Lazy explanation payload |
+| `POST /tests/:id/questions/:questionId/ai-explain` | Generate/request AI explanation within backend quota/access rules |
+| `GET /tests/:id/questions/:questionId/ai-explain/cache` | Check cached AI explanation without generation |
+| `PUT /tests/:id/complete` | Complete test |
+| `PUT /tests/:id/suspend` | Suspend supported test state |
+| `PUT /tests/:id/resume` | Resume suspended test |
+| `GET /tests/:id/results` | Results + server analytics |
+| `PATCH /tests/:id/name` | Rename test |
+| `DELETE /tests/:id` | Delete test through server semantics |
+| `GET /tests/practice/:questionId` | Watermarked single-question practice fetch |
+| `POST /tests/practice/:questionId/submit` | Practice answer/check |
+| `GET /tests/search/questions` | Search by supported ID mode |
+| `POST /tests/feedback` | Submit question feedback |
+
+### Runner authority rules
+
+- Backend owns access, correctness, scoring, completion, result locking and persistence.
+- Timed flows must not expose correct answers/explanations before backend semantics allow them.
+- Preserve server watermarking and sanitize HTML before rendering.
+- Treat retry/idempotency/reload behavior as an end-to-end contract, not a purely visual concern.
 
 ## Library — `src/api/library.ts`
 
-Structure, articles, and annotation endpoints per source, with HTTP 423 handling for locked sources.
+Current frontend wraps structure/articles/search/read/bookmark/highlight/AI-summary-related behavior. Canonical backend additionally owns content quota/access/watermarking and AI quota decisions.
 
 ## Auth — `src/api/auth.ts`
 
-Login, register, verify-email (OTP), forgot/reset password, complete-profile.
+Login, register, verify-email/OTP, forgot/reset password, complete-profile/current-session flows as currently wrapped.
 
 ## Users — `src/api/users.ts`
 
-Profile and preferences.
+Current frontend profile/preferences helpers. Canonical backend has additional user/privacy/home-stat capabilities to audit when Settings becomes active.
 
 ## Notebook — `src/api/notebook.ts`
 
-Notebook entries used by the Library drawer.
+Notebook entry operations used by the Library drawer. The backend also has a separate question-notes domain; define their UX relationship before exposing both broadly.
 
-## Status codes worth handling
+## Status codes worth modeling intentionally
 
-| Code | Meaning | Frontend behaviour |
+| Code | Meaning | Frontend expectation |
 |---|---|---|
-| 423 | Locked / incomplete block data | Friendly locked panel (Welcome statistics, Library structure) |
-| 400 | Validation failure (e.g. invalid `mode`) | Surface the message |
-| 401 / 403 | Missing/invalid token or `TestAccessGuard` denial | Re-auth / access denied state |
+| 400 | Validation/domain failure | Show specific actionable validation/domain state |
+| 401 | Authentication/session failure | Re-auth/session-expired behavior |
+| 403 | Authorized identity lacks permission/access | Access-denied/entitlement behavior |
+| 423 | Locked/incomplete domain data | Friendly locked state, not generic failure |
+| 429 | Rate limit/quota exhausted | Specific retry/quota UI using server information when available |
+| 5xx | Backend/service failure | Recoverable server-error state; do not mislabel as validation |
+
+For any newly implemented endpoint, update this document or the relevant page spec with the exact current contract verified from `medhvgg/main`.
