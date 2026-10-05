@@ -11,12 +11,20 @@ import {
   retrieveTestQuestions,
   type DifficultyTier,
   type QuestionCounts,
-  type QuestionStatusMode,
-  type TestFilters,
 } from '@/api/tests';
 import type { SystemWithTopics } from '@/api/tests';
 import { type WorkspaceContext } from './WelcomePage';
 import { SectionLoader } from '@/components/PulseLoader';
+
+type QuestionStatusMode = keyof QuestionCounts;
+type TestFilters = {
+  questionBankIds: number[];
+  subjectIds?: number[];
+  systemIds?: number[];
+  topicIds?: number[];
+  difficulty?: DifficultyTier[];
+  modes?: QuestionStatusMode[];
+};
 
 /** Checkbox order mirrors the real UWorld Create Test screen. */
 const MODES: Array<{ key: QuestionStatusMode; label: string }> = [
