@@ -68,6 +68,7 @@ Typical design topics:
 - colors/theme/tokens;
 - cards/tables/forms/navigation style;
 - desktop layout;
+- tablet/iPad layout;
 - mobile layout;
 - empty/loading/error/locked states;
 - animations/motion;
@@ -105,6 +106,30 @@ The spec must include:
 Commit the spec and update the issue checklist.
 
 No product implementation before the spec is approved.
+
+---
+
+## Responsive acceptance baseline
+
+From 2026-10-05 onward, responsive behavior is part of normal page delivery, not a future cleanup pass.
+
+Unless the user explicitly defers a surface and that deferral is recorded in the active issue/spec, a user-facing page is not Done until it has been reviewed at all of these viewport classes:
+
+- desktop/laptop;
+- tablet/iPad;
+- mobile phone.
+
+Responsive acceptance includes, where applicable:
+- no unintended horizontal overflow;
+- navigation remains reachable and understandable;
+- sidebars/navigation rails collapse or transform intentionally rather than squeezing content;
+- controls meet practical touch-target sizing;
+- dialogs, dropdowns and popovers remain inside the viewport;
+- forms/buttons stack or wrap cleanly;
+- text/content remains readable without desktop-only assumptions;
+- keyboard/focus/accessibility behavior remains valid after responsive transformations.
+
+A deliberate deferral must be explicit in `PROJECT_STATUS.md` and the active issue. Current example: Library mobile/tablet work is deferred until its separate detailed UX discussion; that exception does not weaken the rule for other active pages.
 
 ---
 
@@ -152,6 +177,8 @@ Applicable states may include:
 - network retry;
 - server error;
 - stale/expired session;
+- desktop layout;
+- tablet/iPad layout;
 - mobile layout;
 - keyboard/focus behavior.
 
@@ -206,6 +233,7 @@ Copy this into a focused page issue:
 ## Design
 - [ ] UX/style discussed with user
 - [ ] Desktop behavior agreed
+- [ ] Tablet/iPad behavior agreed
 - [ ] Mobile behavior agreed
 - [ ] States/interactions agreed
 - [ ] Page spec committed
@@ -223,7 +251,9 @@ Copy this into a focused page issue:
 - [ ] Typecheck
 - [ ] Lint
 - [ ] Build
-- [ ] Browser acceptance checks
+- [ ] Browser desktop acceptance
+- [ ] Browser tablet/iPad acceptance
+- [ ] Browser mobile acceptance
 - [ ] Critical API/E2E check where applicable
 - [ ] GitHub Actions Verify
 
