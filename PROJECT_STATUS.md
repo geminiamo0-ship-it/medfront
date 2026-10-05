@@ -4,7 +4,7 @@
 **Master epic:** #1  
 **Active issue:** #3 — G1 Stabilize current frontend before new pages  
 **Active phase:** G1 — Existing frontend stabilization  
-**Current status:** DESIGN — no product code until the visible Create Test decisions below are approved/spec'd
+**Current status:** VERIFYING — Create Test implementation complete; runtime/browser/API verification remains before Library
 
 ## 1. Repository ownership
 
@@ -14,7 +14,7 @@
 | Canonical backend/API | `geminiamo0-ship-it/medhvgg` → `main` | API, business rules, security, persistence, analytics |
 | Backend reference snapshot | `medfront` → `backend` | Read-only historical/reference material; never deploy or develop from it |
 
-Live frontend API base currently points at `https://medhvgg-production.up.railway.app/api`.
+Current frontend API base points at `https://medhvgg-production.up.railway.app/api`.
 
 ## 2. Current frontend state
 
@@ -25,101 +25,125 @@ Live frontend API base currently points at `https://medhvgg-production.up.railwa
 | Dashboard | Implemented | Current dashboard slice |
 | QBank listing | Implemented | Step/provider/bank discovery |
 | Bank workspace | Implemented | Welcome/Create Test/Previous Tests |
-| Create Test | Implemented but **not stabilized** | Three G1 correctness issues tracked in #3 |
-| Library | Advanced, needs fidelity verification | Reader/search/highlights/annotations/notebook/AI/Amboss-like modes/dark/high-yield |
-| Test runner | Placeholder | Design-first issue #4; backend engine already exists |
+| Create Test | **VERIFYING** | Approved G1 fixes implemented; CI green; browser/authenticated live API checks remain |
+| Library | Advanced, needs fidelity verification | Blocked until Create Test checkpoint completes |
+| Test runner | Placeholder | Design-first Issue #4; backend engine already exists |
 | Results/review | Not implemented in current frontend | Part of #4 |
 | Contests | Placeholder | Backend capability exists; future page issue |
 | AI Analyst | Placeholder | Future design/spec |
 | Settings | Placeholder | Backend user/privacy/subscription capabilities exist |
 | Flashcards | Not exposed in current frontend | Mature backend capability exists |
 | Revision | Not exposed in current frontend | Backend capability exists |
-| Messages / tickets / support | Not exposed in current frontend | Backend capability exists |
+| Messages/tickets/support | Not exposed in current frontend | Backend capability exists |
 | Admin/support workspaces | Not reconstructed | Large backend capability set; parked |
 
-## 3. Current code-health observations
+## 3. Engineering foundation
 
-- `LibraryPage.tsx` is large (~41 KB) and `CreateTestPage.tsx` is large (~36 KB). Do not rewrite them wholesale; decompose coherent responsibilities incrementally when touched.
-- Current API helpers still use broad types on some paths; tighten contracts as each feature becomes active.
-- GitHub Actions `Verify` now exists and runs `npm ci → typecheck → lint → build` on pushes/PRs to `main`.
-- High-level docs now consistently identify `medhvgg/main` as canonical backend and `medfront/backend` as reference-only.
-- Known API-reference HTTP-method mismatches for test count/metadata endpoints have been corrected.
+G0 governance is complete:
+- [x] `AGENTS.md`
+- [x] `PROJECT_STATUS.md`
+- [x] `docs/ENGINEERING_GUARDRAILS.md`
+- [x] `docs/MASTER_PLAN.md`
+- [x] `docs/PAGE_DELIVERY_WORKFLOW.md`
+- [x] `docs/page-specs/TEMPLATE.md`
+- [x] `docs/BACKEND_CAPABILITY_MAP.md`
+- [x] design-first GitHub issue template
+- [x] canonical-backend/reference wording corrected
+- [x] API-reference HTTP-method mismatches corrected
+- [x] GitHub Actions `Verify` installed: `npm ci → typecheck → lint → build`
+- [x] G0 Issue #2 closed after green CI
 
-## 4. G0 governance foundation — completed pending final handoff CI gate
+Code-health rules remain:
+- Large recovered files such as `LibraryPage.tsx` and `CreateTestPage.tsx` are not rewritten wholesale.
+- Refactor coherent responsibilities incrementally when touched.
+- Backend business/domain rules remain backend-owned.
+- Do not widen shared types/interfaces unless the active slice requires it and callers are verified.
 
-- [x] Master tracking epic created (#1)
-- [x] Governance issue created (#2)
-- [x] Stabilization issue created (#3)
-- [x] Exam Runner design issue created and blocked (#4)
-- [x] Later product/hardening/admin parking issues created (#5–#8)
-- [x] Page-spec META issue completed/closed (#9)
-- [x] Backend-capability META issue completed/closed (#10)
-- [x] Root `AGENTS.md` added
-- [x] Root `PROJECT_STATUS.md` added
-- [x] `docs/ENGINEERING_GUARDRAILS.md` added
-- [x] `docs/MASTER_PLAN.md` added
-- [x] `docs/PAGE_DELIVERY_WORKFLOW.md` added
-- [x] `docs/page-specs/TEMPLATE.md` added
-- [x] `docs/BACKEND_CAPABILITY_MAP.md` added
-- [x] `.github/ISSUE_TEMPLATE/page-feature.md` added
-- [x] Canonical-backend wording corrected in README/Overview/Backend Overview/Git History
-- [x] Known API-reference HTTP-method mismatches corrected
-- [x] `.github/workflows/verify.yml` added
-- [x] Governance verification run #8 passed on commit `e93a5dd61edffaa837013b9153ff5e6de7ad2843`
-- [ ] This final status-handoff commit must pass `Verify`; only then close #2
+## 4. G1 — Create Test checkpoint
 
-## 5. G1 active work — #3
+### Approved design/spec
+- [x] `docs/page-specs/CREATE_TEST.md` created and user-approved
+- [x] 2+ selected status modes automatically mean Mixed
+- [x] subtle `Mixed · N selected` indicator; no separate Mixed button
+- [x] Custom IDs show `N / 50`, invalid tokens, and block Create when invalid/>50/empty
+- [x] Custom raw input is never silently truncated or erased
+- [x] Systems/topics selections affect the test but do not collapse the metadata matrix/search
+- [x] current visual layout preserved
 
-### Create Test — DESIGN first
+### Implemented
+- [x] multi-mode create uses canonical `mixed_modes`
+- [x] `filters.modes` carries actual selected modes
+- [x] Custom `.slice(0, 50)` removed
+- [x] Custom parser validates positive whole-number IDs, deduplicates payload IDs, preserves raw text
+- [x] Create disabled for empty/invalid/>50 Custom state
+- [x] systems/topics metadata query excludes selected `systemIds/topicIds`
+- [x] final availability/create filters still include selected systems/topics
+- [x] feature typing kept local after a broader shared-API typing attempt caused unnecessary TypeScript blast radius
 
-Contract findings are already known, but visible behavior must be agreed before implementation.
+### Automated verification
+- [x] Typecheck
+- [x] Lint
+- [x] Production build
+- [x] GitHub Actions `Verify` run #14 succeeded on implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab`
 
-- [ ] Re-open/inspect current Create Test page + exact canonical backend DTO/service contract at implementation start
-- [ ] Record `mixed` → `mixed_modes` as **NO VISUAL CHANGE** contract fix
-- [ ] Discuss/approve custom UW-ID validation UX with user
-- [ ] Discuss/approve whether system/topic metadata stabilization is behavior-only or includes any visual refinement
-- [ ] Create `docs/page-specs/CREATE_TEST.md` from the template
-- [ ] Record user approval in spec + Issue #3
-- [ ] Move #3 from DESIGN → SPEC APPROVED → IMPLEMENTING
-- [ ] Fix mixed-mode payload
-- [ ] Fix custom UW-ID validation without silent truncation
-- [ ] Separate metadata-query filters from final creation/count filters
-- [ ] Tighten touched API/request types where practical
-- [ ] Verify single-mode creation against canonical live API
-- [ ] Verify mixed-mode creation against canonical live API
-- [ ] Verify valid custom UW-ID creation against canonical live API
-- [ ] Verify invalid/non-numeric/>50 custom states
-- [ ] Verify systems/topics UI remains stable while selections change
-- [ ] Typecheck/lint/build + browser checks + GitHub Actions `Verify`
-- [ ] Update page spec, Issue #3 and this status document
+### Runtime verification still open
+- [ ] Browser: Mixed badge for 2+ modes
+- [ ] Browser: valid/invalid/>50 Custom states
+- [ ] Browser: systems/topics matrix/search remains stable during selections
+- [ ] Authenticated live API: single-mode creation
+- [ ] Authenticated live API: mixed-mode creation
+- [ ] Authenticated live API: valid Custom creation
 
-### Library fidelity — after Create Test stabilization
+Current limitation: no MedFront deployment was found in the connected Vercel account, and this execution context does not currently have an authenticated MedPark browser session. Do not mark these runtime checks passed without evidence.
 
-- [ ] Discuss/record intended High-yield interactive-link behavior before visible selector changes
-- [ ] Create/update appropriate Library page spec
-- [ ] Preserve `.api` / `.dictionary` / `.linksuggest` interactive spans as approved
+### Canonical-contract discrepancy recorded
+The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Custom creation currently does not apply the normal UNUSED predicate. This was discovered during implementation re-inspection and is documented in the page spec/Issue #3. It is not silently treated as verified behavior.
+
+## 5. G1 remaining work after Create Test runtime verification
+
+### Library fidelity — next discussion checkpoint, not yet active
+- [ ] Discuss/record High-yield interactive-link behavior before visible changes
+- [ ] Create/update Library page spec
+- [ ] Preserve approved `.api` / `.dictionary` / `.linksuggest` interactive spans
 - [ ] Browser-verify ordered/unordered/nested lists in light/dark + High-yield on/off
 - [ ] Regression-check search/navigation/annotations/notebook/AI/popovers/images/split behavior
-- [ ] Pass verification gates and update #3/status/docs
+- [ ] Pass verification gates and update Issue #3/status/docs
+
+### Existing-shell regression — after Library
+- [ ] Auth
+- [ ] Hub
+- [ ] Dashboard
+- [ ] QBank listing
+- [ ] Bank workspace
+- [ ] Previous Tests
+- [ ] Library
+- [ ] final G1 `Verify`
 
 ## 6. Exact next step
 
-**Do not implement code yet. Start Issue #3 in DESIGN mode.**
+**Finish Create Test runtime verification. Do not start Library yet.**
 
-First Create Test design discussion:
+The implementation itself is green in CI. The next legitimate transition is:
 
-1. `mixed` → `mixed_modes`: proposed as a pure contract correction with **no visual change**.
-2. Custom UW-ID validation: agree how invalid IDs and the 50-ID limit should look/behave before coding.
-3. Systems/topics metadata fix: proposed to preserve the current visual design and only stop the matrix/search from collapsing, unless the user wants a visible refinement.
+`VERIFYING → Create Test DONE` only after browser behavior and authenticated live creation paths are evidenced.
 
-After those decisions are approved, write `docs/page-specs/CREATE_TEST.md`; only then implementation begins.
+If a deploy/auth environment becomes available, verify in this order:
+1. open Create Test in an authenticated browser session;
+2. confirm 2+ status selection renders `Mixed · N selected`;
+3. confirm valid, invalid, and >50 Custom states without input truncation;
+4. confirm selecting systems/topics does not shrink the matrix/search;
+5. create one safe single-mode block;
+6. create one safe mixed-mode block;
+7. create one safe valid-Custom block;
+8. record evidence in `docs/page-specs/CREATE_TEST.md` and Issue #3;
+9. then report Create Test DONE and begin the Library **discussion/spec** checkpoint before coding it.
 
-Do **not** start Exam Runner #4 until #3 is Done unless the user explicitly reprioritizes and the status file is updated.
+Do not start Exam Runner #4 until Issue #3/G1 is Done unless the user explicitly reprioritizes and this status file records it.
 
 ## 7. Phase order
 
-1. **G0** Governance/source ownership/docs/CI baseline — handoff complete; #2 closes after this commit's Verify passes
-2. **G1** Stabilize existing frontend — active DESIGN (#3)
+1. **G0** Governance/source ownership/docs/CI baseline — DONE
+2. **G1** Stabilize existing frontend — ACTIVE / VERIFYING Create Test (#3)
 3. **G2** Exam Runner + results/review — blocked/design first (#4)
 4. **G3** Study tools — parked
 5. **G4** Analytics/streaks/goals/badges/AI Analyst — parked
@@ -133,35 +157,33 @@ Do **not** start Exam Runner #4 until #3 is Done unless the user explicitly repr
 ## 8. Definition of Done
 
 A page/feature is `DONE` only when all applicable gates pass:
-
 - [ ] user-approved UX/style/page spec exists
-- [ ] acceptance criteria are satisfied
-- [ ] implementation is issue-scoped and respects architecture boundaries
-- [ ] automated tests/targeted checks pass
+- [ ] acceptance criteria satisfied
+- [ ] implementation respects architecture boundaries
+- [ ] automated/targeted checks pass
 - [ ] browser/E2E verification passes where applicable
-- [ ] typecheck passes
-- [ ] lint passes
-- [ ] production build passes
+- [ ] real API behavior is verified where applicable
+- [ ] typecheck/lint/production build pass
 - [ ] GitHub Actions `Verify` passes
-- [ ] active issue checkboxes are updated
-- [ ] relevant docs are updated
-- [ ] `PROJECT_STATUS.md` is updated with the exact continuation point
+- [ ] active issue and relevant docs are updated
+- [ ] `PROJECT_STATUS.md` records the exact continuation point
 
 ## 9. Proven vs not yet proven
 
 ### Proven/observed
-- Current frontend source tree and routes on `medfront/main` have been inspected.
-- Canonical backend `medhvgg/main` has been inventoried across its modules and key user-facing controllers.
-- Backend owns a mature test engine including creation, execution, batch timed submission, marks, highlights, explanations, AI explanations, lifecycle and results.
-- Backend also exposes real APIs for Library, notes/notebook, flashcards, revision, subscriptions/access, contests, messages, tickets/support, admin/security/finance and other domains.
-- GitHub Actions `Verify` is installed; governance run #8 completed successfully with install/typecheck/lint/build green.
+- Current frontend source tree/routes inspected.
+- Canonical `medhvgg/main` backend capability map and relevant Create Test DTO/entity/controller/service paths inspected.
+- Backend canonical mixed enum is `mixed_modes`.
+- Create Test source implementation now follows the approved mixed/custom/metadata behavior and compiles/lints/builds successfully.
+- Implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14.
 
-### Not yet proven in this reconstruction
-- End-to-end Create Test success for single/mixed/custom modes after the G1 fixes.
+### Not yet proven
+- Browser-level Create Test behavior after this implementation.
+- Authenticated end-to-end single/mixed/custom creation after this implementation.
+- Library G1 fidelity corrections.
+- Full existing-shell regression.
 - Current frontend Exam Runner/results, because they are not built.
-- Full frontend regression under automated browser tests.
-- Full page-by-page coverage for later product domains; those will be activated/spec'd just-in-time.
 
 ## 10. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, master Issue #1 and the active issue listed in PROJECT_STATUS. Treat `geminiamo0-ship-it/medhvgg/main` as the canonical backend and `medfront/backend` as reference-only. Continue from the first unchecked task in the active issue. For every page, discuss and approve its UX/style first, update its page-spec MD, then implement. Do not mark work Done until acceptance criteria, browser checks where applicable, and GitHub Actions `Verify` pass; then update the issue and PROJECT_STATUS.md.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
