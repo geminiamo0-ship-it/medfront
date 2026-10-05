@@ -308,16 +308,16 @@ export default function CreateTestPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-xl font-extrabold tracking-tight text-ink">Create Test</h1>
+    <div className="min-w-0">
+      <h1 className="text-lg font-extrabold tracking-tight text-ink sm:text-xl">Create Test</h1>
 
       {error && (
         <div className="mt-4 rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">{error}</div>
       )}
 
       {/* QUESTION MODE — Standard / Custom */}
-      <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
+      <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Question Mode</h2>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-muted">
             Total Available
@@ -325,11 +325,11 @@ export default function CreateTestPage() {
               {counts?.all ?? '…'}
             </span>
           </span>
-          <div className="ml-auto flex items-center rounded-full bg-surface2 p-1">
+          <div className="flex w-full items-center rounded-full bg-surface2 p-1 sm:ml-auto sm:w-auto">
             <button
               type="button"
               onClick={() => setQuestionTab('standard')}
-              className={`rounded-full px-5 py-1.5 text-sm font-bold transition-all ${
+              className={`min-h-10 flex-1 rounded-full px-4 py-1.5 text-sm font-bold transition-all sm:flex-none sm:px-5 ${
                 questionTab === 'standard'
                   ? 'bg-surface text-ink shadow-card'
                   : 'text-ink-muted hover:text-ink'
@@ -340,7 +340,7 @@ export default function CreateTestPage() {
             <button
               type="button"
               onClick={() => setQuestionTab('custom')}
-              className={`rounded-full px-5 py-1.5 text-sm font-bold transition-all ${
+              className={`min-h-10 flex-1 rounded-full px-4 py-1.5 text-sm font-bold transition-all sm:flex-none sm:px-5 ${
                 questionTab === 'custom'
                   ? 'bg-surface text-ink shadow-card'
                   : 'text-ink-muted hover:text-ink'
@@ -352,7 +352,7 @@ export default function CreateTestPage() {
         </div>
         {questionTab === 'standard' && (
           <>
-            <div className="flex flex-wrap items-center gap-2 px-6 py-4 text-xs font-semibold text-ink-muted">
+            <div className="flex flex-wrap items-center gap-2 px-4 py-4 text-xs font-semibold text-ink-muted sm:px-6">
               <span>
                 Available: <span className="font-bold text-link">{available ?? '…'}</span>
               </span>
@@ -362,16 +362,21 @@ export default function CreateTestPage() {
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 pb-5">
+            <div className="grid grid-cols-1 gap-2 px-4 pb-5 sm:grid-cols-2 sm:px-6 md:grid-cols-3 xl:grid-cols-5">
               {MODES.map((m) => (
-                <label key={m.key} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+                <label
+                  key={m.key}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 text-sm text-ink-soft transition-colors hover:border-line hover:bg-surface2/60"
+                >
                   <input
                     type="checkbox"
                     checked={modes.includes(m.key)}
                     onChange={() => toggleMode(m.key)}
-                    className="h-4 w-4 accent-mp"
+                    className="h-4 w-4 shrink-0 accent-mp"
                   />
-                  <span className={modes.includes(m.key) ? 'font-bold text-ink' : ''}>{m.label}</span>
+                  <span className={`min-w-0 flex-1 ${modes.includes(m.key) ? 'font-bold text-ink' : ''}`}>
+                    {m.label}
+                  </span>
                   <CountPill n={counts?.[m.key]} />
                 </label>
               ))}
@@ -381,7 +386,7 @@ export default function CreateTestPage() {
       </section>
 
       {questionTab === 'custom' && (
-        <section className="mt-5 rounded-2xl border border-line bg-surface p-6 shadow-card">
+        <section className="mt-5 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Test Name</h2>
           <input
             value={testName}
@@ -403,18 +408,18 @@ export default function CreateTestPage() {
           <h2 className="mt-6 text-sm font-extrabold uppercase tracking-wide text-ink">
             Retrieve questions of a test #
           </h2>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               value={retrieveId}
               onChange={(e) => setRetrieveId(e.target.value)}
               placeholder="Enter Test ID"
-              className="w-full max-w-xl rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+              className="w-full min-w-0 rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none sm:max-w-xl"
             />
             <button
               type="button"
               onClick={() => void handleRetrieve()}
               disabled={retrieving}
-              className="rounded-lg bg-link px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-link/90 disabled:opacity-50"
+              className="min-h-11 w-full rounded-lg bg-link px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-link/90 disabled:opacity-50 sm:w-auto"
             >
               {retrieving ? 'Retrieving…' : 'Retrieve'}
             </button>
@@ -458,7 +463,7 @@ export default function CreateTestPage() {
             </span>
           </div>
           {customHasInvalidTokens && (
-            <p className="mt-2 text-xs font-semibold text-bad" role="alert">
+            <p className="mt-2 break-words text-xs font-semibold text-bad" role="alert">
               Invalid ID{customIdState.invalidTokens.length === 1 ? '' : 's'}: {invalidCustomPreview}
               {invalidCustomMore > 0 ? ` …and ${invalidCustomMore} more` : ''}. Use positive whole numbers only.
             </p>
@@ -476,22 +481,27 @@ export default function CreateTestPage() {
         <>
       {/* Difficulty */}
       <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex items-baseline gap-3 border-b border-line px-6 py-4">
+        <div className="flex flex-wrap items-baseline gap-2 border-b border-line px-4 py-4 sm:gap-3 sm:px-6">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Difficulty</h2>
           <span className="text-xs font-semibold text-ink-muted">
             {tiers.length === 0 ? 'All difficulties' : `${tiers.length} selected`}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-5">
+        <div className="grid grid-cols-1 gap-2 px-4 py-4 sm:grid-cols-2 sm:px-6 md:grid-cols-3 xl:grid-cols-5">
           {TIERS.map((t) => (
-            <label key={t.key} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+            <label
+              key={t.key}
+              className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 text-sm text-ink-soft transition-colors hover:border-line hover:bg-surface2/60"
+            >
               <input
                 type="checkbox"
                 checked={tiers.includes(t.key)}
                 onChange={() => toggle(tiers, t.key, setTiers)}
-                className="h-4 w-4 accent-mp"
+                className="h-4 w-4 shrink-0 accent-mp"
               />
-              <span className={tiers.includes(t.key) ? 'font-bold text-ink' : ''}>{t.label}</span>
+              <span className={`min-w-0 flex-1 ${tiers.includes(t.key) ? 'font-bold text-ink' : ''}`}>
+                {t.label}
+              </span>
               <CountPill n={tierCounts?.[t.key]} />
             </label>
           ))}
@@ -499,7 +509,7 @@ export default function CreateTestPage() {
       </section>
 
       {/* Subjects — two-column matrix with a select-all master checkbox */}
-      <section className="mt-5 rounded-2xl border border-line bg-surface px-6 py-5 shadow-card">
+      <section className="mt-5 rounded-2xl border border-line bg-surface px-4 py-5 shadow-card sm:px-6">
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
@@ -536,7 +546,7 @@ export default function CreateTestPage() {
                 {col.map((s) => (
                   <label
                     key={s.id}
-                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm text-ink-soft transition-colors hover:bg-surface2/60"
+                    className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm text-ink-soft transition-colors hover:bg-surface2/60"
                   >
                     <input
                       type="checkbox"
@@ -572,13 +582,13 @@ export default function CreateTestPage() {
       )}
 
       {/* Test mode + count + create */}
-      <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-6 shadow-card">
-        <div className="flex items-center gap-6">
-          <span className="text-sm font-bold text-ink">Test Mode</span>
+      <section className="mt-5 flex flex-col gap-5 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 md:w-auto md:gap-4">
+          <span className="mr-1 text-sm font-bold text-ink">Test Mode</span>
           <ModeToggle active={!timed} label="Tutor" onClick={() => setTimed(false)} />
           <ModeToggle active={timed} label="Timed" onClick={() => setTimed(true)} />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center md:w-auto">
           {questionTab === 'standard' && (
             <label className="flex flex-wrap items-center gap-3 text-sm text-ink-soft">
               <span className="font-bold text-ink">Questions</span>
@@ -607,7 +617,7 @@ export default function CreateTestPage() {
                 ? available == null || available === 0 || standardCountInvalid
                 : !customCanCreate)
             }
-            className="rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white shadow-card transition-colors hover:bg-mp-hover disabled:opacity-50"
+            className="min-h-11 w-full rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white shadow-card transition-colors hover:bg-mp-hover disabled:opacity-50 sm:w-auto"
           >
             {creating ? 'Creating…' : 'Create Test'}
           </button>
@@ -669,11 +679,11 @@ function SystemsSection({
 
   return (
     <section
-      className={`relative mt-5 rounded-2xl border bg-surface px-6 py-5 shadow-card transition-opacity ${
-        disabled ? 'pointer-events-none opacity-50 border-dashed' : 'border-line'
+      className={`relative mt-5 rounded-2xl border bg-surface px-4 py-5 shadow-card transition-opacity sm:px-6 ${
+        disabled ? 'pointer-events-none border-dashed opacity-50' : 'border-line'
       }`}
     >
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         <input
           type="checkbox"
           aria-label="Select all systems"
@@ -734,7 +744,7 @@ function SystemsSection({
                 const isOpen = expanded.includes(sys.id);
                 return (
                   <div key={sys.id} className="border-b border-line/60 last:border-0">
-                    <div className="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm text-ink-soft transition-colors hover:bg-surface2/60">
+                    <div className="flex min-h-11 items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm text-ink-soft transition-colors hover:bg-surface2/60">
                       <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
                         <input
                           type="checkbox"
@@ -753,7 +763,7 @@ function SystemsSection({
                             prev.includes(sys.id) ? prev.filter((x) => x !== sys.id) : [...prev, sys.id],
                           )
                         }
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-bold transition-colors ${
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold transition-colors ${
                           isOpen
                             ? 'border-mp bg-mp text-white'
                             : 'border-line text-ink-muted hover:border-mp/50 hover:text-mp'
@@ -764,7 +774,7 @@ function SystemsSection({
                     </div>
 
                     {isOpen && (
-                      <div className="mb-2 ml-9 space-y-0.5 border-l-2 border-line pl-3">
+                      <div className="mb-2 ml-5 space-y-0.5 border-l-2 border-line pl-3 sm:ml-9">
                         {mergeTopicsByName(sys.topics ?? []).length === 0 ? (
                           <p className="py-1 text-xs text-ink-faint">No topics with questions.</p>
                         ) : (
@@ -775,7 +785,7 @@ function SystemsSection({
                             return (
                               <label
                                 key={t.ids[0]}
-                                className={`flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm transition-colors ${
+                                className={`flex min-h-10 items-center gap-2.5 rounded-lg px-1 py-1 text-sm transition-colors ${
                                   zero
                                     ? 'cursor-not-allowed text-ink-faint'
                                     : 'cursor-pointer text-ink-soft hover:bg-surface2/60'
@@ -875,11 +885,11 @@ function TopicSearchButton({
   }
 
   return (
-    <div className="relative" ref={wrapRef}>
+    <div className="relative ml-auto sm:ml-0" ref={wrapRef}>
       <button
         type="button"
         onClick={() => (open ? onOpenChange(false) : openPanel())}
-        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+        className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
           open
             ? 'border-mp bg-mp text-white'
             : 'border-link/40 bg-link/5 text-link hover:bg-link/10'
@@ -900,7 +910,7 @@ function TopicSearchButton({
             onClick={() => onOpenChange(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-pop">
+          <div className="fixed inset-x-4 top-20 z-40 max-h-[calc(100vh-6rem)] overflow-hidden rounded-xl border border-line bg-surface shadow-pop sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-none">
             <div className="border-b border-line p-3">
               <div className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 focus-within:border-mp">
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0 text-ink-faint" stroke="currentColor" strokeWidth="2">
@@ -912,12 +922,12 @@ function TopicSearchButton({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Type to filter topics..."
-                  className="w-full bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+                  className="w-full min-w-0 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="max-h-72 overflow-y-auto p-2">
+            <div className="max-h-[50vh] overflow-y-auto p-2 sm:max-h-72">
               {filtered.length === 0 ? (
                 <p className="px-3 py-6 text-center text-sm text-ink-muted">No topics match.</p>
               ) : (
@@ -928,7 +938,7 @@ function TopicSearchButton({
                   return (
                     <label
                       key={t.ids[0]}
-                      className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                      className={`flex min-h-11 items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors ${
                         zero ? 'cursor-not-allowed text-ink-faint' : 'cursor-pointer text-ink-soft hover:bg-surface2'
                       }`}
                     >
@@ -949,7 +959,7 @@ function TopicSearchButton({
                         className="h-4 w-4 shrink-0 accent-mp"
                       />
                       <span className="min-w-0 flex-[1.2] truncate font-medium text-ink">{t.name}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs text-ink-faint">
+                      <span className="hidden min-w-0 flex-1 truncate text-xs text-ink-faint sm:block">
                         {t.systemNames.join(' · ')}
                       </span>
                       <span className="inline-flex min-w-9 shrink-0 justify-center rounded-full border border-line px-2 py-0.5 text-[11px] font-bold text-ink-soft">
@@ -961,13 +971,13 @@ function TopicSearchButton({
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t border-line px-3 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2.5">
               <span className="text-xs font-semibold text-ink-muted">{pending.length} selected</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setPending([])}
-                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-ink-muted transition-colors hover:bg-surface2 hover:text-ink"
+                  className="min-h-9 rounded-lg px-3 py-1.5 text-xs font-bold text-ink-muted transition-colors hover:bg-surface2 hover:text-ink"
                 >
                   Clear
                 </button>
@@ -977,7 +987,7 @@ function TopicSearchButton({
                     onApply(pending);
                     onOpenChange(false);
                   }}
-                  className="rounded-lg bg-link px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-link/90"
+                  className="min-h-9 rounded-lg bg-link px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-link/90"
                 >
                   Apply Filter
                 </button>
@@ -995,7 +1005,7 @@ function ModeToggle({ active, label, onClick }: { active: boolean; label: string
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-full border px-5 py-2.5 text-sm font-bold transition-all ${
+      className={`flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-bold transition-all sm:px-5 ${
         active ? 'border-mp bg-mp text-white shadow-glow' : 'border-line bg-surface text-ink-muted hover:border-mp/40'
       }`}
     >
