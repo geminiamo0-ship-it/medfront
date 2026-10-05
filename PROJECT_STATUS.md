@@ -2,9 +2,10 @@
 
 **Last updated:** 2026-10-05  
 **Master epic:** #1  
-**Active issue:** #3 — G1 Stabilize current frontend before new pages  
+**G1 parent:** #3 — Stabilize current frontend before new pages  
+**Active issue:** #11 — QBank workspace shell + responsive Create Test  
 **Active phase:** G1 — Existing frontend stabilization  
-**Current status:** VERIFYING — Create Test implementation complete; runtime/browser/API verification remains before Library
+**Current status:** VERIFYING — responsive QBank/Create Test source implemented; final CI + runtime viewport verification remain
 
 ## 1. Repository ownership
 
@@ -14,209 +15,161 @@
 | Canonical backend/API | `geminiamo0-ship-it/medhvgg` → `main` | API, business rules, security, persistence, analytics |
 | Backend reference snapshot | `medfront` → `backend` | Read-only historical/reference material; never deploy or develop from it |
 
-Current frontend API base points at `https://medhvgg-production.up.railway.app/api`.
-
-Current frontend runtime/deployment target is Cloudflare Workers:
-`https://medfront.geminiamo0.workers.dev`
+Frontend API base: `https://medhvgg-production.up.railway.app/api`  
+Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 
 ## 2. Current frontend state
 
 | Area | State | Notes |
 |---|---|---|
-| Auth | Implemented | Login/register/verify email/forgot/reset/complete profile |
-| Hub | Implemented | Protected entry experience |
-| Dashboard | Implemented | Current dashboard slice |
-| QBank listing | Implemented | Step/provider/bank discovery |
-| Bank workspace | Implemented | Welcome/Create Test/Previous Tests |
-| Create Test | **VERIFYING** | Approved G1 fixes implemented; Standard and Custom are frontend-capped at 50; live availability shown beside Standard requested count; browser/authenticated live API checks remain |
-| Library | Advanced, needs fidelity verification | Blocked until Create Test checkpoint completes |
-| Test runner | Placeholder | Design-first Issue #4; backend engine already exists |
-| Results/review | Not implemented in current frontend | Part of #4 |
-| Contests | Placeholder | Backend capability exists; future page issue |
-| AI Analyst | Placeholder | Future design/spec |
-| Settings | Placeholder | Backend user/privacy/subscription capabilities exist |
-| Flashcards | Not exposed in current frontend | Mature backend capability exists |
-| Revision | Not exposed in current frontend | Backend capability exists |
-| Messages/tickets/support | Not exposed in current frontend | Backend capability exists |
-| Admin/support workspaces | Not reconstructed | Large backend capability set; parked |
+| Auth | Implemented | Login/register/verify/forgot/reset/complete profile |
+| Hub | Implemented | Own entry experience |
+| Dashboard | Implemented | Existing dashboard slice |
+| QBank listing `/qbank` | Implemented | Remains inside global `AppLayout` |
+| Selected QBank `/qbank/:bankId/*` | **VERIFYING responsive shell** | Dedicated workspace outside global AppLayout; desktop sidebar + responsive drawer implemented |
+| Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass implemented |
+| Previous Tests | Implemented | Uses QBank workspace shell |
+| Library | Advanced; detailed follow-up required | **Library mobile/tablet explicitly deferred until separate user discussion** |
+| Test runner | Placeholder | Design-first Issue #4; do not start before G1 is reconciled |
+| Results/review | Not implemented | Part of #4 |
+| Other parked surfaces | Not active | Follow master plan/issues |
 
-## 3. Engineering foundation
+## 3. Global delivery rule — responsive is now part of Done
 
-G0 governance is complete:
-- [x] `AGENTS.md`
-- [x] `PROJECT_STATUS.md`
-- [x] `docs/ENGINEERING_GUARDRAILS.md`
-- [x] `docs/MASTER_PLAN.md`
-- [x] `docs/PAGE_DELIVERY_WORKFLOW.md`
-- [x] `docs/page-specs/TEMPLATE.md`
-- [x] `docs/BACKEND_CAPABILITY_MAP.md`
-- [x] design-first GitHub issue template
-- [x] canonical-backend/reference wording corrected
-- [x] API-reference HTTP-method mismatches corrected
-- [x] GitHub Actions `Verify` installed: `npm ci → typecheck → lint → build`
-- [x] G0 Issue #2 closed after green CI
+From 2026-10-05 onward, user-facing page work normally includes:
+- desktop/laptop;
+- tablet/iPad;
+- mobile phone;
+- no unintended horizontal overflow;
+- intentional responsive navigation behavior;
+- practical touch targets;
+- viewport-safe dialogs/dropdowns/popovers;
+- responsive keyboard/focus/accessibility checks.
 
-Code-health rules remain:
-- Large recovered files such as `LibraryPage.tsx` and `CreateTestPage.tsx` are not rewritten wholesale.
-- Refactor coherent responsibilities incrementally when touched.
-- Backend business/domain rules remain backend-owned.
-- Do not widen shared types/interfaces unless the active slice requires it and callers are verified.
+This is recorded in `docs/PAGE_DELIVERY_WORKFLOW.md`.
 
-## 4. G1 — Create Test checkpoint
+### Explicit current exception
 
-### Approved design/spec
-- [x] `docs/page-specs/CREATE_TEST.md` created and user-approved
-- [x] 2+ selected status modes automatically mean Mixed
-- [x] subtle `Mixed · N selected` indicator; no separate Mixed button
-- [x] Standard Questions show live filtered `Available: N`
-- [x] Standard **50-question limit is intentionally frontend-only**; backend keeps a higher ceiling for headroom
-- [x] Standard invalid counts outside `1..50` block Create rather than silently being clamped
-- [x] Custom IDs show `N / 50`, invalid tokens, and block Create when invalid/>50/empty
-- [x] Custom raw input is never silently truncated or erased
-- [x] Custom **50-ID limit is intentionally frontend-only**; canonical backend supports a higher ceiling, so a future increase remains a frontend product change unless the backend contract changes
-- [x] Systems/topics selections affect the test but do not collapse the metadata matrix/search
-- [x] current visual layout preserved
+**Do not redesign or polish Library mobile/tablet yet.** The user wants to discuss Library responsive UX separately and in detail first. This deferral is intentional and does not weaken the responsive rule for QBank/Create Test or future approved pages.
 
-### Implemented
-- [x] multi-mode create uses canonical `mixed_modes`
-- [x] `filters.modes` carries actual selected modes
-- [x] `MAX_TEST_QUESTIONS = 50` is the single Standard frontend product-limit constant
-- [x] Standard Create is disabled for non-integer, <1, or >50 requested counts
-- [x] Standard Create no longer silently clamps a larger entered value to another test size
-- [x] Standard Questions row reuses existing live filtered availability state and adds no extra API request
-- [x] Custom `.slice(0, 50)` removed
-- [x] Custom parser validates positive whole-number IDs, deduplicates payload IDs, preserves raw text
-- [x] `MAX_CUSTOM_IDS = 50` is retained as the single Custom frontend product-limit constant and explicitly documented as frontend-only
-- [x] Create disabled for empty/invalid/>50 Custom state
-- [x] systems/topics metadata query excludes selected `systemIds/topicIds`
-- [x] final availability/create filters still include selected systems/topics
-- [x] feature typing kept local after a broader shared-API typing attempt caused unnecessary TypeScript blast radius
+## 4. Create Test correctness/product checkpoint
 
-### Canonical backend limit finding
-- [x] `CreateTestDto.totalQuestions` allows up to 200
-- [x] `customQuestionIds` has no 50-item DTO cap
-- [x] the service's `previewCount = 50` only caps human-readable invalid-ID error previews; it is not an exam-size limit
-- [x] service telemetry/abuse alerting above 100 requested questions does not itself reject creation
-- [x] user manually observed Standard creation working at 100 questions before the frontend cap was introduced, consistent with the canonical DTO
-- [x] user explicitly chose frontend product limits of 50 for both Standard and Custom while leaving backend capability unchanged
+Approved and implemented before the responsive slice:
+- [x] canonical multi-mode request uses `mixed_modes`
+- [x] `filters.modes` contains actual selected modes
+- [x] subtle `Mixed · N selected`, no separate Mixed button
+- [x] `MAX_TEST_QUESTIONS = 50` frontend-only Standard product limit
+- [x] Standard invalid counts outside `1..50` block Create without silent clamping
+- [x] live filtered `Available: N` beside Standard Questions
+- [x] `MAX_CUSTOM_IDS = 50` frontend-only Custom product limit
+- [x] Custom raw input is not silently truncated/erased
+- [x] invalid Custom tokens are surfaced and block Create
+- [x] systems/topics metadata source excludes selected `systemIds/topicIds`
+- [x] final availability/create requests still include selected systems/topics
+- [x] backend headroom remains higher (`totalQuestions` DTO max 200)
+- [x] Custom UI `unused only` vs canonical backend behavior discrepancy is documented, not falsely marked verified
 
-### Automated verification
-- [x] Original Typecheck
-- [x] Original Lint
-- [x] Original Production build
-- [x] GitHub Actions `Verify` run #14 succeeded on implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab`
-- [x] Documentation/status handoff commit `631b3628095e84429160454d79225fe1d1309c94` passed `Verify` run #16
-- [x] Availability-label/Custom-limit clarification state through commit `552bacb1b984fe51754690812711ed74888ac903` passed `Verify` run #25
-- [ ] Latest Standard-50 code/docs state must pass final `Verify`
+Page spec: `docs/page-specs/CREATE_TEST.md`.
 
-### Runtime verification still open
-- [ ] Browser: Mixed badge for 2+ modes
-- [ ] Browser: Standard Questions row shows the correct live `Available: N`
-- [ ] Browser: Standard 50 allowed; Standard 51 remains visible/invalid and blocks Create
-- [ ] Browser: valid/invalid/>50 Custom states; 51 IDs stay visible and block Create
-- [ ] Browser: systems/topics matrix/search remains stable during selections
-- [ ] Authenticated live API: single-mode creation with ≤50 questions
-- [ ] Authenticated live API: mixed-mode creation with ≤50 questions
-- [ ] Authenticated live API: valid Custom creation with ≤50 IDs
+## 5. Issue #11 — QBank workspace shell + responsive Create Test
 
-Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. In the current tool environment, direct DNS/fetch attempts to this Workers domain failed, and there is no authenticated MedPark browser session available. This is a tooling/runtime-access limitation only; the deployment itself is known and recorded. Runtime checks therefore remain explicitly open rather than being claimed as passed.
+### User-approved problem/solution
 
-### Canonical-contract discrepancy recorded
-The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Custom creation currently does not apply the normal UNUSED predicate. This was discovered during implementation re-inspection and is documented in the page spec/Issue #3. It is not silently treated as verified behavior.
+A runtime screenshot showed the global MedPark header (`Home / Dashboard / Contests / Library`) above the bank-specific QBank shell (`Welcome / Create Test / Previous Tests`). Inspection confirmed `/qbank/:bankId` was nested inside `AppLayout`, while `QbankWorkspace` already owned another navigation shell.
 
-## 5. G1 remaining work after Create Test runtime verification
+Approved structural fix:
+- `/qbank/:bankId/*` owns a dedicated protected workspace outside `AppLayout`;
+- `/qbank` bank selection remains in global `AppLayout`;
+- desktop keeps the fixed dark QBank sidebar;
+- below `lg`, sidebar becomes an off-canvas drawer;
+- drawer closes by close button, overlay, Escape and QBank navigation;
+- body scroll locks while drawer is open;
+- QBank header/content use responsive spacing with no intended horizontal overflow;
+- Create Test receives a dedicated premium mobile/tablet/iPad pass.
 
-### Library fidelity — next discussion checkpoint, not yet active
-- [ ] Discuss/record High-yield interactive-link behavior before visible changes
-- [ ] Create/update Library page spec
-- [ ] Preserve `.api` / `.dictionary` / `.linksuggest` interactive spans
-- [ ] Browser-verify ordered/unordered/nested lists in light/dark + High-yield on/off
-- [ ] Regression-check search/navigation/annotations/notebook/AI/popovers/images/split behavior
-- [ ] Pass verification gates and update Issue #3/status/docs
+Page spec: `docs/page-specs/QBANK_WORKSPACE.md`.
 
-### Existing-shell regression — after Library
-- [ ] Auth
-- [ ] Hub
-- [ ] Dashboard
-- [ ] QBank listing
-- [ ] Bank workspace
-- [ ] Previous Tests
-- [ ] Library
-- [ ] final G1 `Verify`
+### Source implementation completed
+- [x] selected-bank route moved outside `AppLayout`
+- [x] global header no longer belongs to selected-bank route source tree
+- [x] `/qbank` list remains in `AppLayout`
+- [x] desktop fixed QBank sidebar retained
+- [x] tablet/iPad/mobile off-canvas drawer implemented
+- [x] overlay / explicit Close / Escape / navigation close implemented
+- [x] body scroll lock while drawer open
+- [x] Step query context preserved through QBank sidebar navigation
+- [x] responsive QBank header/content padding
+- [x] Create Test Standard/Custom toggle responsive
+- [x] status + difficulty controls use responsive touch-friendly grids
+- [x] Subjects/Systems/Topics adapt to narrow screens
+- [x] Custom Retrieve controls stack on mobile
+- [x] Test Mode / Questions / Available / Create stack on narrow screens
+- [x] Topic Search uses viewport-safe mobile panel
+- [x] existing Create Test product semantics preserved in source
 
-## 6. Exact next step
+### Verification still open
+- [ ] final latest-head GitHub Actions `Verify`
+- [ ] browser desktop acceptance
+- [ ] browser tablet/iPad acceptance
+- [ ] browser mobile acceptance
+- [ ] deployed runtime confirms global MedPark header is absent inside selected QBank workspace
+- [ ] drawer open/close/overlay/Escape/navigation behavior verified
+- [ ] no unintended QBank/Create Test horizontal overflow
+- [ ] existing Create Test runtime checks: Mixed, 50/51 Standard, Custom validation, stable systems/topics
+- [ ] authenticated single/mixed/custom create smoke against live backend
 
-**Finish Create Test runtime verification against the Cloudflare deployment. Do not start Library yet.**
+## 6. G1 sequence from here
 
-The next legitimate transition is:
+Current order is now:
 
-`VERIFYING → Create Test DONE` only after browser behavior, authenticated live creation paths, and the latest CI are evidenced.
+1. **Finish Issue #11 verification** — shell + Create Test desktop/tablet/mobile.
+2. Reconcile remaining Create Test live/API evidence under parent #3.
+3. Return to **Library discussion/spec**. Do not assume Library mobile design; discuss it separately as requested.
+4. Complete approved Library fidelity slice.
+5. Run existing-shell regression across Auth, Hub, Dashboard, QBank listing/workspace, Previous Tests, Create Test and Library as applicable.
+6. Final G1 `Verify` and close #3 only when its acceptance gates are evidenced.
+7. Then begin G2 / Issue #4 **Exam Runner + Results/Review design discussion before code**.
 
-Use this runtime target:
-`https://medfront.geminiamo0.workers.dev`
+## 7. Exact next step
 
-Verify in this order:
-1. open Create Test in an authenticated browser session;
-2. confirm 2+ status selection renders `Mixed · N selected`;
-3. confirm the Standard Questions row shows the filtered `Available: N` and that it changes with status/filter selections;
-4. confirm Standard count 50 is accepted and 51 stays visible/invalid with Create disabled;
-5. confirm valid, invalid, and >50 Custom states without input truncation; specifically, 51 valid unique IDs must remain visible and block Create;
-6. confirm selecting systems/topics does not shrink the matrix/search;
-7. create one safe single-mode block with ≤50 questions;
-8. create one safe mixed-mode block with ≤50 questions;
-9. create one safe valid-Custom block with ≤50 IDs;
-10. record evidence in `docs/page-specs/CREATE_TEST.md` and Issue #3;
-11. then report Create Test DONE and begin the Library **discussion/spec** checkpoint before coding it.
+**Do not start Library and do not start Exam Runner yet.**
 
-Do not start Exam Runner #4 until Issue #3/G1 is Done unless the user explicitly reprioritizes and this status file records it.
+First verify the latest Issue #11 source commit in GitHub Actions. Once green, use the deployed Cloudflare runtime to verify at roughly:
+- desktop ≥1280px;
+- iPad/tablet ~768–1024px;
+- mobile ~360–430px.
 
-## 7. Phase order
+Manual/runtime checklist:
+1. open a selected QBank and confirm the global MedPark header is gone;
+2. desktop: fixed sidebar works;
+3. tablet/mobile: menu opens drawer, overlay/Close/Escape dismiss it, selecting a QBank section closes it;
+4. confirm Step context remains correct when navigating Welcome/Create Test/Previous Tests;
+5. Create Test: Standard/Custom toggle fits;
+6. mode/difficulty/subjects/systems/topics have no unintended horizontal overflow;
+7. mobile Topic Search stays inside viewport;
+8. bottom Tutor/Timed + Questions + Available + Create layout is usable;
+9. Custom Retrieve + textarea are usable on phone;
+10. repeat existing correctness checks and safe live create flows.
 
-1. **G0** Governance/source ownership/docs/CI baseline — DONE
-2. **G1** Stabilize existing frontend — ACTIVE / VERIFYING Create Test (#3)
-3. **G2** Exam Runner + results/review — blocked/design first (#4)
-4. **G3** Study tools — parked
-5. **G4** Analytics/streaks/goals/badges/AI Analyst — parked
-6. **G5** Account/settings/privacy/subscription/payments — parked
-7. **G6** Contests/community/messages/support — parked
-8. **G7** Public/ancillary surfaces — parked
-9. **G8** Admin/support operations — parked (#7)
-10. **G9** Hardening — parked (#6)
-11. **G10** Release readiness — parked (#6)
+Only after that can Issue #11 move to DONE and parent #3 continue.
 
 ## 8. Definition of Done
 
-A page/feature is `DONE` only when all applicable gates pass:
-- [ ] user-approved UX/style/page spec exists
-- [ ] acceptance criteria satisfied
-- [ ] implementation respects architecture boundaries
-- [ ] automated/targeted checks pass
-- [ ] browser/E2E verification passes where applicable
-- [ ] real API behavior is verified where applicable
-- [ ] typecheck/lint/production build pass
-- [ ] GitHub Actions `Verify` passes
-- [ ] active issue and relevant docs are updated
-- [ ] `PROJECT_STATUS.md` records the exact continuation point
+A page/feature is not Done because code exists. Applicable gates include:
+- [ ] user-approved UX/style/spec
+- [ ] architecture boundaries respected
+- [ ] acceptance criteria met
+- [ ] typecheck/lint/build pass
+- [ ] GitHub Actions `Verify` green
+- [ ] desktop browser acceptance
+- [ ] tablet/iPad browser acceptance
+- [ ] mobile browser acceptance
+- [ ] real API/E2E evidence for critical paths
+- [ ] active issue/docs/`PROJECT_STATUS.md` reconciled
+- [ ] exact next continuation point recorded
 
-## 9. Proven vs not yet proven
+Explicit documented deferrals (currently Library mobile/tablet) are allowed only when the user deliberately chooses them.
 
-### Proven/observed
-- Current frontend source tree/routes inspected.
-- Canonical `medhvgg/main` backend capability map and relevant Create Test DTO/entity/controller/service paths inspected.
-- Backend canonical mixed enum is `mixed_modes`.
-- Canonical backend DTO allows `totalQuestions` up to 200, but current frontend product limits Standard and Custom to 50.
-- User manually observed Standard test creation working with 100 questions before the product cap, confirming the backend headroom.
-- Create Test source implementation follows the approved mixed/custom/metadata behavior, shows filtered availability beside the Standard question-count input, and blocks Standard counts above 50.
-- Original implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14.
-- Frontend runtime target is Cloudflare Workers at `https://medfront.geminiamo0.workers.dev`.
+## 9. Continuation command for a new AI/developer
 
-### Not yet proven
-- Browser-level acceptance of the latest Standard-50 and availability behavior on the Cloudflare deployment.
-- Authenticated end-to-end single/mixed/custom creation after the full G1 Create Test changes.
-- Library G1 fidelity corrections.
-- Full existing-shell regression.
-- Current frontend Exam Runner/results, because they are not built.
-
-## 10. Continuation command for a new AI/developer
-
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as the current frontend runtime target. Both Standard and Custom Create Test flows are intentionally capped at 50 by the frontend even though the backend allows a higher ceiling. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, and `docs/page-specs/CREATE_TEST.md`. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 verification task. Responsive acceptance covers desktop + tablet/iPad + mobile for active pages. Do NOT redesign Library mobile/tablet until a separate user UX discussion. Do not start Exam Runner #4 before G1 is reconciled. Do not mark Done without evidence and green Verify.
