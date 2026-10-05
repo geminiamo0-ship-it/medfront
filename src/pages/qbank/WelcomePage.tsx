@@ -137,7 +137,7 @@ export default function WelcomePage() {
           bank's blocks to unlock your statistics.
         </p>
         <Link
-          to="create-test"
+          to={`/qbank/${bankId}/create-test?step=${step}`}
           className="mt-6 inline-block rounded-xl bg-mp px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-mp-hover"
         >
           Continue with a new test
