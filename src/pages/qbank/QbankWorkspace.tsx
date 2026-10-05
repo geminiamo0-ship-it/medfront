@@ -41,10 +41,6 @@ export default function QbankWorkspace() {
   const step = requestedStep ?? questionBank?.step ?? 1;
 
   useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
     if (!questionBank) return;
 
     const canonicalStep = questionBank.step;
