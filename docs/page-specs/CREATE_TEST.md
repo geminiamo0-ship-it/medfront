@@ -219,7 +219,7 @@ Frontend validation improves UX. Backend remains authoritative for access, enum 
 - [x] Build
 - [x] GitHub Actions `Verify` run #14 green on original implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab`
 - [x] Documentation/status handoff commit `631b3628095e84429160454d79225fe1d1309c94` passed `Verify` run #16
-- [ ] Latest availability-label/product-limit clarification commit passes `Verify`
+- [x] Availability-label/frontend-limit clarification state through commit `552bacb1b984fe51754690812711ed74888ac903` passed `Verify` run #25 (install/typecheck/lint/build all green)
 
 ### Browser/manual evidence
 - [ ] Single-mode visual/request behavior
@@ -257,3 +257,4 @@ Current execution limitation: the present tool environment cannot resolve/fetch 
 - 2026-10-05: User supplied the actual runtime target `https://medfront.geminiamo0.workers.dev`; docs corrected to identify Cloudflare Workers rather than Vercel.
 - 2026-10-05: Manual observation showed Standard creation can work with 100 questions. Canonical backend was re-inspected: `totalQuestions` max is 200 and `customQuestionIds` has no 50-element DTO cap. User chose to keep Custom at 50 as a frontend product limit.
 - 2026-10-05: Standard Questions row updated to show the live filtered `Available: N` beside the requested count, reusing existing availability state with no extra request.
+- 2026-10-05: `Verify` run #25 passed on commit `552bacb1b984fe51754690812711ed74888ac903`, covering the latest source and product-limit documentation state.
