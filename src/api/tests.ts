@@ -70,56 +70,17 @@ export function getQuestionBanks(step?: number, mainBankId?: number) {
   return api.get<QuestionBankWithProgress[]>('/tests/metadata/question-banks', { params });
 }
 
+/** POST /tests/counts/mixed — exact deduplicated count across combined modes. */
+export function getMixedModeCount(step: number, filters: Record<string, unknown>) {
+  return api.post<{ count: number }>('/tests/counts/mixed', { step, filters });
+}
+
 /** POST /tests/retrieve-questions — the UW external IDs contained in a test. */
 export function retrieveTestQuestions(testId: number) {
   return api.post<number[]>('/tests/retrieve-questions', { testId });
 }
 
 export type DifficultyTier = 'very_hard' | 'hard' | 'medium' | 'easy' | 'very_easy';
-
-export interface QuestionCounts {
-  all: number;
-  unused: number;
-  used: number;
-  incorrect: number;
-  correct: number;
-  marked: number;
-  marked_correct: number;
-  marked_incorrect: number;
-  omitted: number;
-  suspended: number;
-}
-
-export type QuestionStatusMode = keyof QuestionCounts;
-export type CreateTestMode = QuestionStatusMode | 'mixed_modes';
-
-export interface TestFilters {
-  questionBankIds?: number[];
-  subjectIds?: number[];
-  systemIds?: number[];
-  topicIds?: number[];
-  difficulty?: DifficultyTier[];
-  modes?: QuestionStatusMode[];
-}
-
-export interface CreateTestPayload {
-  title?: string;
-  type: 'tutor' | 'timed';
-  mode: CreateTestMode;
-  step: number;
-  totalQuestions: number;
-  filters?: TestFilters;
-  timeLimitSeconds?: number;
-  customQuestionIds?: number[];
-  sourceTestId?: number;
-  isBlock?: boolean;
-  blockNumber?: number;
-}
-
-/** POST /tests/counts/mixed — exact deduplicated count across combined modes. */
-export function getMixedModeCount(step: number, filters: TestFilters) {
-  return api.post<{ count: number }>('/tests/counts/mixed', { step, filters });
-}
 
 /** POST /tests/metadata/difficulty-counts — per-tier counts for a bank set. */
 export function getDifficultyCounts(step: number, questionBankIds: number[]) {
@@ -160,8 +121,21 @@ export function getQbankStatistics(qBankCode: string, step: number) {
   });
 }
 
+export interface QuestionCounts {
+  all: number;
+  unused: number;
+  used: number;
+  incorrect: number;
+  correct: number;
+  marked: number;
+  marked_correct: number;
+  marked_incorrect: number;
+  omitted: number;
+  suspended: number;
+}
+
 /** POST /tests/counts — per-mode question counts for the given filters. */
-export function getQuestionCounts(step: number, filters: TestFilters) {
+export function getQuestionCounts(step: number, filters: Record<string, unknown>) {
   return api.post<QuestionCounts>('/tests/counts', { step, filters });
 }
 
@@ -175,7 +149,7 @@ export interface SubjectCount {
 }
 
 /** POST /tests/metadata/subjects — subjects with counts (Create Test page). */
-export function getSubjects(step: number, questionBankIds: number[], mode: CreateTestMode = 'all') {
+export function getSubjects(step: number, questionBankIds: number[], mode = 'all') {
   return api.post<SubjectCount[]>('/tests/metadata/subjects', {
     step,
     questionBankIds,
@@ -207,10 +181,10 @@ export function getPreviousTests(step?: number, qBankId?: number) {
   return api.get<TestListItem[]>('/tests', { params });
 }
 
-export function getSystemsWithTopics(step: number, filters: TestFilters) {
+export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {
   return api.post<SystemWithTopics[]>('/tests/metadata/systems-with-topics', { step, filters });
 }
 
-export function createTest(payload: CreateTestPayload) {
+export function createTest(payload: Record<string, unknown>) {
   return api.post<{ id: number }>('/tests', payload);
 }
