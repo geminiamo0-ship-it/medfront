@@ -1,232 +1,277 @@
 # Create Test — Page Spec
 
-**Parent issue:** #3  
-**Responsive shell issue:** #11  
+**Issue:** #3 / active responsive shell #11  
 **Status:** VERIFYING  
-**Route:** `/qbank/:bankId/create-test`  
+**Route(s):** `/qbank/:bankId/create-test` (nested Create Test route in the bank workspace)  
 **Last updated:** 2026-10-05  
 **User approval:** Approved 2026-10-05
 
 ## 1. Purpose
 
-Let a learner create a question block from one bank using status modes, difficulty, subjects, systems/topics, or explicit Custom UWorld IDs, with predictable validation, stable filter metadata, and a premium responsive experience across desktop, tablet/iPad and mobile.
+Let a learner create a question block from one bank using status modes, difficulty, subjects, systems/topics, or an explicit Custom UWorld-ID list without hidden truncation or unstable filter metadata.
 
-## 2. Approved product behavior
+## 2. Scope
 
-- Exactly one selected status submits its canonical single mode.
-- Two or more selected statuses automatically submit `mode: "mixed_modes"` with `filters.modes` and show `Mixed · N selected`.
-- Standard tests are intentionally capped at **50 questions in the frontend** through `MAX_TEST_QUESTIONS`.
-- Standard counts outside `1..50` remain visible, are marked invalid, and block Create; they are never silently clamped to another size.
-- Standard shows live filtered `Available: N` beside the Questions input using existing availability state.
-- Custom is intentionally capped at **50 unique valid IDs in the frontend** through `MAX_CUSTOM_IDS`.
-- Custom raw input is never silently truncated or erased.
-- Invalid/non-numeric/non-positive/non-integer Custom entries are surfaced and block Create.
-- >50 valid unique Custom IDs remain in the textarea and block Create.
-- Systems/topics selections affect availability/create, but selected `systemIds/topicIds` are excluded from the systems/topics metadata query so the source matrix/search does not collapse while it is being selected.
-- The backend remains authoritative for access, quotas, question existence, bank membership, grouping, persistence and all domain rules.
+### In scope
+- Correct multi-status creation to the canonical backend enum `mixed_modes`.
+- Automatically treat 2+ selected status modes as Mixed and show a subtle `Mixed · N selected` indicator.
+- Keep single selected status as its normal single mode.
+- Enforce an intentional **frontend product limit of 50 questions for Standard tests** through `MAX_TEST_QUESTIONS`.
+- Show the current filtered **Available** question count directly beside the Standard `Questions` input.
+- Block Standard Create when the requested count is outside `1..50` rather than silently clamping to a different test size.
+- Custom ID input must never silently truncate.
+- Enforce an intentional **frontend product limit of 50 Custom UWorld IDs** through `MAX_CUSTOM_IDS`.
+- Show `N / 50` for the parsed unique valid Custom IDs.
+- Surface invalid/non-numeric/non-positive/non-integer entries before submission.
+- Disable Create Test when Custom has no valid IDs, has invalid entries, or exceeds the frontend 50-ID product limit.
+- Keep all user-entered Custom text intact when invalid or over the limit.
+- Keep Systems/Topics metadata stable while system/topic selections change; selected systems/topics affect availability/creation, not the metadata universe used to render the matrix/search.
+- Preserve the current visual language while making the page usable on desktop, tablet/iPad and mobile.
+- Preserve QBank `step` context when entering Create Test; legacy/bare selected-bank URLs are repaired by the workspace shell.
 
-## 3. Canonical backend findings
+### Explicit non-goals
+- No Exam Runner work.
+- No new test-mode semantics beyond the canonical backend contract.
+- No wholesale refactor of `CreateTestPage.tsx`.
+- Do not change the backend maximum merely to mirror the stricter frontend 50-question product limits.
+- Existing copy saying Custom questions are `unused` is not treated as proven by this slice: canonical `medhvgg/main` currently selects active matching custom IDs in the allowed bank but does not apply the normal UNUSED predicate. This discrepancy must not be claimed as verified until backend semantics are explicitly aligned.
+- Library mobile/tablet remains deferred to a separate detailed UX discussion.
 
-Canonical backend: `geminiamo0-ship-it/medhvgg/main`.
+## 3. Evidence reviewed
 
+### Current frontend
+- `src/pages/qbank/CreateTestPage.tsx`
+- `src/pages/qbank/QbankWorkspace.tsx`
+- `src/pages/qbank/WelcomePage.tsx`
+- `src/pages/qbank/PreviousTestsPage.tsx`
+- `src/api/tests.ts`
+- Current route/workspace structure and existing Create Test documentation.
+
+Observed defects before implementation:
+- Multiple selected modes submitted `mode: "mixed"`.
+- Custom parsing ended with `.slice(0, 50)`, silently dropping extra IDs and making the existing `> 50` visual branch unreachable.
+- `getSystemsWithTopics` received the final `filters`, including selected `systemIds`/`topicIds`, which could shrink the matrix/search after selection.
+- Standard count UI previously exposed the backend-compatible 200 ceiling instead of the product-selected 50-question ceiling.
+- Runtime later showed `/qbank/39/create-test` without `?step=` falsely resolving as Step 1 and showing `Bank not found`; some internal Create Test links were dropping Step context.
+
+### Canonical backend (`medhvgg/main`)
+- `src/entities/test.entity.ts`
+- `src/tests/dto/test.dto.ts`
+- `src/tests/services/test-creation.service.ts`
+- `src/tests/tests.controller.ts`
+
+Canonical findings:
 - `TestMode.MIXED = "mixed_modes"`.
-- `filters.modes[]` carries the selected modes for mixed creation.
+- `CreateTestDto.mode` is enum validated.
+- `filters.modes[]` carries the selected modes for `mixed_modes`.
 - `CreateTestDto.totalQuestions` allows up to 200.
-- `customQuestionIds` has no 50-element DTO cap.
-- Therefore the current Standard 50-question and Custom 50-ID ceilings are deliberate frontend product rules, not backend schema/security limits.
-- Backend telemetry may alert above 100 requested questions, but this does not itself reject the request; the DTO maximum remains 200.
-- The service's `previewCount = 50` only limits invalid-ID error preview text; it is not a creation-size rule.
-- Current canonical Custom creation resolves active matching question IDs in the permitted bank but does **not** apply the normal UNUSED predicate. Existing UI copy saying Custom is `unused only` remains a documented contract discrepancy and must not be claimed as verified behavior.
+- `customQuestionIds` is not capped at 50 by the DTO.
+- Therefore the Standard 50-question ceiling and Custom 50-ID ceiling are intentional frontend product rules, not backend contract limits.
+- The service emits an abuse/security alert when requested `totalQuestions` is over 100 but does not reject solely for being over 100; the DTO maximum remains authoritative at the backend layer.
+- Custom IDs are resolved by external/UWorld ID within allowed active questions in the selected bank; invalid/missing IDs are rejected with structured backend errors.
+- The current canonical Custom path does not apply the normal UNUSED predicate.
+- The service's internal `previewCount = 50` only limits how many invalid IDs are included in human-readable error text; it is not a creation-size limit.
 
-## 4. QBank shell relationship
+### Runtime target
+- Cloudflare Workers frontend: `https://medfront.geminiamo0.workers.dev`
+- API base: `https://medhvgg-production.up.railway.app/api`
 
-Create Test lives inside the dedicated QBank workspace described by `docs/page-specs/QBANK_WORKSPACE.md`.
+## 4. User-approved visual direction
 
-As of Issue #11:
-- `/qbank/:bankId/*` must not render inside the global `AppLayout` header.
-- Desktop uses the dedicated fixed QBank sidebar.
-- Tablet/iPad/mobile use the QBank off-canvas drawer.
-- Create Test content must fit the workspace without horizontal overflow.
+Preserve the existing Create Test visual language, but make it premium-responsive.
 
-## 5. Approved visual direction
+Approved behavior/additions:
+- Selecting 2+ status checkboxes automatically means Mixed.
+- A small, subtle status badge/label shows `Mixed · N selected`; there is no separate Mixed checkbox/button.
+- Standard `Questions` is capped at 50 in the frontend; invalid `0`, negative, non-integer, or `>50` values prevent Create instead of being silently rewritten into another test size.
+- Beside the Standard `Questions` number input, show `Available: N` using the same live filtered availability already used by the page.
+- Custom IDs show a compact counter and inline validation feedback.
+- Custom remains intentionally capped at 50 in the frontend even though the backend supports a higher ceiling.
+- Invalid or over-limit state uses the existing error/bad token styling; valid state uses the existing link/accent styling.
+- Do not clear, rewrite, or truncate user Custom text to resolve an error.
+- Mobile/tablet: Standard/Custom tabs, modes, difficulty, filters, topic search, Custom retrieve, and bottom create controls must fit without horizontal overflow.
 
-Preserve the existing MedPark/QBank visual language rather than redesigning the page.
+## 5. Desktop layout
 
-Approved visible additions/refinements:
-- subtle `Mixed · N selected` state;
-- Standard `Available: N` beside Questions;
-- Standard invalid-count styling;
-- Custom compact `N / 50` counter and inline validation;
-- responsive/touch-friendly layout for desktop, tablet/iPad and mobile.
+Keep current section order and card layout.
 
-## 6. Responsive behavior
+- Question Mode card: Standard/Custom tabs; Standard mode list gets the subtle Mixed status indicator when 2+ modes are selected.
+- Custom card: existing instructions/retrieve/textarea remain; counter and validation message live directly below the textarea.
+- Difficulty, Subjects, Systems, Test Mode/count/create remain in their current positions.
+- Standard Test Mode/count/create row shows `Questions [input] Available: N` together.
 
-### Desktop
-- Keep current card hierarchy and section order.
-- Question Mode, Difficulty, Subjects and Systems use comfortable multi-column density.
-- Test Mode + Questions + Available + Create may share the bottom action row.
+## 6. Mobile/responsive layout
 
-### Tablet / iPad
-- Cards retain the same hierarchy but use fewer grid columns.
-- QBank navigation is supplied by the workspace drawer below the desktop breakpoint.
-- Controls wrap instead of shrinking into cramped desktop rows.
-- Systems/topics remain readable and tappable.
-- Topic search remains inside the viewport.
+- Page/container uses `min-w-0` and compact phone padding.
+- Standard/Custom tabs become full-width on narrow screens.
+- Mode and Difficulty controls use responsive touch-friendly grids.
+- Subjects and Systems become one column on narrow screens, two columns when space allows.
+- Custom Retrieve input/button stack vertically on mobile.
+- Topic Search panel is fixed/viewport-safe on phone widths instead of overflowing off-screen.
+- Tutor/Timed and Questions/Available/Create stack into a usable vertical layout when required.
+- Create button may become full-width on phones.
+- No unintended horizontal overflow.
 
-### Mobile
-- Page uses compact workspace padding with no horizontal overflow.
-- Standard/Custom segmented control becomes full-width.
-- Question status and Difficulty choices become touch-friendly stacked/grid rows.
-- Subjects and Systems become one-column lists where needed.
-- Custom Retrieve input/button stack vertically.
-- Test Mode controls wrap cleanly.
-- Standard Questions + Available + Create stack so the primary action remains obvious and full-width where appropriate.
-- Topic Search opens in a viewport-safe fixed panel rather than a desktop-width dropdown that can overflow the phone.
-- Interactive rows use practical touch heights.
+## 7. Navigation and user flow
 
-## 7. Current component behavior
+### Entry points
+- Bank workspace → Create Test.
+- Welcome locked-results CTA → absolute `/qbank/:bankId/create-test?step=N`.
+- Previous Tests empty-state CTA → absolute `/qbank/:bankId/create-test?step=N`.
+- QBank sidebar → Step-preserving Create Test link.
+- Legacy/bookmarked bare selected-bank Create Test URLs are repaired by `QbankWorkspace` using the bank's canonical Step from active QBank metadata.
 
-### Question Mode
-- `Standard` / `Custom` remain the only top-level tabs.
-- Selecting 2+ status checkboxes automatically means Mixed; there is no separate Mixed button.
-- `Available` reflects current status/filter selection.
+### Primary flow
+1. Select Standard or Custom.
+2. Standard: choose one or more status modes and optional filters.
+3. Two or more status modes automatically form a Mixed selection.
+4. Standard: review the live `Available` count beside the requested Questions input and enter `1..50` questions.
+5. Custom: enter/retrieve UWorld IDs and resolve validation before Create is enabled; the frontend product limit is 50.
+6. Choose Tutor/Timed when applicable.
+7. Create Test.
+8. On success navigate to `/test/:testId`.
 
-### Standard filters
-- Difficulty, Subjects, Systems and Topics preserve existing backend semantics.
-- Systems remain disabled until at least one Subject is selected, matching current behavior.
-- Topic search merges same-name topics for presentation while applying all underlying IDs.
+## 8. Components and boundaries
 
-### Custom
-- Optional test name remains.
-- Existing retrieve-test flow remains.
-- Comma-separated ID input is parsed, deduplicated for payload, and validated without mutating raw input.
+- Keep the page architecture incremental.
+- Keep `MAX_TEST_QUESTIONS` as the single frontend Standard test-size product constant.
+- Keep `MAX_CUSTOM_IDS` as the single frontend Custom product-limit constant.
+- Do not split the entire recovered page in this slice.
+- `SystemsSection` remains presentation/interaction; metadata query composition belongs at the page/API boundary.
+- Step recovery belongs to the QBank workspace shell, not Create Test business logic.
 
-### Bottom actions
-- Tutor/Timed behavior is unchanged.
-- Standard Questions accepts only integer `1..50` for creation.
-- Create remains a real disabled button for invalid/unavailable states.
+## 9. Backend/API contract
 
-## 8. State ownership
+| Action | Method | Endpoint | Request | Authority/notes |
+|---|---|---|---|---|
+| Per-mode counts | POST | `/tests/counts` | `{ step, filters }` | Backend authoritative |
+| Mixed count | POST | `/tests/counts/mixed` | `{ step, filters: { ...filters, modes } }` | Backend deduplicates combined modes |
+| Subjects | POST | `/tests/metadata/subjects` | `{ step, questionBankIds, mode }` | Metadata |
+| Systems/topics | POST | `/tests/metadata/systems-with-topics` | `{ step, filters }` | Render from stable metadata filters |
+| Difficulty | POST | `/tests/metadata/difficulty-counts` | `{ step, questionBankIds }` | Metadata |
+| Create | POST | `/tests` | typed Create Test request | `mode: "mixed_modes"` for 2+ modes; `filters.modes` contains actual modes; backend DTO `totalQuestions` max = 200 |
+| Retrieve IDs | POST | `/tests/retrieve-questions` | `{ testId }` | Existing behavior |
+| QBank catalogue | GET | `/tests/metadata/question-banks` | optional `step` | Missing-Step workspace recovery only when selected-bank URL lacks a valid Step |
+
+Frontend validation improves UX. Backend remains authoritative for access, enum validation, availability, question existence, bank membership, creation quotas, grouping and persistence.
+
+## 10. State ownership
 
 ### Server state
-- per-mode counts;
-- mixed availability;
-- difficulty counts;
-- subjects;
-- systems/topics metadata;
-- retrieved test IDs;
-- create result.
+- counts, filtered availability, subjects, systems/topics, difficulty counts, create result, retrieved IDs.
 
-### Local state
-- Standard/Custom tab;
-- selected modes/difficulty/subjects/systems/topics;
-- requested question count;
-- Tutor/Timed;
-- title;
-- Custom raw ID text;
-- retrieve/create progress and errors.
+### Local interaction state
+- question tab, selected modes/difficulty/subjects/systems/topics, count, title, custom text, retrieve/create progress/errors.
 
-No new persisted browser state is introduced by the responsive pass.
+### Workspace navigation state
+- `step` is URL-owned QBank context. QBank shell recovers/canonicalizes it when a malformed legacy URL omits it.
 
-## 9. Accessibility
+## 11. Page states
 
-- Native checkbox/button/input semantics remain.
-- Mixed state is visible text, not color-only.
-- Standard invalid count uses `aria-invalid` plus visible styling.
-- Custom validation remains visibly associated with the textarea.
-- Touch controls must remain practically sized on narrow viewports.
-- Topic-search controls remain keyboard reachable.
-- Responsive transformations must not hide required controls off-screen.
+- Loading: existing section loaders/placeholders; availability renders `…` while unknown.
+- Standard availability known: show `Available: N` beside the Questions input.
+- Standard invalid count (`<1`, non-integer, or `>50`): count input uses invalid styling and Create is disabled.
+- Custom empty: Create disabled.
+- Custom invalid token(s): inline invalid-entry message; Create disabled.
+- Custom >50 valid unique IDs: counter in error state + max message; Create disabled.
+- Backend invalid/unavailable IDs: retain input and display backend error.
+- Missing Step in selected-bank URL: workspace resolves canonical Step and replaces URL; valid bank should not falsely render `Bank not found`.
+- True missing/unavailable bank: neutral Bank not found state.
 
-## 10. Performance
+## 12. Interaction rules
 
-- The `Available: N` label reuses existing availability state and adds no request.
-- Responsive changes are CSS/layout/local UI only.
-- Stable metadata filters avoid unnecessary systems/topic matrix churn.
-- Parsed Custom IDs and filter objects remain memoized.
+- A mode selection can never become empty.
+- Exactly one selected status → submit that canonical single mode.
+- 2+ selected statuses → submit `mixed_modes` + `filters.modes`; show `Mixed · N selected`.
+- Standard `Available: N` beside the Questions input comes from the same current filtered availability used to gate creation.
+- Standard frontend product limit is `MAX_TEST_QUESTIONS = 50`; only integer counts from `1..50` may create a test.
+- Do not silently clamp a Standard request from an invalid value such as 100 down to 50.
+- Custom parser accepts comma-separated entries, trims whitespace, ignores empty separators, deduplicates valid IDs for the payload, and treats only positive integers as syntactically valid IDs.
+- Never `.slice(0, 50)` user IDs.
+- Custom frontend product limit is `MAX_CUSTOM_IDS = 50`; >50 unique valid IDs block Create but remain visible in the textarea.
+- Systems/topics selected IDs remain part of availability/creation filters, but they are excluded from the systems/topics metadata query so the source matrix does not collapse as the user selects it.
+- Internal QBank links must preserve `step`; missing-Step recovery is a fallback, not the normal navigation path.
 
-## 11. Explicit non-goals
+## 13. Accessibility
 
-- No backend contract change.
-- No Exam Runner implementation.
-- No broad QBank visual rebrand.
-- No wholesale rewrite of `CreateTestPage.tsx` merely for style.
-- **No Library mobile/tablet work in this slice.** The user explicitly deferred Library responsive design until a separate detailed discussion.
+- Preserve native checkbox/button/input semantics.
+- Mixed state must be visible text, not color-only.
+- Availability is rendered as visible text beside the number input, not color-only.
+- Standard invalid count uses `aria-invalid` and visible invalid styling.
+- Validation text must be readable and associated visually with the Custom textarea.
+- Disabled Create remains a real disabled button.
+- Responsive controls retain practical touch targets.
 
-## 12. Acceptance criteria
+## 14. Security/privacy/content safety
 
-### Correctness/source
-- [x] Canonical `mixed_modes` request for 2+ modes.
-- [x] `filters.modes` contains selected mixed statuses.
-- [x] Standard frontend maximum = 50.
-- [x] Standard invalid counts block Create without silent clamping.
-- [x] `Available: N` reuses live filtered availability.
-- [x] Custom frontend maximum = 50.
-- [x] Custom raw input is never silently truncated/erased.
-- [x] Invalid Custom tokens block Create.
-- [x] Systems/topics metadata query excludes selected system/topic IDs.
-- [x] Final availability/create filters still include selected systems/topics.
-- [x] Custom `unused only` contract discrepancy remains documented.
+- Do not expose correct answers or hidden question content.
+- Do not bypass backend access checks or quotas.
+- Do not trust frontend validation as authorization.
+- Retain backend canonical filtering and subscription enforcement.
+- Step recovery only finds active banks already exposed through the authenticated QBank metadata endpoint; it does not bypass bank access rules.
 
-### Responsive source implementation — Issue #11
-- [x] Standard/Custom toggle fits narrow screens.
-- [x] Status modes use touch-friendly responsive grid rows.
-- [x] Difficulty uses responsive touch-friendly grid rows.
-- [x] Subjects/Systems/Topics adapt to narrow viewports.
-- [x] Custom Retrieve controls stack on mobile.
-- [x] Test Mode / Questions / Available / Create stack cleanly on narrow screens.
-- [x] Topic Search uses a viewport-safe mobile panel.
-- [x] Existing product semantics are preserved during responsive changes.
+## 15. Performance considerations
 
-### Runtime verification still required
-- [ ] Desktop browser acceptance.
-- [ ] Tablet/iPad browser acceptance.
-- [ ] Mobile browser acceptance.
-- [ ] No unintended horizontal overflow.
-- [ ] Mixed badge verified on deployed runtime.
-- [ ] Standard 50 accepted; 51 remains visible/invalid and blocks Create.
-- [ ] Valid/invalid/>50 Custom states verified.
-- [ ] Systems/topics matrix/search remains stable during selections.
-- [ ] Authenticated single-mode create ≤50.
-- [ ] Authenticated mixed-mode create ≤50.
-- [ ] Authenticated valid Custom create ≤50 IDs.
+- Stable metadata filters prevent unnecessary refetch/churn from every system/topic selection.
+- Counts still use the final filters so availability remains accurate.
+- The `Available: N` label reuses existing availability state; it adds no new network request.
+- Standard count validation is local state only and adds no network request.
+- Normal valid-Step QBank navigation remains step-scoped.
+- Only malformed/legacy selected-bank URLs missing a valid Step use the unscoped active-bank catalogue once to recover context.
 
-## 13. Verification plan
+## 16. Acceptance criteria
+
+- [x] Single selected status request construction keeps its canonical mode unchanged.
+- [x] 2+ selected statuses source implementation uses `mode: "mixed_modes"` plus `filters.modes` and renders the approved Mixed indicator in source.
+- [x] Standard frontend product maximum is 50 questions via `MAX_TEST_QUESTIONS`.
+- [x] Standard invalid counts outside `1..50` block Create instead of silently creating a differently sized test.
+- [x] Standard Questions input renders the current filtered `Available: N` beside it without an additional API call.
+- [x] Custom input is never silently truncated in source.
+- [x] Frontend intentionally enforces 50 Custom IDs through `MAX_CUSTOM_IDS` while documenting that the backend supports a higher ceiling.
+- [x] Invalid/non-numeric/non-positive/non-integer entries are surfaced and block Create in source.
+- [x] >50 valid unique IDs remain in the textarea and block Create in source.
+- [x] Systems/topics metadata request excludes selected system/topic IDs.
+- [x] Final availability/create requests still include selected systems/topics.
+- [x] Create Test responsive source pass implemented.
+- [x] Step-preserving Create Test links implemented from QBank Welcome/Previous Tests/sidebar.
+- [x] Bare selected-bank URL Step recovery implemented in QBank workspace source.
+- [ ] Runtime browser acceptance confirmed on Cloudflare deployment.
+- [ ] Runtime bare-URL Step recovery confirmed.
+- [ ] Authenticated single/mixed/custom create flows confirmed against live backend.
+
+## 17. Verification plan
 
 ### Automated
-Run:
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
-- GitHub Actions `Verify`
+- Typecheck
+- Lint
+- Build
+- GitHub Actions `Verify` on latest head
 
-Historical green checkpoints include the original Create Test implementation and later product-limit/availability refinements. The Issue #11 responsive source state must have its own final green `Verify` before this slice is complete.
+### Browser/manual evidence
+- Single-mode visual/request behavior
+- Mixed badge for 2+ modes
+- Standard Questions row shows the correct live `Available: N`
+- Standard 50 is allowed; Standard 51 remains visible/invalid and blocks Create
+- Valid Custom IDs up to the frontend limit
+- Invalid Custom token
+- 51 Custom IDs remain visible and block Create without truncation
+- Systems/topics stable while selecting systems/topics
+- Desktop/tablet/mobile responsive acceptance
+- Remove `?step=` from a known valid Create Test URL and reload; URL should self-repair to the bank's real Step and page should load
+- Welcome → Create Test and Previous Tests → Create Test retain correct Step
+- Real API happy path where credentials/test data safely permit
 
-### Browser/manual
-Runtime: `https://medfront.geminiamo0.workers.dev`
+Runtime target: `https://medfront.geminiamo0.workers.dev`.
 
-Verify approximately:
-- desktop ≥1280px;
-- tablet/iPad ~768–1024px;
-- mobile ~360–430px.
-
-## 14. Approval record
+## 18. Approval/runtime record
 
 2026-10-05 — User approved:
-- automatic Mixed + subtle badge;
-- Custom validation without truncation;
-- stable systems/topics matrix;
-- frontend-only maximum 50 for Custom;
-- frontend-only maximum 50 for Standard Questions;
-- live `Available: N` beside Standard Questions.
+- automatic Mixed when 2+ status modes are selected;
+- subtle `Mixed · N selected` visual trigger, no separate Mixed button;
+- Custom `N / 50`, explicit invalid IDs, disabled Create on invalid/>50, never truncate or erase input;
+- Systems/topics selections affect the test but must not collapse the matrix;
+- Standard and Custom frontend product maximum = 50;
+- live filtered Available count beside Questions;
+- premium responsive QBank/Create Test handling across desktop/tablet/mobile, while deferring Library mobile/tablet to a separate discussion.
 
-2026-10-05 — User additionally approved a premium responsive pass for the QBank workspace and Create Test across desktop, tablet/iPad and mobile. User explicitly deferred Library mobile/tablet work until a later detailed Library discussion.
-
-## 15. Implementation log
-
-- Original Create Test correctness slice implemented and previously CI-green.
-- Standard/Custom frontend product limits aligned at 50 while leaving backend headroom unchanged.
-- Live filtered availability added beside Standard Questions.
-- Issue #11 introduced the dedicated QBank responsive shell and Create Test responsive pass.
-- Responsive source implementation includes touch-friendly grids, mobile-stacked form/actions, compact spacing, responsive systems/topics, and a viewport-safe Topic Search panel.
-- Final Issue #11 CI/browser acceptance remains the current verification checkpoint.
+2026-10-05 — User supplied runtime evidence of false `Bank not found` on some Create Test pages. Screenshot URL lacked `?step=`. Source audit found Step-dropping Create Test links and Step-1 fallback; source fixes now preserve Step and recover old/bare URLs.
