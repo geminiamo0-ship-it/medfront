@@ -28,7 +28,7 @@ Current frontend runtime/deployment target is Cloudflare Workers:
 | Dashboard | Implemented | Current dashboard slice |
 | QBank listing | Implemented | Step/provider/bank discovery |
 | Bank workspace | Implemented | Welcome/Create Test/Previous Tests |
-| Create Test | **VERIFYING** | Approved G1 fixes implemented; CI green; browser/authenticated live API checks remain |
+| Create Test | **VERIFYING** | Approved G1 fixes implemented; latest UX adds live availability beside requested question count; browser/authenticated live API checks remain |
 | Library | Advanced, needs fidelity verification | Blocked until Create Test checkpoint completes |
 | Test runner | Placeholder | Design-first Issue #4; backend engine already exists |
 | Results/review | Not implemented in current frontend | Part of #4 |
@@ -70,7 +70,9 @@ Code-health rules remain:
 - [x] subtle `Mixed · N selected` indicator; no separate Mixed button
 - [x] Custom IDs show `N / 50`, invalid tokens, and block Create when invalid/>50/empty
 - [x] Custom raw input is never silently truncated or erased
+- [x] Custom **50-ID limit is intentionally frontend-only**; canonical backend supports a higher ceiling, so a future increase remains a frontend product change unless the backend contract changes
 - [x] Systems/topics selections affect the test but do not collapse the metadata matrix/search
+- [x] Standard Questions row shows the current filtered `Available: N` directly beside the requested count
 - [x] current visual layout preserved
 
 ### Implemented
@@ -78,10 +80,19 @@ Code-health rules remain:
 - [x] `filters.modes` carries actual selected modes
 - [x] Custom `.slice(0, 50)` removed
 - [x] Custom parser validates positive whole-number IDs, deduplicates payload IDs, preserves raw text
+- [x] `MAX_CUSTOM_IDS = 50` is retained as the single frontend product-limit constant and explicitly documented as frontend-only
 - [x] Create disabled for empty/invalid/>50 Custom state
 - [x] systems/topics metadata query excludes selected `systemIds/topicIds`
 - [x] final availability/create filters still include selected systems/topics
+- [x] Standard Questions row reuses the existing live filtered availability state and adds no extra API request
 - [x] feature typing kept local after a broader shared-API typing attempt caused unnecessary TypeScript blast radius
+
+### Canonical backend limit finding
+- [x] `CreateTestDto.totalQuestions` allows up to 200
+- [x] `customQuestionIds` has no 50-item DTO cap
+- [x] the service's `previewCount = 50` only caps human-readable invalid-ID error previews; it is not an exam-size limit
+- [x] service telemetry/abuse alerting above 100 requested questions does not itself reject creation
+- [x] user manually observed Standard creation working at 100 questions, consistent with the canonical DTO
 
 ### Automated verification
 - [x] Typecheck
@@ -89,16 +100,18 @@ Code-health rules remain:
 - [x] Production build
 - [x] GitHub Actions `Verify` run #14 succeeded on implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab`
 - [x] Documentation/status handoff commit `631b3628095e84429160454d79225fe1d1309c94` passed `Verify` run #16
+- [ ] Latest availability-label/frontend-limit clarification changes must pass final `Verify`
 
 ### Runtime verification still open
 - [ ] Browser: Mixed badge for 2+ modes
-- [ ] Browser: valid/invalid/>50 Custom states
+- [ ] Browser: Standard Questions row shows the correct live `Available: N`
+- [ ] Browser: valid/invalid/>50 Custom states; 51 IDs stay visible and block Create
 - [ ] Browser: systems/topics matrix/search remains stable during selections
 - [ ] Authenticated live API: single-mode creation
 - [ ] Authenticated live API: mixed-mode creation
 - [ ] Authenticated live API: valid Custom creation
 
-Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. The previous note that no frontend deployment existed was incorrect. In the current tool environment, direct DNS/fetch attempts to this Workers domain failed, and there is no authenticated MedPark browser session available. This is a tooling/runtime-access limitation only; the deployment itself is known and recorded. Runtime checks therefore remain explicitly open rather than being claimed as passed.
+Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. In the current tool environment, direct DNS/fetch attempts to this Workers domain failed, and there is no authenticated MedPark browser session available. This is a tooling/runtime-access limitation only; the deployment itself is known and recorded. Runtime checks therefore remain explicitly open rather than being claimed as passed.
 
 ### Canonical-contract discrepancy recorded
 The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Custom creation currently does not apply the normal UNUSED predicate. This was discovered during implementation re-inspection and is documented in the page spec/Issue #3. It is not silently treated as verified behavior.
@@ -127,7 +140,7 @@ The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Cust
 
 **Finish Create Test runtime verification against the Cloudflare deployment. Do not start Library yet.**
 
-The implementation itself is green in CI. The next legitimate transition is:
+The implementation must remain CI-green. The next legitimate transition is:
 
 `VERIFYING → Create Test DONE` only after browser behavior and authenticated live creation paths are evidenced.
 
@@ -137,13 +150,14 @@ Use this runtime target:
 Verify in this order:
 1. open Create Test in an authenticated browser session;
 2. confirm 2+ status selection renders `Mixed · N selected`;
-3. confirm valid, invalid, and >50 Custom states without input truncation;
-4. confirm selecting systems/topics does not shrink the matrix/search;
-5. create one safe single-mode block;
-6. create one safe mixed-mode block;
-7. create one safe valid-Custom block;
-8. record evidence in `docs/page-specs/CREATE_TEST.md` and Issue #3;
-9. then report Create Test DONE and begin the Library **discussion/spec** checkpoint before coding it.
+3. confirm the Standard Questions row shows the filtered `Available: N` and that it changes with status/filter selections;
+4. confirm valid, invalid, and >50 Custom states without input truncation; specifically, 51 valid unique IDs must remain visible and block Create because 50 is the intentional frontend product limit;
+5. confirm selecting systems/topics does not shrink the matrix/search;
+6. create one safe single-mode block;
+7. create one safe mixed-mode block;
+8. create one safe valid-Custom block with ≤50 IDs;
+9. record evidence in `docs/page-specs/CREATE_TEST.md` and Issue #3;
+10. then report Create Test DONE and begin the Library **discussion/spec** checkpoint before coding it.
 
 Do not start Exam Runner #4 until Issue #3/G1 is Done unless the user explicitly reprioritizes and this status file records it.
 
@@ -181,17 +195,19 @@ A page/feature is `DONE` only when all applicable gates pass:
 - Current frontend source tree/routes inspected.
 - Canonical `medhvgg/main` backend capability map and relevant Create Test DTO/entity/controller/service paths inspected.
 - Backend canonical mixed enum is `mixed_modes`.
-- Create Test source implementation now follows the approved mixed/custom/metadata behavior and compiles/lints/builds successfully.
-- Implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14.
+- Canonical backend DTO allows `totalQuestions` up to 200; the Custom 50-ID rule is intentionally frontend-only.
+- User manually observed Standard test creation working with 100 questions.
+- Create Test source implementation follows the approved mixed/custom/metadata behavior and now shows filtered availability beside the Standard question-count input.
+- Original implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14.
 - Frontend runtime target is Cloudflare Workers at `https://medfront.geminiamo0.workers.dev`.
 
 ### Not yet proven
-- Browser-level Create Test behavior after this implementation.
-- Authenticated end-to-end single/mixed/custom creation after this implementation.
+- Browser-level acceptance of the latest availability-label change on the Cloudflare deployment.
+- Authenticated end-to-end single/mixed/custom creation after the full G1 Create Test changes.
 - Library G1 fidelity corrections.
 - Full existing-shell regression.
 - Current frontend Exam Runner/results, because they are not built.
 
 ## 10. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as the current frontend runtime target. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as the current frontend runtime target. Custom is intentionally capped at 50 by the frontend even though the backend allows a higher ceiling. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
