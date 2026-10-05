@@ -1,0 +1,127 @@
+[
+  {
+    "Test": "Alanine aminotransferase (ALT) [cite: 36]",
+    "Reference Range": "10-40 U/L [cite: 36]",
+    "SI Reference Interval": "10-40 U/L [cite: 36]"
+  },
+  {
+    "Test": "Aspartate aminotransferase (AST) [cite: 36]",
+    "Reference Range": "12-38 U/L [cite: 36]",
+    "SI Reference Interval": "12-38 U/L [cite: 36]"
+  },
+  {
+    "Test": "Alkaline phosphatase [cite: 36]",
+    "Reference Range": "25-100 U/L [cite: 36]",
+    "SI Reference Interval": "25-100 U/L [cite: 36]"
+  },
+  {
+    "Test": "Amylase [cite: 36]",
+    "Reference Range": "25-125 U/L [cite: 36]",
+    "SI Reference Interval": "25-125 U/L [cite: 36]"
+  },
+  {
+    "Test": "Bilirubin, Total [cite: 36]",
+    "Reference Range": "0.1-1.0 mg/dL [cite: 36]",
+    "SI Reference Interval": "2-17 µmol/L [cite: 36]"
+  },
+  {
+    "Test": "Bilirubin, Direct [cite: 36]",
+    "Reference Range": "0.0-0.3 mg/dL [cite: 36]",
+    "SI Reference Interval": "0-5 µmol/L [cite: 36]"
+  },
+  {
+    "Test": "Calcium [cite: 36]",
+    "Reference Range": "8.4-10.2 mg/dL [cite: 36]",
+    "SI Reference Interval": "2.1-2.6 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cholesterol, Total, Normal [cite: 36]",
+    "Reference Range": "<200 mg/dL [cite: 36]",
+    "SI Reference Interval": "<5.2 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cholesterol, Total, High [cite: 36]",
+    "Reference Range": ">240mg/dL [cite: 36]",
+    "SI Reference Interval": ">6.2 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cholesterol, HDL [cite: 36]",
+    "Reference Range": "40-60 mg/dL [cite: 36]",
+    "SI Reference Interval": "1.0-1.6 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cholesterol, LDL [cite: 36]",
+    "Reference Range": "<160 mg/dL [cite: 36]",
+    "SI Reference Interval": "<4.2 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Triglycerides, Normal [cite: 36]",
+    "Reference Range": "<150 mgdL [cite: 36]",
+    "SI Reference Interval": "<1.70 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Triglycerides, Borderline [cite: 36]",
+    "Reference Range": "151-199 mg/dL [cite: 36]",
+    "SI Reference Interval": "1.71-2.25 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cortisol, 0800 h [cite: 36]",
+    "Reference Range": "5-23 µg/dL [cite: 36]",
+    "SI Reference Interval": "138-635 nmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cortisol, 1600 h [cite: 36]",
+    "Reference Range": "3-15 µg/dL [cite: 36]",
+    "SI Reference Interval": "32-413 nmol/L [cite: 36]"
+  },
+  {
+    "Test": "Cortisol, 2000 h [cite: 36]",
+    "Reference Range": "<50% of 0800 h [cite: 36]",
+    "SI Reference Interval": "Fraction of 0800 h: <0.50 [cite: 36]"
+  },
+  {
+    "Test": "Creatine kinase, Male [cite: 36]",
+    "Reference Range": "25-90 U/L [cite: 36]",
+    "SI Reference Interval": "25-90 U/L [cite: 36]"
+  },
+  {
+    "Test": "Creatine kinase, Female [cite: 36]",
+    "Reference Range": "10-70 U/L [cite: 36]",
+    "SI Reference Interval": "10-70 U/L [cite: 36]"
+  },
+  {
+    "Test": "Creatinine [cite: 36]",
+    "Reference Range": "0.6-1.2 mg/dL [cite: 36]",
+    "SI Reference Interval": "53-106 µmol/L [cite: 36]"
+  },
+  {
+    "Test": "Urea nitrogen [cite: 36]",
+    "Reference Range": "7-18 mg/dL [cite: 36]",
+    "SI Reference Interval": "1.2-3.0 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Electrolytes, serum, Sodium (Na+) [cite: 36]",
+    "Reference Range": "136-146 mEq/L [cite: 36]",
+    "SI Reference Interval": "136-146 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Electrolytes, serum, Potassium (K+) [cite: 36]",
+    "Reference Range": "3.5-5.0 mEq/L [cite: 36]",
+    "SI Reference Interval": "3.5-5.0 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Electrolytes, serum, Chloride (CI) [cite: 36]",
+    "Reference Range": "95-105 mEq/L [cite: 36]",
+    "SI Reference Interval": "95-105 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Electrolytes, serum, Bicarbonate (HCO₃⁻) [cite: 36]",
+    "Reference Range": "22-28 mEq/L [cite: 36]",
+    "SI Reference Interval": "22-28 mmol/L [cite: 36]"
+  },
+  {
+    "Test": "Electrolytes, serum, Magnesium (Mg²⁺) [cite: 36]",
+    "Reference Range": "1.5-2.0 mEq/L [cite: 36]",
+    "SI Reference Interval": "0.75-1.0 mmol/L [cite: 36]"
+  }
+]

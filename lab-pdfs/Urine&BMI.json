@@ -1,0 +1,57 @@
+[
+  {
+    "Test": "Calcium [cite: 7]",
+    "Reference Range": "100-300 mg/24 h [cite: 7]",
+    "SI Reference Interval": "2.5-7.5 mmol/24 t [cite: 7]"
+  },
+  {
+    "Test": "Creatinine clearance, Male [cite: 7]",
+    "Reference Range": "97-137 mL/min [cite: 7]",
+    "SI Reference Interval": "97-137 mL/min [cite: 7]"
+  },
+  {
+    "Test": "Creatinine clearance, Female [cite: 7]",
+    "Reference Range": "88-128 mL/min [cite: 7]",
+    "SI Reference Interval": "88-128 mL/min [cite: 7]"
+  },
+  {
+    "Test": "Osmolality [cite: 7]",
+    "Reference Range": "50-1200 mOsmol/kg H₂O [cite: 7]",
+    "SI Reference Interval": "50-1200 mmol/kg [cite: 7]"
+  },
+  {
+    "Test": "Oxalate [cite: 7]",
+    "Reference Range": "8-40 µg/mL [cite: 7]",
+    "SI Reference Interval": "90-445 µmol/L [cite: 7]"
+  },
+  {
+    "Test": "Proteins, total [cite: 7]",
+    "Reference Range": "<150 mg/24 h [cite: 7]",
+    "SI Reference Interval": "<0.15 g/24 h [cite: 7]"
+  },
+  {
+    "Test": "17-Hydroxycorticosteroids, Male [cite: 7]",
+    "Reference Range": "3.0-10.0 mg/24 h [cite: 7]",
+    "SI Reference Interval": "8.2-27.6 µmol/24 h [cite: 7]"
+  },
+  {
+    "Test": "17-Hydroxycorticosteroids, Female [cite: 7]",
+    "Reference Range": "2.0-8.0 mg/24 r [cite: 7]",
+    "SI Reference Interval": "5.5-22.0 µmol/24 h [cite: 7]"
+  },
+  {
+    "Test": "17-Ketosteroids, total, Male [cite: 7]",
+    "Reference Range": "8-20 mg/24 h [cite: 7]",
+    "SI Reference Interval": "28-70 µmol/24 h [cite: 7]"
+  },
+  {
+    "Test": "17-Ketosteroids, total, Female [cite: 7]",
+    "Reference Range": "6-15 mg/24 t [cite: 7]",
+    "SI Reference Interval": "21-52 µmol/24 h [cite: 7]"
+  },
+  {
+    "Test": "Body Mass Index (BMI) [cite: 7]",
+    "Reference Range": "Adult: 19-25 kg/m² [cite: 7]",
+    "SI Reference Interval": null
+  }
+]

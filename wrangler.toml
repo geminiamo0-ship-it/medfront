@@ -1,0 +1,30 @@
+name = "mdpark-back"
+main = "dist/_worker.mjs"
+no_bundle = true
+compatibility_date = "2026-02-07"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+
+[build]
+command = "npm run build"
+
+# Non-secret environment variables
+# Secrets must be set via Cloudflare dashboard or: npx wrangler secret put <NAME>
+# Required secrets: DB_PASSWORD, JWT_SECRET, REDIS_PASSWORD (if using Redis)
+# Monitoring secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID, TELEGRAM_MONITOR_CHAT_ID
+[vars]
+NODE_ENV = "production"
+API_PREFIX = "api"
+DB_PORT = "26257"
+DB_SSL_MODE = "verify-full"
+JWT_EXPIRATION = "7d"
+CORS_ORIGIN = "*"
+RATE_LIMIT_TTL = "60"
+RATE_LIMIT_MAX = "100"
+AUTH_RATE_LIMIT_MAX = "5"
+CONTEST_RATE_LIMIT_MAX = "60"
+TELEGRAM_MONITOR_CHAT_ID = "-1003928915164"
+# TELEGRAM_MONITOR_BOT_TOKEN must be set via: npx wrangler secret put TELEGRAM_MONITOR_BOT_TOKEN

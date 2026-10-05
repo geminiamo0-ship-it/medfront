@@ -1,0 +1,23 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.DS_Store
+*.log
+coverage
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.cache
+
+# Local-only / large data
+*.db
+*.db-journal
+.claude/settings.local.json

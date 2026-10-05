@@ -1,0 +1,32 @@
+[
+  {
+    "Test": "Cell count [cite: 23]",
+    "Reference Range": "0-5/mm³ [cite: 23]",
+    "SI Reference Interval": "0-5×10⁶/L [cite: 23]"
+  },
+  {
+    "Test": "Chloride [cite: 23]",
+    "Reference Range": "118-132 mEq/L [cite: 23]",
+    "SI Reference Interval": "118-132 mmol/L [cite: 23]"
+  },
+  {
+    "Test": "Gamma globulin [cite: 23]",
+    "Reference Range": "3%-12% total proteins [cite: 23]",
+    "SI Reference Interval": "0.03-0.12 [cite: 23]"
+  },
+  {
+    "Test": "Glucose [cite: 23]",
+    "Reference Range": "40-70 mg/dL [cite: 23]",
+    "SI Reference Interval": "2.2-3.9 mmol/L [cite: 23]"
+  },
+  {
+    "Test": "Pressure [cite: 23]",
+    "Reference Range": "70-180 mm H₂O [cite: 23]",
+    "SI Reference Interval": "70-180 mm H₂O [cite: 23]"
+  },
+  {
+    "Test": "Proteins, total [cite: 23]",
+    "Reference Range": "<40 mg/dL [cite: 23]",
+    "SI Reference Interval": "<0.40 g/L [cite: 23]"
+  }
+]

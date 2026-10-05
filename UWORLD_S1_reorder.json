@@ -1,0 +1,53 @@
+{
+    "subjects": {
+        "column_1": [
+            "Anatomy",
+            "Behavioral science",
+            "Histology",
+            "Physiology",
+            "Pharmacology",
+            "Embryology",
+            "Genetics"
+        ],
+        "column_2": [
+            "Biostatistics",
+            "Immunology",
+            "Microbiology",
+            "Pathology",
+            "Pathophysiology",
+            "Biochemistry"
+        ]
+    },
+    "systems": {
+        "column_1": [
+            "Allergy & Immunology",
+            "Biochemistry (General Principles)",
+            "Biostatistics & Epidemiology",
+            "Cardiovascular System",
+            "Dermatology",
+            "Ear, Nose & Throat (ENT)",
+            "Endocrine, Diabetes & Metabolism",
+            "Female Reproductive System & Breast",
+            "Gastrointestinal & Nutrition",
+            "Genetics (General Principles)",
+            "Hematology & Oncology",
+            "Infectious Diseases",
+            "Male Reproductive System",
+            "Microbiology (General Principles)",
+            "Miscellaneous (Multisystem)",
+            "Nervous System"
+        ],
+        "column_2": [
+            "Ophthalmology",
+            "Pathology (General Principles)",
+            "Pharmacology (General Principles)",
+            "Poisoning & Environmental Exposure",
+            "Pregnancy, Childbirth & Puerperium",
+            "Psychiatric/Behavioral & Substance Use Disorder",
+            "Pulmonary & Critical Care",
+            "Renal, Urinary Systems & Electrolytes",
+            "Rheumatology/Orthopedics & Sports",
+            "Social Sciences (Ethics/Legal/Professional)"
+        ]
+    }
+}
