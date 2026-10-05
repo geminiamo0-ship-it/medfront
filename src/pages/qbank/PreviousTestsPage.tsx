@@ -31,7 +31,10 @@ export default function PreviousTestsPage() {
         ) : tests.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-ink-muted">
             No tests yet.{' '}
-            <Link to="create-test" className="font-semibold text-link hover:underline">
+            <Link
+              to={`/qbank/${bankId}/create-test?step=${step}`}
+              className="font-semibold text-link hover:underline"
+            >
               Create your first test
             </Link>
             .
