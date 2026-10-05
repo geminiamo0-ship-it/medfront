@@ -1,15 +1,16 @@
 # Git history & branch state
 
-## Branches
+## Canonical repositories and local branches
 
-| Branch | Contents | Remote |
+| Source | Contents | Authority |
 |---|---|---|
-| `main` | Frontend (`medpark-frontend`) | `origin` → `https://github.com/geminiamo0-ship-it/medfront.git` |
-| `backend` | Backend (`medpark-backend` v1.0.0) | same repo, separate root history (imported as a single commit) |
+| `geminiamo0-ship-it/medfront` → `main` | Frontend (`medpark-frontend`) | **Canonical frontend** |
+| `geminiamo0-ship-it/medhvgg` → `main` | NestJS backend/API | **Canonical backend** |
+| `medfront` → `backend` | Imported backend snapshot (`medpark-backend` v1.0.0) | **Reference only** — separate root history, never deploy/develop from it |
 
-Because the backend was imported from an archive rather than cloned, `backend` shares no ancestry with `main`. Treat them as two independent trees in one repository.
+The `medfront/backend` branch was imported from an archive as a root commit and shares no ancestry with frontend `main`. It remains useful for code/doc archaeology and recovering historical product intent, but current API/business truth comes from `medhvgg/main`.
 
-## Frontend commits (`main`, oldest → newest)
+## Frontend commits (`main`, oldest → reconstruction milestone)
 
 | Hash | Message |
 |---|---|
@@ -20,72 +21,75 @@ Because the backend was imported from an archive rather than cloned, `backend` s
 | `3959d2d` | Add animated Hub page + themed logo (Reddit palette) |
 | `9521ac5` | Phase 2: app shell (top nav) + real dashboard (steps, performance, curated banks) |
 | `69da682` | Library L-A: scoped+recolored CSS, own header, sidebar tree, article reader (React) |
-| `edc7a8d` | Library L-B: in-article search (highlight + navigate) + image lightbox/zoom/download |
-| `3e59a6a` | Library L-C: highlights + annotation tools (pencil/highlighter/eraser/laser, undo/redo) as a React hook |
-| `1c78fd3` | Library L-D: notebook drawer (resizable, rich text, insert-article, PDF) + AI summary panel |
-| `b8e04f5` | Library L-E: Amboss mode (cards, key-exam/toggle-all, term popovers, image viewer + hover card, split screen, dark-mode content stripping); fix article scroll |
-| `8fdbc9c` | Library: cache+dedupe structure per source (TanStack Query) and handle 423 lock with retry |
-| `0796c20` | Library: replace learning-tip emoji with 16×16 learning-card SVG badge (click → popover) |
-| `713a4ae` | Library: learning tips open as popover (inline box hidden) + shrink tip icon |
+| `edc7a8d` | Library L-B: in-article search + image lightbox/zoom/download |
+| `3e59a6a` | Library L-C: highlights + annotation tools |
+| `1c78fd3` | Library L-D: notebook drawer + AI summary panel |
+| `b8e04f5` | Library L-E: Amboss-style mode and advanced reader interactions |
+| `8fdbc9c` | Library: cache/dedupe structure and 423 locked handling |
+| `0796c20` | Library: learning-card badge UI |
+| `713a4ae` | Library: learning-tip popover behavior |
 | `9685421` | Library: restore Create Test button for q-bank sources |
-| `4f5ae78` | Library dark mode: preserve colored spans and make key-exam highlights readable |
-| `9325317` | Library dark mode: stop the broad `*:not(mark)` rule from wiping callout backgrounds |
-| `0700f28` | Library: key-exam mode cancels native text colors; cross-ref navigation jumps to anchor without refetching |
-| `e4ad1fe` | Library: fix anchor accuracy + Split always splits and jumps |
-| `ed8cb0b` | Library: Condensed toggle button; fix key-exam popover-term text; fix anchor target selector |
-| `1b148f0` | Library: fix key-exam dark mode |
-| `41b1455` | Library: condensed content shown by default; rename toggle to "High-yield on/off" |
-| `ac0ff82` | Library: High-yield button only toggles condensed visibility |
-| `89633d8` | Library: high-yield hides only `.condensed-hidden*` extras |
-| `e8bd2b4` | Phase 0: ESLint + react-hooks safety net; fix use-before-declare and missing dep |
-| `db2ac5b` … `8db911d` | Library refactor series: extract `utils`, `CategoryNode`, `Toast`, `Lightbox`, `AmbossImageViewer`, `ImageHoverCard`, `AmbossPopover`, `AiSummaryPanel`, `SplitPane`, `AmbossToolbar`, `LibrarySidebar`, `LibraryNavbar`, `NotebookDrawer` (1925 → 1146 lines) |
-| `6e12813` → `ee49c57` | Reverted: fade-based high-yield (requirement is `display:none`, not opacity) |
-| `01bf778` | Library: high-yield toggle only hides inline fragments, never sections/tables/mnemonics |
-| `0f92f11` | Library: match original high-yield rules + restore list markers |
-| `e781a97` | Library: high-yield hides only inline spans, never section wrappers |
-| `710236b` | QBank: bank-provider page listing all question banks underneath with progress |
-| `e34be2d` | QBank: bank workspace with welcome stats, create test, previous tests |
-| `6ed68e6` | QBank: resolve workspace bank from question-banks, not main banks |
-| `f6888a8` | QBank: UWorld-style standard mode multi-select with availability and difficulty counts |
-| `f9274cf` | QBank: friendly locked-results state for incomplete block banks (HTTP 423) |
-| `159976e` | QBank: subjects/systems matrix, expandable topics with counts, global topic search |
-| `3906ad7` | QBank: systems gated by subjects, select-all headers, merged duplicate topic names |
-| `34302fc` | QBank: merge same-named topics inside expanded system topic lists |
-| `4d0e469` | QBank: standard/custom question mode with UW ID custom tests and test retrieval |
-| `478d3bb` | UI: heartbeat logo loader with ECG sweep on all page sections |
+| `4f5ae78` | Library dark mode: preserve colored spans |
+| `9325317` | Library dark mode: preserve callout backgrounds |
+| `0700f28` | Library cross-reference and key-exam behavior |
+| `e4ad1fe` | Library anchor/split behavior fixes |
+| `ed8cb0b` | Library condensed/high-yield related fixes |
+| `1b148f0` | Library key-exam dark-mode fix |
+| `41b1455` | Library High-yield naming/default behavior |
+| `ac0ff82` | Library High-yield toggle behavior |
+| `89633d8` | Library condensed-hidden behavior |
+| `e8bd2b4` | ESLint + react-hooks safety net |
+| `db2ac5b` … `8db911d` | Library refactor series extracting coherent components/hooks |
+| `6e12813` → `ee49c57` | Reverted fade-based High-yield approach |
+| `01bf778` | High-yield hides inline fragments only |
+| `0f92f11` | High-yield/list-marker restoration |
+| `e781a97` | High-yield span-only fix |
+| `710236b` | QBank provider/bank page |
+| `e34be2d` | Bank workspace: welcome/create/previous tests |
+| `6ed68e6` | Workspace bank resolution fix |
+| `f6888a8` | Standard-mode multi-select/counts |
+| `f9274cf` | Friendly 423 locked results state |
+| `159976e` | Subjects/systems/topics matrix/search |
+| `3906ad7` | System gating/select-all/topic merge |
+| `34302fc` | Merge duplicate topic names |
+| `4d0e469` | Standard/custom UW-ID mode and retrieval |
+| `478d3bb` | Heartbeat/ECG loader |
+| `9c5d566` | Add broad project documentation set |
 
-## Backend commit
+After `9c5d566`, governance/bootstrap commits establish the Santo-style operating system. For the exact current commit/phase, use `PROJECT_STATUS.md` and `git log` rather than extending this file on every small change.
+
+## Reference backend import commit
 
 | Hash | Message |
 |---|---|
-| `9343927` | chore: import MedPark backend (NestJS) source |
+| `9343927` | `chore: import MedPark backend (NestJS) source` — **reference snapshot only** |
 
-## What is intentionally not in git
+## What is intentionally not in frontend git
 
-`.gitignore` (frontend) excludes `node_modules`, `dist`, `dist-ssr`, `.env`, `.env.*.local`, `*.log`, `.vscode/*`, `.idea`, `*.local`.
+The frontend `.gitignore` excludes `node_modules`, build output, `.env`, `.env.*.local`, logs and editor-local files.
 
-The backend branch additionally ignores `coverage`, `*.db`, and `.claude/settings.local.json`. Excluded on purpose:
+The reference backend snapshot has additional ignore rules such as coverage/database/local-agent files. Those rules describe that snapshot, not the canonical `medhvgg` repository.
 
-| Excluded | Why |
-|---|---|
-| `.env` / real secrets | Never commit credentials. Only `.env.example` is tracked. |
-| `dist/` | Build output (frontend and backend) |
-| `node_modules/` | Dependencies |
-| `my_course_bank.db` (24 MB) | Large SQLite data file; kept out of history |
-| `.claude/settings.local.json` | Machine-local permission allowlists |
-| `*.log` | Local dev logs (`dev.log`) |
+Never commit real credentials. Frontend `VITE_*` values are public browser configuration, not secret storage.
 
-## Working commands
+## Working verification commands
 
 ```bash
-git status -sb                        # current branch + sync state
-git log --oneline -10                 # recent history
-npm run lint && npm run build         # before every commit
-git push origin main                  # publish
+git status -sb
+npm run typecheck
+npm run lint
+npm run build
+git log --oneline -10
 ```
 
-The dev server runs detached on Windows:
+GitHub Actions `Verify` repeats install/typecheck/lint/build on pushes and pull requests to `main`.
 
-```powershell
-Start-Process cmd.exe -ArgumentList "/c","npm run dev > dev.log 2>&1" -WorkingDirectory "D:\fr" -WindowStyle Hidden
-```
+## Continuation
+
+Do not use Git history alone to decide what to do next. Read:
+
+1. `PROJECT_STATUS.md`
+2. `AGENTS.md`
+3. `docs/ENGINEERING_GUARDRAILS.md`
+4. `docs/MASTER_PLAN.md`
+5. active GitHub issue
