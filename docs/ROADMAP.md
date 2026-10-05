@@ -1,61 +1,104 @@
-# Roadmap — known issues & priorities
+# Tactical Roadmap — Existing Frontend Issues
 
-## P0 — Create Test correctness
+> **Planning authority:** use `PROJECT_STATUS.md` for the active task and `docs/MASTER_PLAN.md` for A→Z phase order. This file preserves the concrete tactical defects discovered in the recovered frontend. It does not override the design/spec/issue/CI workflow in `AGENTS.md`.
+>
+> **Canonical backend:** `geminiamo0-ship-it/medhvgg/main`. `medfront/backend` is reference-only.
 
-These break real test creation and should land together in one focused change.
+## G1 / P0 — Create Test correctness
+
+These break or distort real test creation and should be stabilized before the Exam Runner.
 
 ### 1. Multi-mode tests are rejected by the API
-- `src/pages/qbank/CreateTestPage.tsx:193` sends `mode: "mixed"` when 2+ question modes are selected.
-- Backend `TestMode.MIXED = "mixed_modes"` (`src/entities/test.entity.ts`) and `CreateTestDto.mode` is validated with `@IsEnum(TestMode)` → **400**.
-- Fix: send `"mixed_modes"` whenever more than one mode is selected; single mode → that mode; custom → `"all"`. `filters.modes` is already sent and is required for mixed tests.
+- `src/pages/qbank/CreateTestPage.tsx` currently sends `mode: "mixed"` when 2+ question modes are selected.
+- Canonical backend `TestMode.MIXED` uses `"mixed_modes"` and validates the enum → current payload can return **400**.
+- Fix: send `"mixed_modes"` whenever more than one mode is selected; single mode → that mode; custom → server-approved mode such as `"all"` according to the verified DTO/creation contract. `filters.modes` remains required for mixed selection.
+- Visual impact: none for the enum correction itself; still verify UI behavior end-to-end.
 
 ### 2. Custom UW-ID validation silently truncates
-- `CreateTestPage.tsx:105` uses `.slice(0, 50)`, so IDs beyond 50 are dropped without warning and the red ">50" counter state is unreachable.
-- Fix: keep all parsed IDs, surface non-numeric entries, disable Create when over 50, and show the server's rules (unused only, selected bank only, max 50).
+- Current Create Test parsing uses a max slice so IDs beyond 50 can be silently dropped and the intended over-limit UI becomes unreachable.
+- Fix: retain parsed input for validation, surface invalid/non-numeric values, disable creation when over the server maximum, and explain the verified server rules (selected bank / eligible unused questions / maximum count).
+- **Visible validation/error behavior must be discussed/recorded before implementation.**
 
-### 3. Systems matrix / topic search shrink on selection
-- `CreateTestPage.tsx:158` queries `getSystemsWithTopics` with the same `filters` object used for creation, which includes selected `systemIds` and `topicIds`.
-- Effect: picking a system refetches only that system (and topics narrow further), so the matrix and the global topic search collapse.
-- Fix: introduce a separate `metadataFilters` (bank + `subjectIds` + `difficulty`) for metadata queries; keep `filters` (with systems/topics) for counts and creation only.
+### 3. Systems matrix / topic search shrinks on selection
+- The systems/topics metadata query currently shares the final creation filter object, including selected `systemIds`/`topicIds`.
+- Result: selecting dimensions can refetch/narrow the metadata source itself so the matrix/global search collapses.
+- Fix: use separate metadata-query filters (bank + relevant broad dimensions such as subject/difficulty) versus final creation/count filters.
+- **Any visible interaction change must be reflected in the Create Test page spec/issue.**
 
-## P1 — Library fidelity
+### G1 verification gate
+- single-mode creation succeeds against canonical live API;
+- mixed-mode creation succeeds;
+- custom allowed-ID creation succeeds;
+- invalid/over-limit custom states are explicit;
+- metadata matrix remains stable while selections change;
+- typecheck/lint/build/browser checks/`Verify` pass.
+
+Tracked by Issue #3.
+
+---
+
+## G1 / P1 — Library fidelity
 
 ### 4. API links disappear in High-yield mode
-The High-yield rule hides every `span.condensed-hidden*`, which also hides `.api` Medical Interactive Links (e.g. `immune system`) that the reference implementation keeps visible.
-- Fix: exclude `.api`, `.dictionary`, `.linksuggest` from those selectors (`:not(...)`), keeping `display: none` on inline spans only.
+The current High-yield rule can hide `span.condensed-hidden*` elements that also act as Medical Interactive Links (`.api`, dictionary/link-suggest classes) that the intended reference behavior keeps available.
 
-### 5. Ordered-list numbering unverified
-`library.css` re-declares `list-style` for `#acon` and `.amboss-card-body` (`disc`, `decimal`, nested `circle`/`square`) because Tailwind Preflight strips markers, but this has not been visually confirmed.
-- Verify on an Amboss article containing `<ol>` in High-yield on/off and light/dark.
+- Fix selectors narrowly so High-yield hides the intended condensed inline fragments without removing interactive medical links.
+- Do not broaden hiding to section/table/block wrappers.
 
-## P2 — Test runner (largest remaining gap)
+### 5. Ordered-list numbering needs visual verification
+The Library CSS restores list styles because Tailwind Preflight strips markers, but this needs real browser verification on representative Amboss content.
 
-`/test/:testId` is a placeholder. Backend support already exists (`GET /tests/:id`, `POST /tests/:id/submit`, `/submit-batch`, `PUT /complete|suspend|resume`, `GET /results`, explanation + AI-explain endpoints, `TestAccessGuard`, watermarking). Needed on the frontend:
+Verify:
+- ordered and unordered lists;
+- nested lists;
+- High-yield on/off;
+- light/dark mode.
 
-1. Typed API helpers for the test lifecycle endpoints
-2. Runner shell: question card (sanitized watermarked HTML), option selection, prev/next, mark-for-review, timer (`timeLimitSeconds` countdown; block mode shows elapsed), End-Block
-3. Tutor mode: submit per answer; timed mode: buffer answers and `submit-batch`
-4. States: `blockResultsLocked`, completed vs in-progress, server-side auto-complete on expiry, `TestAccessGuard` denials, empty-question fallback
-5. Results view: score, per-question review (correct / chosen / omitted), explanations with AI fallback
-6. Keyboard navigation and progress persistence across reloads
+Tracked within Issue #3.
 
-## P3 — Placeholder routes and polish
+---
 
-- `/contests`, `/ai-analyst`, `/settings` still render `ComingSoon`.
-- Bank cards respond to `Enter` but not `Space`.
-- Availability query uses a `null as unknown as number` cast.
-- Duplicate `Link` imports in `WelcomePage`.
+## G2 — Exam Runner + Results/Review
 
-## Suggested order
+`/test/:testId` is currently a placeholder while the canonical backend already provides the execution engine.
 
-1. P0 Create Test correctness (mixed mode + custom IDs + metadata filters) → verify by creating one single-mode, one mixed-mode, and one custom test against the live API.
-2. P1 Library fidelity (API-link exception + list-marker verification).
-3. P2 Test runner.
-4. P3 Placeholders and polish.
+**Do not implement directly from this checklist.** Issue #4 is design-first and must produce an approved page spec.
 
-## Verification log
+Candidate delivery slices after approval:
 
-- `npm run lint` and `npm run build` clean after each feature commit.
-- Live API checks against `https://medhvgg-production.up.railway.app/api` confirmed: main-bank lists per step, UWorld Step 1 (id 19, 3654 questions), self-assessment block banks, NBME forms, counts/subjects/difficulty endpoints.
-- Browser checks confirmed: systems unlock after subject selection, subject/system select-all works, global topic search returns 149 merged rows with 0 duplicate names, expanded system topic lists return 176 merged rows with 0 duplicate names, Custom mode shows `2 / 50 selected` with Create enabled, and the heartbeat loader CSS is served.
-- Not yet verified end-to-end: actual test creation via the UI (blocked by issue #1 for multi-mode), and test taking/results (runner not built).
+1. typed test lifecycle API helpers/contracts;
+2. runner shell with sanitized/watermarked content;
+3. prev/next and quick navigation;
+4. mark/highlight;
+5. timer/elapsed-time behavior;
+6. Tutor submission flow;
+7. Timed/batch End-Block flow;
+8. suspend/resume/leave/reload/network recovery;
+9. explanation/AI-explanation states;
+10. approved notes/library/notebook/reference integrations;
+11. completion and results/review;
+12. keyboard/accessibility/responsive behavior;
+13. automated + browser/E2E verification.
+
+Tracked by Issue #4 and the future approved `docs/page-specs/EXAM_RUNNER.md`.
+
+---
+
+## Later surfaces
+
+Current placeholder routes include Contests, AI Analyst and Settings, while the canonical backend also exposes substantial capabilities for flashcards, revision, notes/notebook, subscriptions/payments, messages, tickets/support, admin, finance, careers and more.
+
+These are **not** permission to implement all at once. See `docs/BACKEND_CAPABILITY_MAP.md`, Issues #5/#7/#8 and the phase order in `docs/MASTER_PLAN.md`.
+
+---
+
+## Existing verification evidence (pre-governance)
+
+Historical/current reconstruction work recorded:
+- lint/build were run during prior feature commits;
+- live API checks confirmed core bank/count/metadata data;
+- browser checks covered systems/subjects/topic merging/custom selection/loader behavior;
+- actual test-taking/results remained unimplemented;
+- full end-to-end creation for all modes still needs the G1 stabilization/verification pass.
+
+From G0 onward, evidence must also be reconciled in the active GitHub issue and `PROJECT_STATUS.md`, with GitHub Actions `Verify` passing before Done.
