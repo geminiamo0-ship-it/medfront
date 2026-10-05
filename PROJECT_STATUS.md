@@ -98,7 +98,7 @@ Code-health rules remain:
 - [ ] Authenticated live API: mixed-mode creation
 - [ ] Authenticated live API: valid Custom creation
 
-Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. The previous note that no frontend deployment existed was incorrect. In the current execution environment, direct fetch/DNS resolution for this Workers domain failed and no authenticated MedPark browser session is available, so the runtime checks remain explicitly open rather than being claimed as passed.
+Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. The previous note that no frontend deployment existed was incorrect. In the current tool environment, direct DNS/fetch attempts to this Workers domain failed, and there is no authenticated MedPark browser session available. This is a tooling/runtime-access limitation only; the deployment itself is known and recorded. Runtime checks therefore remain explicitly open rather than being claimed as passed.
 
 ### Canonical-contract discrepancy recorded
 The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Custom creation currently does not apply the normal UNUSED predicate. This was discovered during implementation re-inspection and is documented in the page spec/Issue #3. It is not silently treated as verified behavior.
