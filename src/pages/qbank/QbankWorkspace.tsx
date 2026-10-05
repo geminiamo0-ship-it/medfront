@@ -80,7 +80,7 @@ export default function QbankWorkspace() {
   return (
     <div className="flex min-h-screen min-w-0 bg-canvas">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col bg-ink text-white lg:flex">
-        <SidebarContent bank={sidebarBank} />
+        <SidebarContent bank={sidebarBank} step={step} />
       </aside>
 
       {sidebarOpen && (
@@ -94,6 +94,7 @@ export default function QbankWorkspace() {
           <aside className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col bg-ink text-white shadow-pop lg:hidden">
             <SidebarContent
               bank={sidebarBank}
+              step={step}
               onClose={() => setSidebarOpen(false)}
               onNavigate={() => setSidebarOpen(false)}
             />
@@ -110,7 +111,7 @@ export default function QbankWorkspace() {
             onClick={() => setSidebarOpen(true)}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-ink-soft transition-colors hover:border-mp/40 hover:bg-surface2 hover:text-ink lg:hidden"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4.5 w-4.5" stroke="currentColor" strokeWidth="2.25">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2.25">
               <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -158,10 +159,12 @@ export default function QbankWorkspace() {
 
 function SidebarContent({
   bank,
+  step,
   onClose,
   onNavigate,
 }: {
   bank: QuestionBankSummary | null;
+  step: number;
   onClose?: () => void;
   onNavigate?: () => void;
 }) {
@@ -198,7 +201,7 @@ function SidebarContent({
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.label}
-            to={item.to}
+            to={{ pathname: item.to, search: `?step=${step}` }}
             end={'end' in item ? item.end : false}
             onClick={onNavigate}
             className={({ isActive }) =>
