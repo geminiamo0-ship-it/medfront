@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { providerGradient, providerInitials } from './qbank/bankTheme';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -59,9 +59,10 @@ export default function QbankPage() {
   );
 
   function selectStep(next: number) {
+    // A Step tab is the root of that Step. Never carry a provider drill-down
+    // into another Step (or back into the same Step) when the tab is clicked.
     const params = new URLSearchParams();
     params.set('step', String(next));
-    if (bankParam != null) params.set('bank', String(bankParam));
     setSearchParams(params);
   }
 
@@ -112,11 +113,11 @@ export default function QbankPage() {
         <Link to="/dashboard" className="transition-colors hover:text-mp">
           Dashboard
         </Link>
-        <span className="text-ink-faint">â€º</span>
+        <span className="text-ink-faint">›</span>
         <span>{stepLabel(step)}</span>
         {selectedBank && (
           <>
-            <span className="text-ink-faint">â€º</span>
+            <span className="text-ink-faint">›</span>
             <span className="font-semibold text-ink">{selectedBank.name}</span>
           </>
         )}
@@ -138,7 +139,7 @@ export default function QbankPage() {
               </h1>
               <p className="text-sm text-ink-muted">
                 {questionBanksQuery.isLoading
-                  ? 'Loading banksâ€¦'
+                  ? 'Loading banks…'
                   : `${questionBanks.length} bank${questionBanks.length === 1 ? '' : 's'} underneath`}
               </p>
             </div>
@@ -299,7 +300,7 @@ function BankCard({ bank, step }: { bank: QuestionBankWithProgress; step: number
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         {bank.isBlockBank && (
           <span className="rounded-full bg-mp/10 px-2 py-0.5 text-[11px] font-semibold text-mp">
-            Block Ã—{bank.blockSize}
+            Block ×{bank.blockSize}
           </span>
         )}
         <span className="text-xs font-semibold text-ink-muted">
