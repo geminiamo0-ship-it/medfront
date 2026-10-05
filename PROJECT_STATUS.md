@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md — MedPark frontend reconstruction
 
-**Last updated:** 2026-10-05  
+**Last updated:** 2026-10-06  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #11 — QBank workspace shell + responsive Create Test  
 **Active phase:** G1 — Existing frontend stabilization  
-**Current status:** VERIFYING — responsive QBank/Create Test source implemented; runtime Step-loss regression fixed in source; latest CI + runtime viewport verification remain
+**Current status:** VERIFYING — QBank/Create Test source work is implemented; latest code Verify is green; runtime/browser acceptance remains
 
 ## 1. Repository ownership
 
@@ -25,16 +25,16 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Auth | Implemented | Login/register/verify/forgot/reset/complete profile |
 | Hub | Implemented | Own entry experience |
 | Dashboard | Implemented | Existing dashboard slice |
-| QBank listing `/qbank` | Implemented | Remains inside global `AppLayout` |
-| Selected QBank `/qbank/:bankId/*` | **VERIFYING responsive shell** | Dedicated workspace outside global AppLayout; desktop sidebar + responsive drawer implemented; missing-Step recovery added |
-| Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass implemented; Step-safe navigation fixed |
-| Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link now preserves Step |
-| Library | Advanced; detailed follow-up required | **Library mobile/tablet explicitly deferred until separate user discussion** |
-| Test runner | Placeholder | Design-first Issue #4; do not start before G1 is reconciled |
+| QBank listing `/qbank` | **VERIFYING navigation polish** | Step tabs now act as Step roots and clear provider drill-down state |
+| Selected QBank `/qbank/:bankId/*` | **VERIFYING responsive shell** | Dedicated workspace outside global AppLayout; desktop sidebar + responsive drawer; missing-Step recovery added |
+| Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
+| Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
+| Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
+| Test runner | Placeholder | **Next design discussion after #11 runtime checkpoint** — Issue #4 |
 | Results/review | Not implemented | Part of #4 |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
-## 3. Global delivery rule — responsive is now part of Done
+## 3. Global delivery rule — responsive is part of Done
 
 From 2026-10-05 onward, user-facing page work normally includes:
 - desktop/laptop;
@@ -50,11 +50,11 @@ This is recorded in `docs/PAGE_DELIVERY_WORKFLOW.md`.
 
 ### Explicit current exception
 
-**Do not redesign or polish Library mobile/tablet yet.** The user wants to discuss Library responsive UX separately and in detail first. This deferral is intentional and does not weaken the responsive rule for QBank/Create Test or future approved pages.
+**Do not redesign or polish Library mobile/tablet yet.** The user wants to discuss Library responsive UX separately and in detail later.
 
 ## 4. Create Test correctness/product checkpoint
 
-Approved and implemented before the responsive slice:
+Approved and implemented:
 - [x] canonical multi-mode request uses `mixed_modes`
 - [x] `filters.modes` contains actual selected modes
 - [x] subtle `Mixed · N selected`, no separate Mixed button
@@ -73,39 +73,7 @@ Page spec: `docs/page-specs/CREATE_TEST.md`.
 
 ## 5. Issue #11 — QBank workspace shell + responsive Create Test
 
-### User-approved problem/solution
-
-A runtime screenshot showed the global MedPark header (`Home / Dashboard / Contests / Library`) above the bank-specific QBank shell (`Welcome / Create Test / Previous Tests`). Inspection confirmed `/qbank/:bankId` was nested inside `AppLayout`, while `QbankWorkspace` already owned another navigation shell.
-
-Approved structural fix:
-- `/qbank/:bankId/*` owns a dedicated protected workspace outside `AppLayout`;
-- `/qbank` bank selection remains in global `AppLayout`;
-- desktop keeps the fixed dark QBank sidebar;
-- below `lg`, sidebar becomes an off-canvas drawer;
-- drawer closes by close button, overlay, Escape and QBank navigation;
-- body scroll locks while drawer is open;
-- QBank header/content use responsive spacing with no intended horizontal overflow;
-- Create Test receives a dedicated premium mobile/tablet/iPad pass.
-
-Page spec: `docs/page-specs/QBANK_WORKSPACE.md`.
-
-### Runtime Step-loss regression found and fixed in source
-
-User supplied a Cloudflare runtime screenshot showing `/qbank/39/create-test` rendering `Bank not found` with the URL missing `?step=`. Source inspection found:
-- `WelcomePage` locked-results CTA linked to `create-test` without Step context;
-- `PreviousTestsPage` empty-state Create Test link also did not preserve Step/sibling routing safely;
-- `QbankWorkspace` defaulted a missing Step to `1`, so valid banks from another Step could be misclassified as missing.
-
-Implemented remediation:
-- [x] Welcome → Create Test now uses an absolute Step-preserving URL
-- [x] Previous Tests empty-state → Create Test now uses an absolute Step-preserving sibling URL
-- [x] normal QBank sidebar links preserve Step
-- [x] if selected-bank URL has no valid Step, `QbankWorkspace` uses existing unscoped active-bank metadata to resolve the bank's canonical `step`
-- [x] resolved Step is persisted and URL is replaced with canonical `?step=N`
-- [x] normal valid-Step navigation remains step-scoped; no extra unscoped request is added to the normal path
-- [x] false `Bank not found for Step 1` copy was replaced with neutral missing/unavailable copy for true failure cases
-
-### Source implementation completed
+### Shell/responsive work implemented
 - [x] selected-bank route moved outside `AppLayout`
 - [x] global header no longer belongs to selected-bank route source tree
 - [x] `/qbank` list remains in `AppLayout`
@@ -113,65 +81,73 @@ Implemented remediation:
 - [x] tablet/iPad/mobile off-canvas drawer implemented
 - [x] overlay / explicit Close / Escape / navigation close implemented
 - [x] body scroll lock while drawer open
-- [x] Step query context preserved through QBank sidebar navigation
 - [x] responsive QBank header/content padding
-- [x] Create Test Standard/Custom toggle responsive
+- [x] Create Test Standard/Custom responsive pass
 - [x] status + difficulty controls use responsive touch-friendly grids
 - [x] Subjects/Systems/Topics adapt to narrow screens
 - [x] Custom Retrieve controls stack on mobile
 - [x] Test Mode / Questions / Available / Create stack on narrow screens
 - [x] Topic Search uses viewport-safe mobile panel
-- [x] existing Create Test product semantics preserved in source
+
+### Step integrity / navigation fixes implemented
+- [x] Welcome → Create Test uses an absolute Step-preserving URL
+- [x] Previous Tests empty-state → Create Test uses an absolute Step-preserving sibling URL
+- [x] QBank sidebar links preserve Step
+- [x] selected-bank URLs missing a valid Step resolve the bank's canonical Step from active-bank metadata and repair the URL
+- [x] normal valid-Step navigation remains step-scoped
+- [x] false `Bank not found for Step 1` behavior/copy corrected
+- [x] **Step tabs now represent Step roots:** clicking Step 1/2/3/etc. clears the `bank` provider drill-down query state
+- [x] returning to a Step via its tab does not intentionally restore the provider previously opened under that Step
+
+### CI checkpoint
+- Commit `236e30cd97e2a7e194e91b39634e5a9f1f5cfed1` implemented Step-root navigation.
+- Verify #45 found one lint issue in the responsive shell: `setSidebarOpen(false)` was called synchronously inside a pathname effect.
+- Redundant effect removed; drawer already closes explicitly through `onNavigate`.
+- Commit `c3f8ba32abb8998f524127b6e48d03bf05707200` passed **Verify #46**: typecheck ✅ lint ✅ build ✅.
 
 ### Verification still open
-- [ ] final latest-head GitHub Actions `Verify`
+- [ ] latest documentation/handoff head passes `Verify`
 - [ ] browser desktop acceptance
 - [ ] browser tablet/iPad acceptance
 - [ ] browser mobile acceptance
 - [ ] deployed runtime confirms global MedPark header is absent inside selected QBank workspace
-- [ ] bare legacy URL `/qbank/<valid-id>/create-test` without `?step=` self-recovers to the correct Step instead of false `Bank not found`
-- [ ] Welcome/Create Test/Previous Tests navigation keeps the correct Step in runtime
+- [ ] bare legacy selected-bank URL without `?step=` self-recovers to the correct Step
+- [ ] Welcome/Create Test/Previous Tests navigation keeps Step correctly
+- [ ] Step 1 → provider → Step 2 → Step 1 returns to Step 1 root, not the prior provider
 - [ ] drawer open/close/overlay/Escape/navigation behavior verified
 - [ ] no unintended QBank/Create Test horizontal overflow
 - [ ] existing Create Test runtime checks: Mixed, 50/51 Standard, Custom validation, stable systems/topics
 - [ ] authenticated single/mixed/custom create smoke against live backend
 
-## 6. G1 sequence from here
+Page spec: `docs/page-specs/QBANK_WORKSPACE.md`.
 
-Current order is now:
+## 6. Priority override approved by the user
 
-1. **Finish Issue #11 verification** — shell + Step-safe navigation + Create Test desktop/tablet/mobile.
-2. Reconcile remaining Create Test live/API evidence under parent #3.
-3. Return to **Library discussion/spec**. Do not assume Library mobile design; discuss it separately as requested.
-4. Complete approved Library fidelity slice.
-5. Run existing-shell regression across Auth, Hub, Dashboard, QBank listing/workspace, Previous Tests, Create Test and Library as applicable.
-6. Final G1 `Verify` and close #3 only when its acceptance gates are evidenced.
-7. Then begin G2 / Issue #4 **Exam Runner + Results/Review design discussion before code**.
+The previous roadmap expected Library work before Exam Runner. On 2026-10-06 the user explicitly reprioritized:
+
+1. Finish the current QBank / Create Test checkpoint (#11).
+2. Then move directly to **Exam Page / Exam Runner detailed DESIGN discussion** (#4).
+3. Do not implement Exam Runner until the user-approved `EXAM_RUNNER` / results-review specs exist.
+4. Library responsive work remains deliberately deferred and will be discussed separately later.
+
+This means G1 is **not falsely marked complete** just because design discussion for #4 starts. Remaining Library/regression work stays recorded as parked debt while the user-approved priority shifts to Exam Runner design.
+
+Issue #4 has been updated to reflect that it is the **next design discussion** after #11 acceptance, not an implementation authorization.
 
 ## 7. Exact next step
 
-**Do not start Library and do not start Exam Runner yet.**
+First finish Issue #11 runtime acceptance on Cloudflare.
 
-First verify the latest Issue #11 source/docs commit in GitHub Actions. Once green, use the deployed Cloudflare runtime to verify at roughly:
-- desktop ≥1280px;
-- iPad/tablet ~768–1024px;
-- mobile ~360–430px.
+Quick navigation check:
+1. Open `/qbank?step=1`.
+2. Enter any provider under Step 1.
+3. Click Step 2 — Step 2 must open at its top-level provider/bank selection.
+4. Click Step 1 again — Step 1 must also open at its top-level provider/bank selection, not the provider previously opened.
+5. Clicking the currently active Step while inside a provider should likewise return to that Step root.
 
-Manual/runtime checklist:
-1. reopen the bank that produced the screenshot and confirm Create Test opens;
-2. manually remove `?step=` from a valid bank Create Test URL and reload — it should repair to the bank's real `?step=N` rather than show false `Bank not found`;
-3. navigate Welcome → Create Test and Previous Tests → Create Test and confirm Step remains correct;
-4. confirm the global MedPark header is gone inside selected-bank workspace;
-5. desktop: fixed sidebar works;
-6. tablet/mobile: menu opens drawer, overlay/Close/Escape dismiss it, selecting a QBank section closes it;
-7. Create Test: Standard/Custom toggle fits;
-8. mode/difficulty/subjects/systems/topics have no unintended horizontal overflow;
-9. mobile Topic Search stays inside viewport;
-10. bottom Tutor/Timed + Questions + Available + Create layout is usable;
-11. Custom Retrieve + textarea are usable on phone;
-12. repeat existing correctness checks and safe live create flows.
+Also verify the existing #11 checklist: selected-bank shell, responsive drawer, missing-Step recovery, Create Test responsive/correctness flows.
 
-Only after that can Issue #11 move to DONE and parent #3 continue.
+**Once the user confirms this checkpoint, switch active work to Issue #4 in DESIGN and begin the detailed Exam Page discussion. Do not write Exam Runner product code before that discussion/spec approval.**
 
 ## 8. Definition of Done
 
@@ -188,8 +164,8 @@ A page/feature is not Done because code exists. Applicable gates include:
 - [ ] active issue/docs/`PROJECT_STATUS.md` reconciled
 - [ ] exact next continuation point recorded
 
-Explicit documented deferrals (currently Library mobile/tablet) are allowed only when the user deliberately chooses them.
+Explicit documented deferrals are allowed only when the user deliberately chooses them.
 
 ## 9. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, and `docs/page-specs/CREATE_TEST.md`. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 verification task. The runtime Step-loss regression has source fixes: internal Create Test links preserve `?step=`, and bare selected-bank URLs recover the canonical bank Step via active-bank metadata and repair the URL. Responsive acceptance covers desktop + tablet/iPad + mobile for active pages. Do NOT redesign Library mobile/tablet until a separate user UX discussion. Do not start Exam Runner #4 before G1 is reconciled. Do not mark Done without evidence and green Verify.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, `docs/page-specs/CREATE_TEST.md`, and next-design Issue #4. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 runtime verification task. Step tabs are Step-root navigation and must clear provider drill-down state. Library mobile/tablet is deferred. After #11 acceptance, begin Issue #4 **DESIGN discussion only**; do not implement Exam Runner before approved specs and do not mark any checkpoint Done without evidence and green Verify.
