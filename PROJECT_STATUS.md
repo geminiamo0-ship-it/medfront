@@ -16,6 +16,9 @@
 
 Current frontend API base points at `https://medhvgg-production.up.railway.app/api`.
 
+Current frontend runtime/deployment target is Cloudflare Workers:
+`https://medfront.geminiamo0.workers.dev`
+
 ## 2. Current frontend state
 
 | Area | State | Notes |
@@ -85,6 +88,7 @@ Code-health rules remain:
 - [x] Lint
 - [x] Production build
 - [x] GitHub Actions `Verify` run #14 succeeded on implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab`
+- [x] Documentation/status handoff commit `631b3628095e84429160454d79225fe1d1309c94` passed `Verify` run #16
 
 ### Runtime verification still open
 - [ ] Browser: Mixed badge for 2+ modes
@@ -94,7 +98,7 @@ Code-health rules remain:
 - [ ] Authenticated live API: mixed-mode creation
 - [ ] Authenticated live API: valid Custom creation
 
-Current limitation: no MedFront deployment was found in the connected Vercel account, and this execution context does not currently have an authenticated MedPark browser session. Do not mark these runtime checks passed without evidence.
+Runtime target exists at `https://medfront.geminiamo0.workers.dev` on Cloudflare Workers. The previous note that no frontend deployment existed was incorrect. In the current execution environment, direct fetch/DNS resolution for this Workers domain failed and no authenticated MedPark browser session is available, so the runtime checks remain explicitly open rather than being claimed as passed.
 
 ### Canonical-contract discrepancy recorded
 The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Custom creation currently does not apply the normal UNUSED predicate. This was discovered during implementation re-inspection and is documented in the page spec/Issue #3. It is not silently treated as verified behavior.
@@ -104,7 +108,7 @@ The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Cust
 ### Library fidelity — next discussion checkpoint, not yet active
 - [ ] Discuss/record High-yield interactive-link behavior before visible changes
 - [ ] Create/update Library page spec
-- [ ] Preserve approved `.api` / `.dictionary` / `.linksuggest` interactive spans
+- [ ] Preserve `.api` / `.dictionary` / `.linksuggest` interactive spans
 - [ ] Browser-verify ordered/unordered/nested lists in light/dark + High-yield on/off
 - [ ] Regression-check search/navigation/annotations/notebook/AI/popovers/images/split behavior
 - [ ] Pass verification gates and update Issue #3/status/docs
@@ -121,13 +125,16 @@ The current Custom UI copy says `unused only`, but canonical `medhvgg/main` Cust
 
 ## 6. Exact next step
 
-**Finish Create Test runtime verification. Do not start Library yet.**
+**Finish Create Test runtime verification against the Cloudflare deployment. Do not start Library yet.**
 
 The implementation itself is green in CI. The next legitimate transition is:
 
 `VERIFYING → Create Test DONE` only after browser behavior and authenticated live creation paths are evidenced.
 
-If a deploy/auth environment becomes available, verify in this order:
+Use this runtime target:
+`https://medfront.geminiamo0.workers.dev`
+
+Verify in this order:
 1. open Create Test in an authenticated browser session;
 2. confirm 2+ status selection renders `Mixed · N selected`;
 3. confirm valid, invalid, and >50 Custom states without input truncation;
@@ -176,6 +183,7 @@ A page/feature is `DONE` only when all applicable gates pass:
 - Backend canonical mixed enum is `mixed_modes`.
 - Create Test source implementation now follows the approved mixed/custom/metadata behavior and compiles/lints/builds successfully.
 - Implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14.
+- Frontend runtime target is Cloudflare Workers at `https://medfront.geminiamo0.workers.dev`.
 
 ### Not yet proven
 - Browser-level Create Test behavior after this implementation.
@@ -186,4 +194,4 @@ A page/feature is `DONE` only when all applicable gates pass:
 
 ## 10. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1 and active Issue #3. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as the current frontend runtime target. Continue from the exact next unchecked runtime-verification task. Do not start Library until Create Test is actually verified or the user explicitly reprioritizes. Do not mark anything Done without evidence and green `Verify`.
