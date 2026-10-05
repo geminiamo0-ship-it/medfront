@@ -209,7 +209,7 @@ Frontend validation improves UX. Backend remains authoritative for access, enum 
 
 Runtime target: `https://medfront.geminiamo0.workers.dev`.
 
-Current execution limitation: this tool environment failed to resolve/fetch the Workers domain and has no authenticated MedPark browser session. This is a tooling/runtime-access limitation, not absence of a deployment.
+Current execution limitation: the present tool environment cannot resolve/fetch the Workers domain and does not expose a browser session that can authenticate to MedPark. This is a tooling/runtime-access limitation only; the deployment itself is known and recorded.
 
 ## 18. Approval record
 
@@ -226,4 +226,4 @@ Current execution limitation: this tool environment failed to resolve/fetch the 
 - 2026-10-05: First typing pass widened shared API signatures and failed Typecheck; scope was corrected so tighter request/filter typing stays local to Create Test rather than creating unnecessary blast radius.
 - 2026-10-05: Final implementation commit `3c2d0ae92e03e7b91a327b1d7136b61c067430ab` passed GitHub Actions `Verify` run #14: install/typecheck/lint/build all green.
 - 2026-10-05: Status/docs handoff commit `631b3628095e84429160454d79225fe1d1309c94` passed `Verify` run #16.
-- 2026-10-05: User supplied the actual runtime target `https://medfront.geminiamo0.workers.dev`; docs corrected to identify Cloudflare Workers rather than Vercel. Runtime browser/API checks remain open until an environment can reach the target with an authenticated MedPark session.
+- 2026-10-05: User supplied the actual runtime target `https://medfront.geminiamo0.workers.dev`; docs corrected to identify Cloudflare Workers rather than Vercel. Runtime browser/API checks remain open until a browser-capable environment can reach the target with an authenticated MedPark session.
