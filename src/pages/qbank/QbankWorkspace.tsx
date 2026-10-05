@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getQuestionBanks } from '@/api/tests';
 import { providerGradient, providerInitials } from './bankTheme';
@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { to: 'previous-tests', label: 'Previous Tests' },
 ] as const;
 
+const STEP_KEY = 'mp_step';
+
 type QuestionBankSummary = {
   id: number;
   name: string;
@@ -21,21 +23,45 @@ type QuestionBankSummary = {
 export default function QbankWorkspace() {
   const { bankId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const id = Number(bankId);
-  const stepParam = new URLSearchParams(location.search).get('step');
-  const step = stepParam && Number(stepParam) >= 1 && Number(stepParam) <= 5 ? Number(stepParam) : 1;
+  const rawStep = Number(new URLSearchParams(location.search).get('step'));
+  const requestedStep = rawStep >= 1 && rawStep <= 5 ? rawStep : null;
 
+  // A valid step keeps the normal scoped request. Old/bookmarked workspace URLs
+  // without ?step= recover by loading the active bank catalogue once, then the
+  // canonical bank step is written back into the URL below.
   const qbQuery = useQuery({
-    queryKey: ['question-bank', step, id],
-    queryFn: () => getQuestionBanks(step),
+    queryKey: ['question-bank', requestedStep ?? 'all', id],
+    queryFn: () => getQuestionBanks(requestedStep ?? undefined),
   });
   const questionBank = qbQuery.data?.find((b) => b.id === id) ?? null;
+  const step = requestedStep ?? questionBank?.step ?? 1;
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!questionBank) return;
+
+    const canonicalStep = questionBank.step;
+    localStorage.setItem(STEP_KEY, String(canonicalStep));
+
+    if (requestedStep === canonicalStep) return;
+
+    const params = new URLSearchParams(location.search);
+    params.set('step', String(canonicalStep));
+    navigate(
+      {
+        pathname: location.pathname,
+        search: `?${params.toString()}`,
+      },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate, questionBank, requestedStep]);
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -60,7 +86,7 @@ export default function QbankWorkspace() {
         <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-surface p-6 text-center shadow-card sm:p-10">
           <h1 className="text-lg font-extrabold text-ink">Bank not found</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            This bank doesn't exist for Step {step}, or it failed to load.
+            This bank doesn't exist, is unavailable, or failed to load.
           </p>
           <Link
             to={`/qbank?step=${step}`}
