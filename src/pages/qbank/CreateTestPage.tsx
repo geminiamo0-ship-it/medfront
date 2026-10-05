@@ -101,11 +101,13 @@ function CountPill({ n }: { n: number | undefined }) {
 }
 
 function splitColumns<T>(items: T[]): T[][] {
+  // Even/odd split matches the backend's documented fallback layout.
   const cols: T[][] = [[], []];
   items.forEach((item, i) => cols[i % 2].push(item));
   return cols;
 }
 
+/** Collapse topics that share a name into a single row: ids grouped, counts summed. */
 function mergeTopicsByName(
   topics: Array<{ id: number; name: string; questionCount?: number }>,
 ): Array<{ ids: number[]; name: string; count: number }> {
@@ -152,6 +154,7 @@ export default function CreateTestPage() {
   const invalidCustomPreview = customIdState.invalidTokens.slice(0, 8).join(', ');
   const invalidCustomMore = Math.max(0, customIdState.invalidTokens.length - 8);
 
+  // Final availability/create filters include the learner's system/topic selections.
   const filters = useMemo<TestFilters>(
     () => ({
       questionBankIds: [bankId],
@@ -163,6 +166,9 @@ export default function CreateTestPage() {
     [bankId, subjectIds, systemIds, topicIds, tiers],
   );
 
+  // Systems/topics metadata must describe the available matrix, not shrink to
+  // the rows already selected by the learner. Subject/difficulty can scope the
+  // metadata universe; system/topic selections only scope availability/create.
   const metadataFilters = useMemo<TestFilters>(
     () => ({
       questionBankIds: [bankId],
@@ -182,6 +188,8 @@ export default function CreateTestPage() {
     queryKey: ['test-availability', step, filters, [...modes].sort().join(',')],
     queryFn: () => {
       if (modes.length === 1) {
+        // Counts not loaded yet — signal "unknown" so the header shows … and
+        // Create stays disabled, instead of flashing a misleading 0.
         if (!countsQuery.data) return Promise.resolve({ count: null as unknown as number });
         const single = countsQuery.data[modes[0]];
         return Promise.resolve({ count: typeof single === 'number' ? single : 0 });
@@ -261,6 +269,7 @@ export default function CreateTestPage() {
         mode: isCustom ? 'all' : (single ?? 'mixed_modes'),
         step,
         totalQuestions: total,
+        // Timed tests require a time limit server-side (~90s per question).
         ...(timed ? { timeLimitSeconds: Math.max(60, total * 90) } : {}),
         filters: isCustom ? { questionBankIds: [bankId] } : single ? filters : { ...filters, modes },
         ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
@@ -306,6 +315,7 @@ export default function CreateTestPage() {
         <div className="mt-4 rounded-2xl border border-bad/30 bg-bad/5 px-4 py-3 text-sm text-bad">{error}</div>
       )}
 
+      {/* QUESTION MODE — Standard / Custom */}
       <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Question Mode</h2>
@@ -461,8 +471,10 @@ export default function CreateTestPage() {
         </section>
       )}
 
+      {/* Standard-only filters */}
       {questionTab === 'standard' && (
         <>
+      {/* Difficulty */}
       <section className="mt-5 rounded-2xl border border-line bg-surface shadow-card">
         <div className="flex items-baseline gap-3 border-b border-line px-6 py-4">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Difficulty</h2>
@@ -486,6 +498,7 @@ export default function CreateTestPage() {
         </div>
       </section>
 
+      {/* Subjects — two-column matrix with a select-all master checkbox */}
       <section className="mt-5 rounded-2xl border border-line bg-surface px-6 py-5 shadow-card">
         <div className="flex items-center gap-3">
           <input
@@ -497,6 +510,7 @@ export default function CreateTestPage() {
             }}
             onChange={() => {
               if (subjectIds.length === subjects.length) {
+                // Clearing subjects orphans system/topic constraints — reset them.
                 setSubjectIds([]);
                 setSystemIds([]);
                 setTopicIds([]);
@@ -540,6 +554,8 @@ export default function CreateTestPage() {
         )}
       </section>
 
+      {/* Systems — two-column matrix with expandable topics + global topic search.
+          Disabled until the user picks at least one subject. */}
       <SystemsSection
         disabled={subjectIds.length === 0}
         systemsQueryIsLoading={systemsQuery.isLoading}
@@ -555,6 +571,7 @@ export default function CreateTestPage() {
         </>
       )}
 
+      {/* Test mode + count + create */}
       <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-6 shadow-card">
         <div className="flex items-center gap-6">
           <span className="text-sm font-bold text-ink">Test Mode</span>
@@ -599,6 +616,8 @@ export default function CreateTestPage() {
     </div>
   );
 }
+
+/* ── Systems: matrix + per-system topic expander + global topic search ── */
 
 function SystemsSection({
   disabled,
@@ -684,6 +703,8 @@ function SystemsSection({
           onOpenChange={setSearchOpen}
           onApply={(ids) => {
             onToggleTopic(() => ids);
+            // Ensure the parents of applied topics are selected so the
+            // backend's system AND topic filters stay consistent.
             const parentSystems = new Set<number>();
             for (const sys of systems) {
               if ((sys.topics ?? []).some((t) => ids.includes(t.id))) parentSystems.add(sys.id);
@@ -789,6 +810,7 @@ function SystemsSection({
   );
 }
 
+/** "Search topics" pill + dropdown panel that filters every topic in the bank. */
 function TopicSearchButton({
   systems,
   topicIds,
@@ -806,6 +828,10 @@ function TopicSearchButton({
   const [pending, setPending] = useState<number[]>(topicIds);
   const wrapRef = useRef<HTMLDivElement>(null);
 
+  // All topics flattened, then MERGED by name: topics that share a name across
+  // different systems/subjects appear once, with counts summed and the parent
+  // systems listed for context. Selecting a merged row selects every underlying
+  // topic id, so the backend filter stays exact.
   const allTopics = useMemo(() => {
     const byName = new Map<
       string,
@@ -868,6 +894,7 @@ function TopicSearchButton({
 
       {open && (
         <>
+          {/* Click-away layer */}
           <div
             className="fixed inset-0 z-30"
             onClick={() => onOpenChange(false)}
