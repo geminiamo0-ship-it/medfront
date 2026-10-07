@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md — MedPark frontend reconstruction
 
-**Last updated:** 2026-10-07  
+**Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner now includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, real Tutor/Timed clocks, configurable Timed duration, Tutor/Timed Suspend + End Block lifecycle, Marker/Pencil color palettes with dark-mode contrast, Calculator, and review-only AI Summary. Frontend latest feature merge is PR #24 (`14ecb212...`); backend timer persistence is PR #22 (`1500e4ae...`) and is live on Railway. Issue #4 remains open for Test Analysis/Results, My Notebook, detailed Flashcards UX, and later themes.
+**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, configurable Timed duration, Tutor/Timed lifecycle controls, annotation palettes, Calculator, review-only AI Summary, and the shared Tutor **active-solving-time** contract. Tutor time now counts only unanswered pre-submit solving time; it pauses immediately on first answer/SHOW ANSWER and excludes explanation/review time. Frontend latest feature merge: PR #28 (`f8b754257...`). Backend active-time contract: PR #26 (`f027476d...`) live on Railway. Issue #4 remains open for Test Analysis/Results, My Notebook, detailed Flashcards UX, and later themes.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed/filter correctness retained; Timed now supports 1:00 / 1:30 / 2:00 / 3:00 / Custom per-question duration with derived block-time preview |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED + VERIFIED** | PR #24 adds live Tutor/Timed clocks, configurable timing, Suspend→Previous Tests, Tutor End Block, Marker/Pencil palettes + dark contrast; production Tutor timer smoke green |
+| Test runner | **AMBOSS MERGED + VERIFIED** | PR #28 makes Tutor timing net active-solving time in shared Exam Core: unanswered runs, first submit/SHOW ANSWER pauses, review time excluded, unanswered navigation resumes. Timed continuous countdown unchanged. Production/browser evidence green. |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -150,14 +150,16 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-The approved AMBOSS timer/lifecycle/color refinement is merged and verified.
+The approved Tutor active-solving-time contract is merged, production-deployed, and verified.
 
-Completed in the latest slice:
-1. Timed countdown and Tutor count-up move every second from one shared source;
-2. Create Test Timed duration is configurable and sends the derived canonical `timeLimitSeconds`;
-3. Tutor/Timed Suspend persists timing; successful in-runner Suspend navigates to Previous Tests;
-4. End Block is available for Tutor and Timed;
-5. Marker/Pencil palettes and custom colors are implemented; marker dark-mode contrast is fixed.
+Latest completed rule, shared by Exam Core:
+1. unanswered Tutor question → clock runs;
+2. first answer or SHOW ANSWER → clock pauses immediately;
+3. explanation/review/tool time after submission is excluded;
+4. navigating to another unanswered question resumes the accumulated clock;
+5. navigating to answered/omitted questions keeps it paused;
+6. per-question solving deltas persist in `question_submissions.timeSpentSeconds`; aggregate net solving time persists in `tests.timeSpentSeconds`;
+7. Timed mode remains a continuous countdown and is unchanged.
 
 Next Issue #4 design work should be selected explicitly by the user:
 1. **Test Analysis / Results** design and final post-End-Block destination;
@@ -227,7 +229,7 @@ Explicit documented deferrals are allowed only when the user deliberately choose
 
 ## 9. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, `docs/BACKEND_CAPABILITY_MAP.md`, master Issue #1, active Issue #4, `docs/page-specs/EXAM_RUNNER.md`, plus Issue #11/QBank specs for remaining verification debt. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. AMBOSS timer/lifecycle/color work through frontend `14ecb212...` and backend `1500e4ae...` is complete and must not be repeated. The next Issue #4 work requires design approval for Test Analysis/Results or My Notebook/detailed Flashcards; My Notebook's future placement is the top-bar right helper zone beside Calculator. Library mobile/tablet and AMBOSS source media remain deferred.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, `docs/BACKEND_CAPABILITY_MAP.md`, master Issue #1, active Issue #4, and `docs/page-specs/EXAM_RUNNER.md`. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Tutor active-solving-time through frontend `f8b754257...` and backend `f027476d...` is complete and must not be reverted to wall-clock/session-open time. Future themes must consume this shared Exam Core rule. Next Issue #4 work requires design approval for Test Analysis/Results, My Notebook, or detailed Flashcards. Library mobile/tablet and AMBOSS source media remain deferred.
 
 ## AMBOSS final technical checkpoint — 2026-10-07
 
@@ -428,3 +430,40 @@ Evidence:
 - Cloudflare Workers production Version `c30cb541-8344-4ebb-841d-b6384f5126ba` → SUCCESS.
 
 The frozen visible-timer bug is closed.
+
+
+## Tutor active-solving-time checkpoint — 2026-10-08
+
+Product rule:
+- Tutor time is **net solving/thinking time before first submission**, not wall-clock session time.
+- Unanswered question → timer runs.
+- First option click or SHOW ANSWER → timer pauses immediately.
+- Explanation/review/Labs/Notes/Library/post-answer time → excluded.
+- Navigate to an unanswered question → timer resumes from accumulated total.
+- Navigate to answered/omitted question → timer stays paused.
+- Timed mode remains a continuous countdown.
+
+Implementation:
+- shared Exam Core owns the running/paused state so later UWorld/NBME/MRCP themes inherit it automatically;
+- frontend sends each Tutor question's solving delta as `timeSpentSeconds`;
+- backend persists per-question delta in `question_submissions.timeSpentSeconds`;
+- backend aggregates net solving time in `tests.timeSpentSeconds`;
+- Tutor retrieval returns persisted active time only; it never adds `now - startedAt`;
+- Suspend/Resume/End Block preserve the same net total.
+
+Merged/deployed:
+- backend PR #26 → `f027476dc08b2639376e7c4016baa4ef36a9edc1`;
+- Railway deployment `5743176d-e76f-45af-879e-299978403937` → SUCCESS;
+- frontend PR #28 → `f8b754257c2eafd067cdb0aadb1328f1e747c739`;
+- Cloudflare Workers production Version `dfaacb5e-3f18-493a-a0c3-f93a746c5d27` → SUCCESS.
+
+Evidence:
+- backend Verify #29 ✅;
+- production Exam Runner API Smoke #12 ✅:
+  `TUTOR_ACTIVE_TIME_OK ... pre_submit_static=0 submitted_delta=3 persisted=3 review_static=3`;
+- frontend Verify #117 ✅;
+- AMBOSS Browser Smoke #31 ✅:
+  `tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true`;
+- main frontend Verify after merge ✅.
+
+Do not reintroduce Tutor wall-clock counting in a theme. This is now a shared engine contract.
