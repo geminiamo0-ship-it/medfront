@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 import {
+  completeExamTest,
   getExamAiSummary,
   getExamExplanation,
   getExamTest,
@@ -126,10 +127,10 @@ export function useExamRunner(testIdParam: string | undefined) {
   }, [elapsedSeconds, test?.timeLimitSeconds]);
 
   useEffect(() => {
-    if (!isTimed || test?.status !== 'in_progress' || !test.timeLimitSeconds) return;
+    if (test?.status !== 'in_progress') return;
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
-  }, [isTimed, test?.id, test?.startedAt, test?.status, test?.timeLimitSeconds, test?.timeSpentSeconds]);
+  }, [test?.id, test?.status, test?.startedAt, test?.timeSpentSeconds]);
 
   function queueTimedSelection(questionId: number, optionId: number | null) {
     setTimedDraftError(null);
@@ -334,7 +335,7 @@ export function useExamRunner(testIdParam: string | undefined) {
   const suspendMutation = useMutation({
     mutationFn: async () => {
       if (isTimed) await flushTimedSelectionQueue();
-      await suspendExamTest(testId);
+      await suspendExamTest(testId, elapsedSeconds);
       return getExamTest(testId);
     },
     onSuccess: (freshTest) => {
@@ -353,6 +354,17 @@ export function useExamRunner(testIdParam: string | undefined) {
       setClockNow(Date.now());
       queryClient.setQueryData(['exam-test', testId], freshTest);
       void invalidateQbankProgressQueries(queryClient);
+    },
+  });
+
+  const completeTestMutation = useMutation({
+    mutationFn: () => completeExamTest(testId, elapsedSeconds),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['exam-test', testId] }),
+        invalidateQbankProgressQueries(queryClient),
+      ]);
+      await testQuery.refetch();
     },
   });
 
@@ -381,10 +393,19 @@ export function useExamRunner(testIdParam: string | undefined) {
     },
   });
 
-  function endTimedBlock() {
-    if (!test || !isTimed || isCompleted || timedBlockMutation.isPending) return;
-    autoEndTriggeredRef.current = true;
-    timedBlockMutation.mutate();
+  function endBlock() {
+    if (!test || isCompleted) return;
+
+    if (isTimed) {
+      if (timedBlockMutation.isPending) return;
+      autoEndTriggeredRef.current = true;
+      timedBlockMutation.mutate();
+      return;
+    }
+
+    if (test.type === 'tutor' && !completeTestMutation.isPending) {
+      completeTestMutation.mutate();
+    }
   }
 
   useEffect(() => {
@@ -413,10 +434,10 @@ export function useExamRunner(testIdParam: string | undefined) {
     void aiSummaryQuery.refetch();
   }
 
-  const timedAnsweredCount = test
+  const answeredCount = test
     ? test.questions.filter((question) => getSelectedOptionId(question) != null).length
     : 0;
-  const timedUnansweredCount = test ? Math.max(0, test.totalQuestions - timedAnsweredCount) : 0;
+  const unansweredCount = test ? Math.max(0, test.totalQuestions - answeredCount) : 0;
   const markedCount = test
     ? test.questions.filter((question) => isQuestionMarked(question)).length
     : 0;
@@ -442,8 +463,8 @@ export function useExamRunner(testIdParam: string | undefined) {
     remainingSeconds,
     timerSeconds: isTimed && remainingSeconds != null ? remainingSeconds : elapsedSeconds,
     timerCountsDown: isTimed && remainingSeconds != null,
-    timedAnsweredCount,
-    timedUnansweredCount,
+    answeredCount,
+    unansweredCount,
     markedCount,
     timedDraftError,
     selectOption,
@@ -467,10 +488,12 @@ export function useExamRunner(testIdParam: string | undefined) {
     labsQuery,
     ensureLabsLoaded,
     suspendTest: () => suspendMutation.mutate(),
+    suspendTestAsync: () => suspendMutation.mutateAsync(),
     resumeTest: () => resumeMutation.mutate(),
     suspendMutation,
     resumeMutation,
-    endTimedBlock,
+    endBlock,
+    completeTestMutation,
     timedBlockMutation,
     aiSummary: aiSummaryQuery.data ?? null,
     aiSummaryQuery,

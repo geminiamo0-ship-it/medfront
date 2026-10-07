@@ -4,23 +4,31 @@ interface AmbossEndBlockDialogProps {
   answered: number;
   unanswered: number;
   marked: number;
-  remainingSeconds: number;
+  timeLabel: string;
+  timeSeconds: number;
   pending: boolean;
   onClose: () => void;
   onReviewUnanswered: () => void;
   onConfirm: () => void;
 }
 
-function formatRemaining(seconds: number) {
+function formatTime(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds));
-  return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const remainder = safe % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
 export function AmbossEndBlockDialog({
   answered,
   unanswered,
   marked,
-  remainingSeconds,
+  timeLabel,
+  timeSeconds,
   pending,
   onClose,
   onReviewUnanswered,
@@ -48,13 +56,13 @@ export function AmbossEndBlockDialog({
           <ExamIcon name="end-block" size={26} />
         </div>
         <h2 id="amboss-end-block-title">End this block?</h2>
-        <p>Your answers will be submitted and the block will move into review.</p>
+        <p>Your current answers will be finalized. The dedicated Test Analysis experience will be added in its approved review slice.</p>
 
         <div className="amboss-end-block-stats">
           <div><span>Answered</span><strong>{answered}</strong></div>
           <div><span>Unanswered</span><strong>{unanswered}</strong></div>
           <div><span>Marked</span><strong>{marked}</strong></div>
-          <div><span>Time left</span><strong>{formatRemaining(remainingSeconds)}</strong></div>
+          <div><span>{timeLabel}</span><strong>{formatTime(timeSeconds)}</strong></div>
         </div>
 
         <div className="amboss-end-block-actions">

@@ -249,8 +249,12 @@
 
 .amboss-user-marker{
   background:var(--amboss-marker-color,#ffe36e);
+  background:color-mix(in srgb,var(--amboss-marker-color,#ffe36e) 62%,#fff 38%);
   color:inherit;
-  padding:0;
+  padding:0 .02em;
+  border-radius:2px;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
 }
 
 .amboss-workspace[data-active-tool="marker"] .amboss-stem{

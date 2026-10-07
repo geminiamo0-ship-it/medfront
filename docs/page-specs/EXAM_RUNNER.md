@@ -240,6 +240,47 @@ User explicitly approved this implementation slice and asked for immediate imple
 - Completion unlocks review-only helper UI, including AI Summary.
 - Final full Results/Review page design remains a separate later slice; this implementation only provides lifecycle-safe completed-state review behavior needed by End Block.
 
+## 11B. Approved timer, lifecycle and color refinement — 2026-10-07
+
+User approved this refinement after reviewing the merged Timed toolbar.
+
+### Timer contract
+- One shared one-second ticker drives the primary top timer and the sidebar timer.
+- Tutor is an **ascending** active-session counter: `00:00 → 00:01 → 00:02 ...`.
+- Timed is a **descending** countdown from the configured block duration.
+- Suspended tests do not advance the displayed timer.
+- Resume continues from server-preserved elapsed/remaining time.
+- Timed reaching `00:00` uses the same single-flight End Block path.
+- Timer movement itself is a browser acceptance criterion; merely rendering a number is not sufficient.
+
+### Create Test timed duration
+- Choosing Timed reveals a per-question time control.
+- Presets: `1:00`, `1:30`, `2:00`, `3:00`, plus Custom.
+- Default remains `1:00` per question.
+- The UI shows the derived total block duration before Create.
+- The canonical request sends `timeLimitSeconds = questionCount × secondsPerQuestion`; backend remains authoritative for the resulting block limit.
+
+### Tutor lifecycle
+- Suspend remains available in Tutor.
+- Successful Suspend navigates out of the runner to the current bank's Previous Tests page after persistence succeeds.
+- End Block is visible in Tutor as well as Timed.
+- Tutor End Block completes through the canonical backend complete endpoint with the displayed elapsed time.
+- Final navigation into Test Analysis / Results is intentionally deferred until that separate page is designed; this slice must not invent the final analysis experience.
+
+### Marker / Pencil colors
+- Marker and Pencil expose a palette with multiple preset colors plus a custom color input.
+- The currently selected color is visually reflected in the tool control.
+- Marker descriptors persist the exact chosen color through the existing highlights API.
+- Dark mode renders marker fills with reduced opacity / contrast-safe treatment so highlighted text remains clearly readable.
+- Pencil uses the selected color for new strokes; Pencil remains transient in this slice.
+- Laser behavior remains unchanged.
+
+### Notebook placement decision
+- My Notebook is still deferred as a shared cross-theme feature.
+- Its approved future placement is the **right-side helper zone** of the top bar, beside Calculator.
+- My Notebook is distinct from per-question Notes and from Flashcards/Anki.
+- The eventual Notebook opens as a shared right-side drawer; do not build a theme-local placeholder now.
+
 ## 12. Current implementation slices
 
 ### Slice A — foundation
@@ -288,8 +329,8 @@ User explicitly approved this implementation slice and asked for immediate imple
 - [ ] mobile browser acceptance
 
 ## 13. Explicitly deferred
-- final global theme/appearance switch control and URL strategy;
-- final marker/pencil placement;
+- global cross-theme appearance URL strategy;
+- My Notebook shared drawer implementation;
 - detailed Flashcards/Anki creation UX;
 - UWorld production implementation;
 - NBME/MRCP themes;

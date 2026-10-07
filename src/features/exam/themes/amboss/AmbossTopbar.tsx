@@ -6,6 +6,15 @@ export type AmbossToolMode = 'marker' | 'pencil' | 'laser' | null;
 export type AmbossAppearance = 'light' | 'dark';
 export type AmbossTextSize = 'compact' | 'normal' | 'large';
 
+const TOOL_COLORS = [
+  { name: 'Yellow', value: '#f6d84a' },
+  { name: 'Green', value: '#63c174' },
+  { name: 'Blue', value: '#5aa7e8' },
+  { name: 'Red', value: '#e76868' },
+  { name: 'Purple', value: '#9b7be5' },
+  { name: 'Pink', value: '#e983b6' },
+] as const;
+
 interface AmbossTopbarProps {
   controller: ExamRunnerController;
   onToggleSidebar: () => void;
@@ -15,8 +24,13 @@ interface AmbossTopbarProps {
   onTextSizeChange: (value: AmbossTextSize) => void;
   activeTool: AmbossToolMode;
   onToolChange: (value: AmbossToolMode) => void;
+  markerColor: string;
+  onMarkerColorChange: (value: string) => void;
+  pencilColor: string;
+  onPencilColorChange: (value: string) => void;
   calculatorOpen: boolean;
   onCalculatorToggle: () => void;
+  onSuspendRequest: () => void;
   onEndBlockRequest: () => void;
   onAiSummary: () => void;
 }
@@ -32,6 +46,51 @@ function formatTimer(totalSeconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+function ColorPalette({
+  value,
+  onChange,
+  onActivate,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onActivate: () => void;
+  label: string;
+}) {
+  return (
+    <div className="amboss-color-config">
+      <div className="amboss-color-grid" aria-label={`${label} colors`}>
+        {TOOL_COLORS.map((color) => (
+          <button
+            type="button"
+            key={color.value}
+            aria-label={`${label} ${color.name}`}
+            title={color.name}
+            className={value.toLowerCase() === color.value.toLowerCase() ? 'amboss-color-swatch is-active' : 'amboss-color-swatch'}
+            style={{ '--amboss-tool-choice': color.value } as React.CSSProperties}
+            onClick={() => {
+              onChange(color.value);
+              onActivate();
+            }}
+          />
+        ))}
+        <label className="amboss-color-custom" title={`Custom ${label.toLowerCase()} color`}>
+          <input
+            type="color"
+            value={value}
+            aria-label={`Custom ${label.toLowerCase()} color`}
+            onChange={(event) => {
+              onChange(event.target.value);
+              onActivate();
+            }}
+          />
+          <span>+</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export function AmbossTopbar({
   controller,
   onToggleSidebar,
@@ -41,8 +100,13 @@ export function AmbossTopbar({
   onTextSizeChange,
   activeTool,
   onToolChange,
+  markerColor,
+  onMarkerColorChange,
+  pencilColor,
+  onPencilColorChange,
   calculatorOpen,
   onCalculatorToggle,
+  onSuspendRequest,
   onEndBlockRequest,
   onAiSummary,
 }: AmbossTopbarProps) {
@@ -52,7 +116,15 @@ export function AmbossTopbar({
   const lifecyclePending =
     controller.suspendMutation.isPending ||
     controller.resumeMutation.isPending ||
+    controller.completeTestMutation.isPending ||
     controller.timedBlockMutation.isPending;
+
+  const activeToolColor =
+    activeTool === 'marker' ? markerColor : activeTool === 'pencil' ? pencilColor : null;
+
+  const canEndBlock =
+    !controller.isCompleted &&
+    (controller.isTimed || controller.test?.type === 'tutor');
 
   return (
     <header className="amboss-topbar">
@@ -126,28 +198,65 @@ export function AmbossTopbar({
             aria-expanded={toolsOpen}
           >
             <ExamIcon name="tools" size={17} />
+            {activeToolColor ? (
+              <span
+                className="amboss-active-tool-swatch"
+                style={{ '--amboss-active-tool-color': activeToolColor } as React.CSSProperties}
+                aria-hidden="true"
+              />
+            ) : null}
             <span>Tools</span>
           </button>
+
           {toolsOpen ? (
             <div className="amboss-top-popover amboss-tools-popover">
-              {([
-                ['marker', 'marker', 'Marker'],
-                ['pencil', 'pencil', 'Pencil'],
-                ['laser', 'laser', 'Laser'],
-              ] as const).map(([tool, icon, label]) => (
+              <div className={activeTool === 'marker' ? 'amboss-tool-config is-active' : 'amboss-tool-config'}>
                 <button
-                  key={tool}
                   type="button"
-                  className={activeTool === tool ? 'amboss-popover-action is-active' : 'amboss-popover-action'}
-                  onClick={() => {
-                    onToolChange(activeTool === tool ? null : tool);
-                    setToolsOpen(false);
-                  }}
+                  className="amboss-popover-action"
+                  onClick={() => onToolChange(activeTool === 'marker' ? null : 'marker')}
                 >
-                  <ExamIcon name={icon} size={17} />
-                  <span>{label}</span>
+                  <span style={{ color: markerColor }}><ExamIcon name="marker" size={17} /></span>
+                  <span>Marker</span>
+                  <span className="amboss-tool-current-color" style={{ background: markerColor }} aria-hidden="true" />
                 </button>
-              ))}
+                <ColorPalette
+                  label="Marker"
+                  value={markerColor}
+                  onChange={onMarkerColorChange}
+                  onActivate={() => onToolChange('marker')}
+                />
+              </div>
+
+              <div className={activeTool === 'pencil' ? 'amboss-tool-config is-active' : 'amboss-tool-config'}>
+                <button
+                  type="button"
+                  className="amboss-popover-action"
+                  onClick={() => onToolChange(activeTool === 'pencil' ? null : 'pencil')}
+                >
+                  <span style={{ color: pencilColor }}><ExamIcon name="pencil" size={17} /></span>
+                  <span>Pencil</span>
+                  <span className="amboss-tool-current-color" style={{ background: pencilColor }} aria-hidden="true" />
+                </button>
+                <ColorPalette
+                  label="Pencil"
+                  value={pencilColor}
+                  onChange={onPencilColorChange}
+                  onActivate={() => onToolChange('pencil')}
+                />
+              </div>
+
+              <button
+                type="button"
+                className={activeTool === 'laser' ? 'amboss-popover-action is-active' : 'amboss-popover-action'}
+                onClick={() => {
+                  onToolChange(activeTool === 'laser' ? null : 'laser');
+                  setToolsOpen(false);
+                }}
+              >
+                <ExamIcon name="laser" size={17} />
+                <span>Laser</span>
+              </button>
             </div>
           ) : null}
         </div>
@@ -158,7 +267,7 @@ export function AmbossTopbar({
           <button
             type="button"
             className="amboss-top-action amboss-lifecycle-action"
-            onClick={controller.isSuspended ? controller.resumeTest : controller.suspendTest}
+            onClick={controller.isSuspended ? controller.resumeTest : onSuspendRequest}
             disabled={lifecyclePending}
           >
             <ExamIcon name={controller.isSuspended ? 'resume' : 'suspend'} size={17} />
@@ -180,7 +289,7 @@ export function AmbossTopbar({
           {controller.isSuspended ? <small>PAUSED</small> : null}
         </div>
 
-        {controller.isTimed && !controller.isCompleted ? (
+        {canEndBlock ? (
           <button
             type="button"
             className="amboss-top-action amboss-end-block"
