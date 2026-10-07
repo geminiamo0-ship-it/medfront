@@ -279,14 +279,14 @@ export function AmbossTopbar({
           className={[
             'amboss-primary-timer',
             controller.timerCountsDown ? 'is-countdown' : '',
-            controller.isSuspended ? 'is-paused' : '',
+            controller.timerPaused ? 'is-paused' : '',
             controller.remainingSeconds != null && controller.remainingSeconds <= 60 ? 'is-critical' : '',
           ].filter(Boolean).join(' ')}
           aria-label={controller.timerCountsDown ? 'Time remaining' : 'Session time'}
         >
           <ExamIcon name="timer" size={17} />
           <strong>{formatTimer(controller.timerSeconds)}</strong>
-          {controller.isSuspended ? <small>PAUSED</small> : null}
+          {controller.timerPaused ? <small>PAUSED</small> : null}
         </div>
 
         {canEndBlock ? (

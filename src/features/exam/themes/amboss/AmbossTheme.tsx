@@ -109,7 +109,7 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
         getSelectedOptionId={controller.getSelectedOptionId}
         timerSeconds={controller.timerSeconds}
         timerCountsDown={controller.timerCountsDown}
-        paused={controller.isSuspended}
+        paused={controller.timerPaused}
       />
 
       <AmbossQuestionWorkspace
@@ -156,7 +156,7 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
           answered={controller.answeredCount}
           unanswered={controller.unansweredCount}
           marked={controller.markedCount}
-          timeLabel={controller.isTimed ? 'Time left' : 'Session time'}
+          timeLabel={controller.isTimed ? 'Time left' : 'Solving time'}
           timeSeconds={controller.isTimed ? controller.remainingSeconds ?? 0 : controller.elapsedSeconds}
           pending={
             controller.isTimed

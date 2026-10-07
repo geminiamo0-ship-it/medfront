@@ -246,7 +246,7 @@ User approved this refinement after reviewing the merged Timed toolbar.
 
 ### Timer contract
 - One shared one-second ticker drives the primary top timer and the sidebar timer.
-- Tutor is an **ascending** active-session counter: `00:00 → 00:01 → 00:02 ...`.
+- Tutor is an **ascending active-solving counter**: it advances only while the current Tutor question is still unanswered.
 - Timed is a **descending** countdown from the configured block duration.
 - Suspended tests do not advance the displayed timer.
 - Resume continues from server-preserved elapsed/remaining time.
@@ -281,6 +281,35 @@ User approved this refinement after reviewing the merged Timed toolbar.
 - My Notebook is distinct from per-question Notes and from Flashcards/Anki.
 - The eventual Notebook opens as a shared right-side drawer; do not build a theme-local placeholder now.
 
+## 11C. Approved Tutor active-solving-time contract — 2026-10-08
+
+User explicitly approved this timing rule as a shared Exam Core behavior for Tutor mode across every theme.
+
+### Canonical Tutor clock semantics
+- Tutor time means **net solving/thinking time before first submission**, not wall-clock session-open time.
+- Enter an unanswered Tutor question → the shared timer runs.
+- First option selection is the canonical Submit action → the timer pauses immediately at click time, before explanation/API latency.
+- `SHOW ANSWER` on an unanswered Tutor question is also a submission/omission action → the timer pauses immediately.
+- Explanation reading, inspecting other options, Labs, Notes, Library, AI/review tools, and other post-answer activity do **not** add Tutor solving time.
+- Navigate to another unanswered Tutor question → the timer resumes from the accumulated total.
+- Navigate to an already answered/omitted Tutor question → the timer stays paused.
+- Revisiting an unanswered question accumulates additional solving time for that question until its first submit.
+- Timed mode is unchanged: its block countdown remains continuous until Suspend / End Block / timeout.
+
+### Persistence / authority
+- Shared Exam Core owns active/inactive presentation state so every theme receives identical Tutor behavior.
+- On Tutor first submit, frontend sends that question's active-solving delta as `timeSpentSeconds` to the canonical submit endpoint.
+- Backend `tests.timeSpentSeconds` remains the persisted aggregate net solving time; `question_submissions.timeSpentSeconds` stores the per-question solving delta.
+- Tutor retrieval must not add wall-clock `(now - startedAt)` to the timer snapshot; its server snapshot is the persisted active-time aggregate.
+- Suspend and End Block persist the current net active-solving total so unsubmitted in-session thinking is not lost.
+- A failed submit reactivates the clock for that still-unanswered question; a successful submit keeps it paused.
+
+### Acceptance examples
+- Solve Q1 for 80s → submit → read explanation for 4m → Tutor timer stays at ~80s.
+- Open unanswered Q2 and think for 50s → submit → total becomes ~130s, not ~370s.
+- Reopen answered Q1 → no timer movement.
+- Open unanswered Q3 → timer resumes.
+
 ## 12. Current implementation slices
 
 ### Slice A — foundation
@@ -305,7 +334,7 @@ User approved this refinement after reviewing the merged Timed toolbar.
 - [x] Tutor/Mixed first-answer + SHOW ANSWER lifecycle wired to backend
 - [x] Timed draft selection without immediate reveal
 - [x] explanation reveal/show-all behavior
-- [x] Tutor ascending timer + Timed descending timer tick every second
+- [x] Tutor ascending active-solving timer + Timed descending timer tick every second
 - [x] configurable Timed duration at Create Test
 - [x] Tutor + Timed Suspend/End Block lifecycle
 

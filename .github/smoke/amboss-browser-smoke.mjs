@@ -90,6 +90,7 @@ let marked = false;
 let savedNote = null;
 const submittedByQuestion = new Map();
 const submitBodies = [];
+let tutorPersistedTimeSpentSeconds = 0;
 
 const timedQuestions = [
   makeQuestion(3001, 1, 'hard'),
@@ -137,10 +138,8 @@ function ambossExplanationBlob(question) {
 
 function decoratedTestState() {
   const body = structuredClone(testState);
-  const startedAtMs = new Date(testState.startedAt).getTime();
-  body.timerElapsedSeconds =
-    Number(testState.timeSpentSeconds || 0) +
-    Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+  body.timeSpentSeconds = tutorPersistedTimeSpentSeconds;
+  body.timerElapsedSeconds = tutorPersistedTimeSpentSeconds;
   body.answeredQuestions = 0;
   body.correctAnswers = 0;
   body.omittedQuestionIds = [];
@@ -155,7 +154,7 @@ function decoratedTestState() {
     question.userAnswer = {
       selectedOptionId,
       isCorrect: submission.isCorrect,
-      timeSpentSeconds: 1,
+      timeSpentSeconds: Number(submission.timeSpentSeconds || 0),
       answerChanges: 0,
     };
     question.isAnswered = !omitted;
@@ -259,11 +258,7 @@ function tutorLifecyclePayload() {
   body.status = tutorLifecycleStatus;
   body.timeSpentSeconds = tutorLifecycleTimeSpentSeconds;
   body.startedAt = null;
-  body.timerElapsedSeconds =
-    tutorLifecycleTimeSpentSeconds +
-    (tutorLifecycleStatus === 'in_progress'
-      ? Math.max(0, Math.floor((Date.now() - new Date(tutorLifecycleStartedAt).getTime()) / 1000))
-      : 0);
+  body.timerElapsedSeconds = tutorLifecycleTimeSpentSeconds;
   body.completedAt = tutorLifecycleStatus === 'completed' ? new Date().toISOString() : null;
   body.questions = body.questions.map((question) => ({
     ...question,
@@ -563,15 +558,21 @@ async function installApiMocks(target) {
       const correctOptionId = correctOptionFor(question)?.id ?? null;
       const isCorrect = selectedOptionId != null && selectedOptionId === correctOptionId;
 
+      const submittedTimeSpentSeconds = Math.max(0, Number(data.timeSpentSeconds || 0));
       submitBodies.push(data);
-      submittedByQuestion.set(question.id, { selectedOptionId, isCorrect });
+      submittedByQuestion.set(question.id, {
+        selectedOptionId,
+        isCorrect,
+        timeSpentSeconds: submittedTimeSpentSeconds,
+      });
+      tutorPersistedTimeSpentSeconds += submittedTimeSpentSeconds;
 
       return json(route, {
         submission: {
           selectedOptionId,
           isCorrect,
           correctOptionId,
-          timeSpentSeconds: 1,
+          timeSpentSeconds: submittedTimeSpentSeconds,
         },
         testStats: {
           answeredQuestions: selectedOptionId == null ? 0 : 1,
@@ -655,16 +656,40 @@ try {
     assert((await page.getByRole('button', { name: /MARKED/i }).count()) === 1, 'Marked UI state did not update');
 
     const answerRows = page.locator('.amboss-option');
+    const tutorTopTimer = page.locator('.amboss-primary-timer strong');
 
-    // First option click is the ONLY persisted Tutor answer.
+    // Unanswered Tutor questions actively count solving time.
+    const tutorBeforeSubmit = (await tutorTopTimer.textContent())?.trim();
+    await page.waitForTimeout(1150);
+    const tutorBeforeSubmitLater = (await tutorTopTimer.textContent())?.trim();
+    assert(
+      timerTextToSeconds(tutorBeforeSubmitLater) > timerTextToSeconds(tutorBeforeSubmit),
+      `Tutor solving clock did not advance before first answer: ${tutorBeforeSubmit} → ${tutorBeforeSubmitLater}`,
+    );
+
+    // First option click is the ONLY persisted Tutor answer and immediately
+    // pauses the solving clock before explanation/review time begins.
     await answerRows.nth(1).click(); // B = wrong
     await answerRows.nth(1).locator('.amboss-option-explanation').waitFor();
     await answerRows.nth(1).getByText(/Blob explanation for option B/i).waitFor();
     assert(submitBodies.length === 1, `Expected exactly one submit after first click, got ${submitBodies.length}`);
     assert(submitBodies[0].questionId === 2001, 'First submit used the wrong question');
     assert(submitBodies[0].selectedOptionId === 113, 'First submit did not persist option B');
+    assert(
+      Number(submitBodies[0].timeSpentSeconds) >= 1,
+      `Tutor submit did not include active solving delta: ${JSON.stringify(submitBodies[0])}`,
+    );
     assert(await answerRows.nth(1).evaluate((node) => node.classList.contains('is-incorrect')), 'First wrong answer did not turn red');
     assert((await page.locator('.amboss-option-explanation').count()) === 1, 'Only the first clicked explanation should open initially');
+
+    const tutorPausedAt = (await tutorTopTimer.textContent())?.trim();
+    assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Tutor clock did not enter paused state after submit');
+    await page.waitForTimeout(1150);
+    const tutorPausedLater = (await tutorTopTimer.textContent())?.trim();
+    assert(
+      tutorPausedLater === tutorPausedAt,
+      `Tutor explanation time leaked into solving clock: ${tutorPausedAt} → ${tutorPausedLater}`,
+    );
 
     // Later clicks are explanation-only: no second submit, but correctness UI opens.
     await answerRows.nth(7).click(); // H = correct and final option
@@ -680,15 +705,34 @@ try {
     assert((await page.locator('.amboss-option-explanation').count()) === 8, 'SHOW ALL EXPLANATIONS did not open every option');
     assert(submitBodies.length === 1, 'SHOW ALL EXPLANATIONS performed an unexpected submit');
 
-    // On a fresh question, SHOW ANSWER with no selection is an explicit omission.
+    // Moving to a fresh unanswered question resumes active solving time.
     await page.getByRole('button', { name: /NEXT/i }).click();
     await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    const secondQuestionStart = (await tutorTopTimer.textContent())?.trim();
+    await page.waitForTimeout(1150);
+    const secondQuestionRunning = (await tutorTopTimer.textContent())?.trim();
+    assert(
+      timerTextToSeconds(secondQuestionRunning) > timerTextToSeconds(secondQuestionStart),
+      `Tutor clock did not resume on unanswered Q2: ${secondQuestionStart} → ${secondQuestionRunning}`,
+    );
+
+    // SHOW ANSWER is also a first submission (omission), so it pauses again.
     await page.getByRole('button', { name: /SHOW ANSWER/i }).click();
     await page.getByRole('button', { name: /HIDE ALL EXPLANATIONS/i }).waitFor();
     assert(submitBodies.length === 2, 'Omission did not create exactly one submit');
     assert(submitBodies[1].questionId === 2002, 'Omission submit used the wrong question');
     assert(submitBodies[1].selectedOptionId === null, 'Omission submit must send selectedOptionId=null');
+    assert(
+      Number(submitBodies[1].timeSpentSeconds) >= 1,
+      `Tutor omission did not include active solving delta: ${JSON.stringify(submitBodies[1])}`,
+    );
     assert((await page.locator('.amboss-option-explanation').count()) === 8, 'Omission reveal did not open all explanations');
+    const secondQuestionPaused = (await tutorTopTimer.textContent())?.trim();
+    await page.waitForTimeout(1150);
+    assert(
+      (await tutorTopTimer.textContent())?.trim() === secondQuestionPaused,
+      'Tutor clock advanced while reviewing an omitted/revealed question',
+    );
     await page.waitForTimeout(100);
     const secondState = await page.locator('.amboss-question-row').nth(1).locator('.amboss-question-state').textContent();
     assert(secondState?.trim() === '○', `Omitted question navigator state should be ○, got ${secondState}`);
@@ -858,7 +902,7 @@ try {
 
     await page.getByRole('button', { name: /^End Block$/i }).click();
     const tutorEndDialog = page.locator('.amboss-end-block-dialog');
-    await tutorEndDialog.getByText('Session time', { exact: true }).waitFor();
+    await tutorEndDialog.getByText('Solving time', { exact: true }).waitFor();
     await tutorEndDialog.getByRole('button', { name: /End block now/i }).click();
     await page.getByRole('button', { name: /AI Summary/i }).waitFor();
     assert(tutorLifecycleStatus === 'completed', 'Tutor End Block did not complete the test');
@@ -991,6 +1035,7 @@ try {
     savedNote = null;
     submittedByQuestion.clear();
     submitBodies.length = 0;
+    tutorPersistedTimeSpentSeconds = 0;
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.getByText('70% ethanol').waitFor();
@@ -1024,7 +1069,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true pencil_palette=true');
 } finally {
   await browser.close();
 }

@@ -96,7 +96,7 @@ export function AmbossSidebar({
             <ExamIcon name="timer" size={16} />
             <strong>{formatTimer(timerSeconds)}</strong>
           </span>
-          <small>{paused ? 'PAUSED' : timerCountsDown ? 'REMAINING' : 'SESSION'}</small>
+          <small>{paused ? 'PAUSED' : timerCountsDown ? 'REMAINING' : test.type === 'tutor' ? 'SOLVING' : 'SESSION'}</small>
         </div>
         <div>
           <strong>{test.type.toUpperCase()}</strong>
