@@ -76,7 +76,7 @@ Approved reference: the supplied AMBOSS screenshots and standalone prototype dis
 - Preserve supported rich markup/images.
 - AMBOSS-specific semantic markup is interpreted only inside the AMBOSS theme.
 
-### Sidebar screenshot refinement — approved 2026-10-08
+### Sidebar screenshot refinement — approved, implemented and browser-verified 2026-10-08
 - Reference: user-supplied AMBOSS sidebar screenshot (custom session title, progress indicator, stem snippets, status dots, difficulty hammers, session/question clocks and Exit Session).
 - The sidebar shows **number + sanitized first text of the question stem**, for every question including inactive ones, with a single-line ellipsis. Hint/style/HTML noise is removed before extracting the plain-text preview.
 - Existing marks and 1–5 canonical backend difficulty hammers remain visible and functionally separate from answer status.
@@ -502,3 +502,16 @@ Verification:
 
 Architecture rule:
 **Omitted is an outcome, not a completed-review visibility restriction.** Future UWorld/NBME/MRCP themes must consume this shared review contract.
+
+
+## 17. Screenshot sidebar refinement implementation — 2026-10-08
+
+- Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458`.
+- Real question stem text in all nav rows (not active-only `Question N` placeholders); HTML and hints omitted from previews, with truncation and full-title hover.
+- Session title, selected/answered progress bar, distinct status glyphs, 1–5 difficulty hammers and mark state.
+- Session/remaining countdown and question-local display timer are derived from shared Exam Core (no backend timing redefinition).
+- Real EXIT SESSION action delegates to existing Suspend/Previous Tests navigation.
+- Dark theme and responsive desktop/iPad/mobile treatment retained.
+- Verify #133 success.
+- Browser Smoke #40 success: `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`. All Tutor/Timed and Omitted-review regressions also green.
+- **Deployment distinction:** Code merged and browser-verified; Cloudflare production build outcome and final main Verify are tracked in Issue #4. Do not claim frontend production success unless Cloudflare reports SUCCESS.
