@@ -69,6 +69,7 @@ export interface ExamTest {
   answeredQuestions: number;
   correctAnswers: number;
   timeSpentSeconds: number;
+  timerElapsedSeconds?: number;
   timeLimitSeconds: number | null;
   startedAt?: string | null;
   completedAt?: string | null;

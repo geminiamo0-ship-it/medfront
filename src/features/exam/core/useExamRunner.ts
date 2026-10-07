@@ -108,18 +108,32 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const elapsedSeconds = useMemo(() => {
     if (!test) return 0;
+
     const persisted = Math.max(0, Number(test.timeSpentSeconds || 0));
+    const serverSnapshot = Number(test.timerElapsedSeconds);
+    const hasServerSnapshot = Number.isFinite(serverSnapshot) && serverSnapshot >= 0;
+    const baseline = hasServerSnapshot ? serverSnapshot : persisted;
+
     if (
       test.status !== 'in_progress' ||
-      !test.startedAt ||
       (test.type === 'mixed' && test.timeLimitSeconds)
     ) {
-      return persisted;
+      return baseline;
     }
+
+    if (hasServerSnapshot && testQuery.dataUpdatedAt > 0) {
+      const sinceSnapshot = Math.max(
+        0,
+        Math.floor((clockNow - testQuery.dataUpdatedAt) / 1000),
+      );
+      return baseline + sinceSnapshot;
+    }
+
+    if (!test.startedAt) return baseline;
     const startedAt = new Date(test.startedAt).getTime();
-    if (!Number.isFinite(startedAt)) return persisted;
+    if (!Number.isFinite(startedAt)) return baseline;
     return persisted + Math.max(0, Math.floor((clockNow - startedAt) / 1000));
-  }, [clockNow, test]);
+  }, [clockNow, test, testQuery.dataUpdatedAt]);
 
   const remainingSeconds = useMemo(() => {
     if (!test?.timeLimitSeconds) return null;
@@ -128,9 +142,21 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   useEffect(() => {
     if (test?.status !== 'in_progress') return;
-    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(interval);
-  }, [test?.id, test?.status, test?.startedAt, test?.timeSpentSeconds]);
+
+    const tick = () => setClockNow(Date.now());
+    tick();
+    const interval = window.setInterval(tick, 1000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [test?.id, test?.status]);
 
   function queueTimedSelection(questionId: number, optionId: number | null) {
     setTimedDraftError(null);
