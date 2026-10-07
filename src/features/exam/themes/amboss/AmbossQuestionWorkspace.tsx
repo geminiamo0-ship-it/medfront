@@ -44,11 +44,11 @@ export function AmbossQuestionWorkspace({
     () => (typeof window === 'undefined' ? 520 : Math.min(620, Math.max(420, Math.floor(window.innerWidth * 0.44)))),
   );
   const [showAllExplanations, setShowAllExplanations] = useState(
-    () => question?.isOmitted === true,
+    () => question?.isOmitted === true && !controller.isCompleted,
   );
   const [expandedOptionIds, setExpandedOptionIds] = useState<Set<number>>(() => {
     if (!question) return new Set<number>();
-    if (question.isOmitted) {
+    if (question.isOmitted && !controller.isCompleted) {
       return new Set(question.options.map((option) => option.id));
     }
     const submitted = question.userAnswer?.selectedOptionId;
@@ -98,7 +98,10 @@ export function AmbossQuestionWorkspace({
   });
 
   const marked = controller.isQuestionMarked(question);
-  const canReveal = controller.isTutorLike && !controller.isRevealed;
+  const canReveal =
+    controller.isTutorLike &&
+    !controller.isCompleted &&
+    !controller.isRevealed;
 
   function openLabs() {
     const next = !labsOpen;
@@ -163,7 +166,12 @@ export function AmbossQuestionWorkspace({
       return;
     }
 
-    // After the first Tutor/Mixed answer, clicks are presentation-only.
+    // Completed review and post-submit Tutor/Mixed clicks are presentation-only.
+    // Completed Omitted review may lazy-fetch explanation payloads, but never submits.
+    if (controller.isCompleted) {
+      controller.ensureCurrentReviewExplanation();
+    }
+
     setExpandedOptionIds((current) => {
       if (current.has(optionId)) return current;
       const next = new Set(current);
@@ -183,6 +191,9 @@ export function AmbossQuestionWorkspace({
       setShowAllExplanations(false);
       setExpandedOptionIds(new Set());
       return;
+    }
+    if (controller.isCompleted) {
+      controller.ensureCurrentReviewExplanation();
     }
     setShowAllExplanations(true);
   }
@@ -295,6 +306,7 @@ export function AmbossQuestionWorkspace({
                   revealed={revealed}
                   inspected={inspected}
                   showExplanation={showExplanation}
+                  showCorrectAnswer={controller.isCompleted}
                   onActivate={() => activateOption(option.id)}
                 />
               );
