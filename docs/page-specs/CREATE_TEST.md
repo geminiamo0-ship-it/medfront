@@ -146,7 +146,7 @@ Keep current section order and card layout.
 |---|---|---|---|---|
 | Per-mode counts | POST | `/tests/counts` | `{ step, filters }` | Backend authoritative |
 | Mixed count | POST | `/tests/counts/mixed` | `{ step, filters: { ...filters, modes } }` | Backend deduplicates combined modes |
-| Subjects | POST | `/tests/metadata/subjects` | `{ step, questionBankIds, mode }` | Metadata |
+| Subjects | POST | `/tests/metadata/subjects` | `{ step, questionBankIds, mode?, modes?, difficulty? }` | Status-aware metadata; mixed modes use the same union semantics as Create Test |
 | Systems/topics | POST | `/tests/metadata/systems-with-topics` | `{ step, filters }` | Render from stable metadata filters |
 | Difficulty | POST | `/tests/metadata/difficulty-counts` | `{ step, questionBankIds }` | Metadata |
 | Create | POST | `/tests` | typed Create Test request | `mode: "mixed_modes"` for 2+ modes; `filters.modes` contains actual modes; backend DTO `totalQuestions` max = 200 |
@@ -154,6 +154,24 @@ Keep current section order and card layout.
 | QBank catalogue | GET | `/tests/metadata/question-banks` | optional `step` | Missing-Step workspace recovery only when selected-bank URL lacks a valid Step |
 
 Frontend validation improves UX. Backend remains authoritative for access, enum validation, availability, question existence, bank membership, creation quotas, grouping and persistence.
+
+### Canonical QBank status-filter contract
+
+These definitions are backend-owned and must stay identical across `/tests/counts`, `/tests/counts/mixed`, test creation, status-scoped metadata, QBank progress and frontend refresh behavior:
+
+- **All:** every accessible active question matching the active bank/taxonomy/difficulty filters.
+- **Used:** a question assigned to at least one test owned by the user, even if it is not answered yet.
+- **Unused:** exact complement of Used inside the active filtered universe: never assigned to any user test.
+- **Correct / Incorrect:** the user's **latest answered attempt** for the question. A later correct attempt moves the question out of Incorrect and into Correct.
+- **Marked:** current row in `user_question_marks`, independent of answer state.
+- **Marked Correct / Marked Incorrect:** current mark intersected with the latest Correct / Incorrect bucket.
+- **Omitted:** explicit blank submission, or a question left unanswered when a test completes, while the question has no later answered attempt.
+- **Suspended:** question assigned to a currently suspended test, untouched in that test and not attempted elsewhere since the suspension assignment.
+- **Mixed modes:** exact distinct union of the selected buckets. `All` is mutually exclusive in the UI and dominates any narrower mode if a legacy client sends it together with others.
+
+State changes that can affect these buckets must invalidate the per-user counts epoch after persistence: create/assignment, Tutor/Mixed answer or omission, mark/unmark, suspend, resume, complete/Timed End Block and delete. The frontend must mark QBank counts, availability, status-scoped metadata, bank progress/statistics and previous-tests queries stale after exam mutations so returning to Create Test cannot show the old 30-second React Query snapshot.
+
+Production verification on 2026-10-07: backend PR #18 + frontend PR #20; frontend Verify #94 and AMBOSS Browser Smoke #19 green; Railway Exam Runner API Smoke #8 passed controlled transitions for Used/Unused, Incorrect→Correct, Marked Incorrect→Marked Correct, Omitted→Answered, Suspended→Resume, mixed-set identities and full cleanup.
 
 ## 10. State ownership
 
@@ -181,6 +199,7 @@ Frontend validation improves UX. Backend remains authoritative for access, enum 
 ## 12. Interaction rules
 
 - A mode selection can never become empty.
+- `All` is mutually exclusive with narrower status modes: selecting `All` clears the narrower modes; selecting a narrower mode while `All` is active replaces `All`.
 - Exactly one selected status → submit that canonical single mode.
 - 2+ selected statuses → submit `mixed_modes` + `filters.modes`; show `Mixed · N selected`.
 - Standard `Available: N` beside the Questions input comes from the same current filtered availability used to gate creation.
