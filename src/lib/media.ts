@@ -15,6 +15,33 @@ export function rewriteLegacyMediaUrls(value: string): string {
   return value.replace(LEGACY_MEDIA_ORIGIN, R2_ORIGIN);
 }
 
+
+/**
+ * Imported content can use document-relative offline_media keys, e.g.
+ * <img src="offline_media/example.jpg">. Browsers otherwise resolve them
+ * against /test/:id or /library rather than the public media bucket.
+ *
+ * Only this known namespace is mapped; ordinary navigation, third-party
+ * URLs and fragment links retain their meaning.
+ */
+export function rewriteRelativeOfflineMediaUrl(value: string): string {
+  const match = /^(?:\.\/|\/)?(offline_media\/[^?#\s"'<>\\]+)(\?[^#\s"'<>]*)?(#[^\s"'<>]*)?$/i.exec(value.trim());
+  if (!match) return value;
+
+  // Reject traversal-like keys instead of normalizing them onto the bucket.
+  if (match[1].split('/').some((segment) => segment === '.' || segment === '..')) return value;
+  return MEDIA_CDN + match[1] + (match[2] ?? '') + (match[3] ?? '');
+}
+
+/** srcset may contain widths and multiple candidates; keep other entries intact. */
+export function rewriteRelativeOfflineMediaSrcset(value: string): string {
+  return value.replace(
+    /(^|,\s*)((?:\.\/|\/)?offline_media\/[^\s,]+)(?=\s|,|$)/gi,
+    (_whole, separator: string, url: string) =>
+      separator + rewriteRelativeOfflineMediaUrl(url),
+  );
+}
+
 /**
  * All authenticated JSON API payloads pass through this adapter after decrypt.
  * This covers nested question stems, options, explanations, library articles,
@@ -24,7 +51,7 @@ export function rewriteLegacyMediaUrls(value: string): string {
  */
 export function rewriteMediaUrlsInResponse<T>(value: T): T {
   if (typeof value === 'string') {
-    return rewriteLegacyMediaUrls(value) as T;
+    return rewriteRelativeOfflineMediaUrl(rewriteLegacyMediaUrls(value)) as T;
   }
 
   if (Array.isArray(value)) {

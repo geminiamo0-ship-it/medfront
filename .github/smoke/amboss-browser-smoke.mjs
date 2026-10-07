@@ -24,10 +24,11 @@ const baseQuestionHtml = `
   <span class="wichtig">enveloped viruses</span>.</p>
 </div>
 <span data-global-media-src="https://storage.blablabl234a.online/offline_media/legacy-image.jpg"
-      data-unrelated-url="https://example.com/outside.png">media origin test</span>`;
+      data-unrelated-url="https://example.com/outside.png">media origin test</span>
+<img data-relative-media-test="stem" src="offline_media/ihg_681237c83e6287_31701899.jpg" width="1" height="1" alt="Imported stem illustration">`;
 
 const options = [
-  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span></p>' },
+  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span><img data-relative-media-test="option" src="./offline_media/option-relative.png" width="1" height="1" alt="Imported option illustration"></p>' },
   { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' },
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
@@ -631,6 +632,15 @@ async function preparePage(browser, viewport) {
   await context.addInitScript(() => {
     localStorage.setItem('token', 'browser-smoke-token');
   });
+  // Network is intentionally mocked here: this confirms URL rendering,
+  // not whether the user's actual R2 objects are uploaded or publicly accessible.
+  await context.route('https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/gif',
+      body: Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', 'base64'),
+    }),
+  );
   await installApiMocks(context);
   const page = await context.newPage();
   return { context, page };
@@ -662,6 +672,23 @@ try {
         'https://example.com/outside.png',
       'Unrelated third-party URLs were incorrectly changed',
     );
+
+    // Regression for imported src="offline_media/..." / "./offline_media/...".
+    for (const [kind, key] of [
+      ['stem', 'ihg_681237c83e6287_31701899.jpg'],
+      ['option', 'option-relative.png'],
+    ]) {
+      const img = page.locator('img[data-relative-media-test="' + kind + '"]');
+      assert(
+        await img.getAttribute('src') ===
+          'https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/' + key,
+        'Relative ' + kind + ' image did not resolve to global R2 URL',
+      );
+      assert(
+        await img.evaluate((node) => node.complete && node.naturalWidth === 1),
+        'Relative ' + kind + ' image failed to decode from mocked canonical R2',
+      );
+    }
 
     await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
@@ -1177,7 +1204,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }

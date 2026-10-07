@@ -39,3 +39,16 @@ Global media migration code merged and deployed:
 - Frontend `medfront` PR #33 → `73f698399b268d09ad7bdacfe5b4911f93446210`, main Verify run `37697789982` success, AMBOSS Browser Smoke #36 `global_r2_media_origin=true`, Cloudflare Workers Version `e502ebae-4b16-4aea-bba8-1bc80b80a777` SUCCESS.
 
 **Not yet proven:** specific actual image objects are uploaded under the same keys and anonymously accessible via the new public R2 URL with proper MIME/CORS. A working frontend/CDN origin does not establish object existence. Verification requires checking the response of a known real media filename from this public R2 host.
+
+
+## Relative-key regression follow-up — 2026-10-08 (Issue #32 reopened)
+
+A real AMBOSS screenshot contains a broken image with a bare `src="offline_media/ihg_681237c83e6287_31701899.jpg"`. The initial global migration covered legacy **absolute** storage URLs but the shared HTML sanitizer did not resolve relative `offline_media/` keys. Browsers thus requested images from the app route instead of R2.
+
+**Focused contract-only correction (branch `fix/global-relative-r2-media`):**
+- `src/lib/media.ts` maps only direct known relative `offline_media/` keys (plus `./` or `/` prefixes) to the canonical public R2 origin, preserving filenames/query/fragment and leaving other links/hosts alone;
+- `src/lib/sanitize.ts` maps such keys on sanitized HTML media-related attributes, including `src`, `srcset`, `data-src`, `poster`, `href`;
+- Central API response remapping also covers standalone relative media-path strings.
+- Browser smoke adds real `img` elements to a test stem and option, asserts their resolved DOM `src`, and serves a **mocked** 1×1 image to prove browser decoding. This does **not** verify the real R2 bucket's object existence.
+
+**Verification status:** changes require PR GitHub Actions Verify + AMBOSS Browser Smoke, merge/deployment confirmation and independent direct HTTP 200 + correct MIME check against a known-live R2 key. Do not mark real media available from mocked tests. Existing DB content is not modified.
