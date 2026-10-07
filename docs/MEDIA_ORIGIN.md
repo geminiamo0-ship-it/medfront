@@ -51,4 +51,7 @@ A real AMBOSS screenshot contains a broken image with a bare `src="offline_media
 - Central API response remapping also covers standalone relative media-path strings.
 - Browser smoke adds real `img` elements to a test stem and option, asserts their resolved DOM `src`, and serves a **mocked** 1×1 image to prove browser decoding. This does **not** verify the real R2 bucket's object existence.
 
-**Verification status:** changes require PR GitHub Actions Verify + AMBOSS Browser Smoke, merge/deployment confirmation and independent direct HTTP 200 + correct MIME check against a known-live R2 key. Do not mark real media available from mocked tests. Existing DB content is not modified.
+**Verification status:** PR #37 merged to `main` as `daeb1b1d0b1a3ed095f8070d9e39c8b22de57821`. Verify #140 ✅, AMBOSS Browser Smoke #42 ✅ (`relative_r2_images=true`), and merge main Verify run `37700603674` ✅. Cloudflare production deployment of this merge remains unconfirmed. The public-object GitHub Actions probe #1 returned **HTTP 404 / `text/html`** for the screenshot's `offline_media/ihg_681237c83e6287_31701899.jpg`; therefore this real object is **not verified available**. It may require upload or key/path correction. Other bucket objects have not been assessed. Existing DB content is not modified.
+
+
+**External evidence:** [Public R2 Media Availability run #1](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37700441479) runs on a network-enabled GitHub Actions runner. Its workflow step succeeds informationally while emitting a warning for non-200/non-image MIME; a green *workflow* **does not** imply media availability. The browser smoke mocks the R2 media response intentionally, so its green result proves URL normalization, not bucket contents.
