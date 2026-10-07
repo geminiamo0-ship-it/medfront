@@ -35,6 +35,27 @@
 .amboss-stem .scientific-name{font-style:italic}
 .amboss-stem .wichtig{font-weight:700}
 
+.amboss-stem,
+.amboss-option-text,
+.amboss-option-explanation{
+  overflow-wrap:anywhere;
+}
+
+.amboss-stem img,
+.amboss-option-text img,
+.amboss-option-explanation img{
+  max-width:100%;
+  height:auto;
+}
+
+.amboss-stem table,
+.amboss-option-text table,
+.amboss-option-explanation table{
+  display:block;
+  max-width:100%;
+  overflow-x:auto;
+}
+
 .amboss-tools{
   margin-top:28px;
   min-height:42px;
@@ -91,7 +112,7 @@
   color:var(--amboss-text);
 }
 
-.amboss-option:not(:disabled):hover,
+.amboss-option:not(.is-revealed):hover,
 .amboss-option.is-selected{
   background:var(--amboss-surface-soft);
 }
