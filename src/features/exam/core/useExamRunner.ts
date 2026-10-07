@@ -37,6 +37,24 @@ interface TutorSubmitInput {
   timeSpentSeconds?: number;
 }
 
+interface TutorClockState {
+  testId: number | null;
+  baseSeconds: number;
+  localAccumulatedMs: number;
+  questionAccumulatedMs: Record<number, number>;
+  activeQuestionId: number | null;
+  activeStartedAt: number | null;
+}
+
+const EMPTY_TUTOR_CLOCK: TutorClockState = {
+  testId: null,
+  baseSeconds: 0,
+  localAccumulatedMs: 0,
+  questionAccumulatedMs: {},
+  activeQuestionId: null,
+  activeStartedAt: null,
+};
+
 export function useExamRunner(testIdParam: string | undefined) {
   const queryClient = useQueryClient();
   const testId = Number(testIdParam);
@@ -57,20 +75,10 @@ export function useExamRunner(testIdParam: string | undefined) {
   const [markOverrides, setMarkOverrides] = useState<Record<number, boolean>>({});
   const [highlightOverrides, setHighlightOverrides] = useState<Record<number, ExamHighlight[]>>({});
   const [timedDraftError, setTimedDraftError] = useState<string | null>(null);
+  const [tutorClock, setTutorClock] = useState<TutorClockState>(EMPTY_TUTOR_CLOCK);
 
   const timedSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const autoEndTriggeredRef = useRef(false);
-
-  // Tutor active-solving clock. This deliberately lives in the shared Exam
-  // Core, not in AMBOSS, so every future theme gets identical semantics.
-  // The server persists completed question deltas; these refs track only the
-  // active solving time accumulated during the current mounted runner.
-  const tutorClockTestIdRef = useRef<number | null>(null);
-  const tutorBaseSecondsRef = useRef(0);
-  const tutorSessionAccumulatedMsRef = useRef(0);
-  const tutorQuestionAccumulatedMsRef = useRef<Record<number, number>>({});
-  const tutorActiveQuestionIdRef = useRef<number | null>(null);
-  const tutorActiveSinceRef = useRef<number | null>(null);
 
   const resumeQuestion = useMemo(() => {
     if (!test?.questions.length) return null;
