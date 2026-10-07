@@ -2,6 +2,7 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { API_URL } from '@/lib/env';
 import { getToken, clearToken } from '@/lib/token';
 import { decryptPayload, isEncryptedPayload } from '@/lib/crypto';
+import { rewriteMediaUrlsInResponse } from '@/lib/media';
 
 export class ApiError extends Error {
   status: number;
@@ -50,7 +51,7 @@ export async function apiRequest<T = unknown>(config: AxiosRequestConfig): Promi
       data = await decryptPayload(data, tokenAtRequest);
     }
 
-    return data as T;
+    return rewriteMediaUrlsInResponse(data) as T;
   } catch (error) {
     if (error instanceof ApiError) throw error;
 
