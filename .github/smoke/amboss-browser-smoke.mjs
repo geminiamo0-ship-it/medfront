@@ -107,6 +107,13 @@ let timedSelectionSaves = 0;
 let timedHighlightSaves = 0;
 let timedAiSummaryCalls = 0;
 
+let tutorLifecycleStatus = 'in_progress';
+let tutorLifecycleTimeSpentSeconds = 0;
+let tutorLifecycleStartedAt = new Date().toISOString();
+let tutorSuspendBody = null;
+let tutorCompleteBody = null;
+let createdTimedBody = null;
+
 function correctOptionFor(question) {
   return question.options.find((option) => option.displayOrder === 'H');
 }
@@ -231,6 +238,26 @@ function timedTestPayload() {
   }
 
   body.omittedQuestionIds = body.questions.filter((q) => q.isOmitted).map((q) => q.id);
+  return body;
+}
+
+function tutorLifecyclePayload() {
+  const body = structuredClone(testState);
+  body.id = 9003;
+  body.title = 'AMBOSS tutor lifecycle smoke';
+  body.status = tutorLifecycleStatus;
+  body.timeSpentSeconds = tutorLifecycleTimeSpentSeconds;
+  body.startedAt = tutorLifecycleStartedAt;
+  body.completedAt = tutorLifecycleStatus === 'completed' ? new Date().toISOString() : null;
+  body.questions = body.questions.map((question) => ({
+    ...question,
+    userAnswer: null,
+    isAnswered: false,
+    isOmitted: tutorLifecycleStatus === 'completed',
+    status: tutorLifecycleStatus === 'completed' ? 'omitted' : 'unanswered',
+  }));
+  body.omittedQuestionIds =
+    tutorLifecycleStatus === 'completed' ? body.questions.map((question) => question.id) : [];
   return body;
 }
 
