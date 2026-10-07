@@ -1,6 +1,6 @@
 # EXAM_RUNNER.md — MedPark multi-theme exam runner
 
-**Status:** SPEC APPROVED → IMPLEMENTING  
+**Status:** IMPLEMENTED + VERIFIED — Issue #4 remains open for Results/Review and deferred shared features  
 **Primary implementation issue:** #4  
 **Approved first implementation theme:** AMBOSS  
 **User approval recorded:** 2026-10-07
@@ -106,7 +106,7 @@ Approved first-pass toolbar:
 - ADD NOTES — **Question Notes**, not Notebook; use existing Notes backend.
 - MARK — existing dedicated mark endpoint/state.
 - GET ANKI CARDS — maps to MedPark Flashcards capability; detailed flashcard UX is deliberately deferred.
-- Additional marker/pencil/global utilities are a later approved visual pass.
+- Marker / Pencil / Laser are implemented in the approved top-bar Tools popover; Marker/Pencil include palettes plus custom color.
 
 ## 6. Answer lifecycle — no visible Submit button
 
@@ -120,7 +120,7 @@ Tutor/Mixed:
 - the frontend does not calculate correctness.
 
 Timed:
-- one minute per requested question for Standard Create Test (for example 40 questions → 40:00);
+- default one minute per requested question, configurable at Create Test with 1:00 / 1:30 / 2:00 / 3:00 / Custom presets;
 - the top-bar timer is the primary countdown; the sidebar timer stays visible as a secondary synchronized display;
 - selecting an option shows a **blue selected state only** and updates the local timed answer buffer;
 - Next / Previous navigation keeps the buffered selection visible when returning to the question;
@@ -189,7 +189,7 @@ Dark-mode reference:
 - correct deep teal/green tint;
 - hint badge amber.
 
-The final theme/appearance switch UI is not yet locked; do not invent its final control placement.
+Settings is the approved AMBOSS appearance/text control placement. Cross-theme appearance URL strategy remains deferred.
 
 ## 11. Responsive requirements
 
@@ -216,7 +216,7 @@ User explicitly approved this implementation slice and asked for immediate imple
 
 ### Suspend / End Block
 - Center controls are `Suspend · Timer · End Block`.
-- Suspend uses the canonical backend suspend endpoint, preserves elapsed/remaining time, then leaves the runner in a resumable suspended state.
+- Suspend uses the canonical backend suspend endpoint and preserves elapsed/remaining time. The later 11B refinement supersedes the original in-runner pause destination: successful Suspend now navigates to Previous Tests.
 - Resume uses the canonical backend resume endpoint before continuing the running countdown.
 - End Block opens a confirmation summary with Answered / Unanswered / Marked / Remaining Time and offers cancel/review-navigation versus final End Block.
 - End Block must be single-flight/idempotent in the client so timeout + manual click cannot double-submit.
@@ -284,49 +284,60 @@ User approved this refinement after reviewing the merged Timed toolbar.
 ## 12. Current implementation slices
 
 ### Slice A — foundation
-- [ ] Typed test/runner API contracts
-- [ ] Theme registry/resolver
-- [ ] Full-screen exam route outside global AppLayout
-- [ ] Shared sanitized HTML renderer
-- [ ] Backend exposes 5-tier `difficultyTier` in test retrieval
+- [x] Typed test/runner API contracts
+- [x] Theme registry/resolver
+- [x] Full-screen exam route outside global AppLayout
+- [x] Shared sanitized HTML renderer
+- [x] Backend exposes 5-tier `difficultyTier` in test retrieval
 
 ### Slice B — AMBOSS shell
-- [ ] AMBOSS layout/tokens
-- [ ] collapsible session sidebar
-- [ ] 1–5 difficulty hammers
-- [ ] question navigator + mark states
-- [ ] Light/Dark token foundation (final switch placement deferred)
+- [x] AMBOSS layout/tokens
+- [x] collapsible session sidebar
+- [x] 1–5 difficulty hammers
+- [x] question navigator + mark states
+- [x] Light/Dark Settings placement and token foundation
 
 ### Slice C — question interaction
-- [ ] sanitized question/options
-- [ ] KEY INFO clue toggle
-- [ ] ATTENDING TIP/hint
-- [ ] no visible Submit
-- [ ] Tutor/Mixed SHOW ANSWER wired to backend
-- [ ] Timed local selection buffer without immediate reveal
-- [ ] explanation reveal/show-all behavior
+- [x] sanitized question/options
+- [x] KEY INFO clue toggle
+- [x] ATTENDING TIP/hint
+- [x] no visible Submit
+- [x] Tutor/Mixed first-answer + SHOW ANSWER lifecycle wired to backend
+- [x] Timed draft selection without immediate reveal
+- [x] explanation reveal/show-all behavior
+- [x] Tutor ascending timer + Timed descending timer tick every second
+- [x] configurable Timed duration at Create Test
+- [x] Tutor + Timed Suspend/End Block lifecycle
 
 ### Slice D — tools
-- [ ] Labs live endpoint/panel
-- [ ] Question Notes live read/save
-- [ ] Mark live persistence
-- [ ] Flashcard entry placeholder only
+- [x] Labs live endpoint/panel
+- [x] Question Notes live read/save
+- [x] Mark live persistence
+- [x] Flashcard entry placeholder only
+- [x] Marker palette + custom color + persisted descriptors
+- [x] Pencil palette + custom color for new transient strokes
+- [x] Laser
+- [x] Calculator
+- [x] review-only AI Summary entry
 
 ### Verification
-- [ ] frontend typecheck
-- [ ] frontend lint
-- [ ] frontend build
-- [ ] backend tests/build for difficulty contract
-- [ ] GitHub Actions Verify green
-- [ ] authenticated AMBOSS Tutor smoke
-- [ ] authenticated AMBOSS Timed selection/End-Block smoke
-- [ ] mark persists after reload
-- [ ] notes persist after reload
-- [ ] labs load
-- [ ] clue toggle affects only AMBOSS `.Highlight`
-- [ ] desktop browser acceptance
-- [ ] tablet/iPad browser acceptance
-- [ ] mobile browser acceptance
+- [x] frontend typecheck
+- [x] frontend lint
+- [x] frontend build
+- [x] backend tests/build
+- [x] GitHub Actions Verify green
+- [x] authenticated AMBOSS Tutor smoke
+- [x] authenticated AMBOSS Timed selection/End-Block smoke
+- [x] production Tutor timer suspend/resume/complete smoke
+- [x] mark persists after reload
+- [x] notes persist after reload
+- [x] labs load
+- [x] clue toggle affects only AMBOSS `.Highlight`
+- [x] desktop browser acceptance
+- [x] tablet/iPad browser acceptance
+- [x] mobile browser acceptance
+- [x] browser proves Timed timer decrements and Tutor timer increments
+- [x] browser proves marker dark-mode contrast and Marker/Pencil palettes
 
 ## 13. Explicitly deferred
 - global cross-theme appearance URL strategy;
@@ -335,3 +346,24 @@ User approved this refinement after reviewing the merged Timed toolbar.
 - UWorld production implementation;
 - NBME/MRCP themes;
 - results/review final design beyond what is necessary to keep runner lifecycle safe.
+
+
+## 14. Timer / lifecycle / annotation closeout — 2026-10-07
+
+Merged implementation:
+- frontend PR #24 → `14ecb212cfac91b5abbf514adc09c9219f30b6bc`;
+- backend PR #22 → `1500e4aeb71a1b7cf563e0a196f0a05ffc6a9e17`;
+- Railway production deployment `c98b91a9-44ea-4f8b-920a-8922433405df` → SUCCESS.
+
+Verification:
+- frontend Verify #108: typecheck ✅ lint ✅ build ✅;
+- AMBOSS Browser Smoke #28 ✅ with `timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true pencil_palette=true`;
+- production Exam Runner API Smoke #10 ✅ with `TUTOR_TIMER_OK ... suspend_elapsed=37 resume_preserved=true complete_elapsed=42`;
+- existing Tutor, Timed, Labs and AMBOSS Library production regressions stayed green.
+
+Still deliberately deferred:
+- My Notebook shared cross-theme right-side drawer (future top-bar right helper zone beside Calculator);
+- detailed Flashcards/Anki UX;
+- final Test Analysis / Results design and post-End-Block destination;
+- UWorld/NBME/MRCP production themes;
+- AMBOSS source media upload/path completion.
