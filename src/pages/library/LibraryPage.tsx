@@ -669,10 +669,15 @@ export default function LibraryPage() {
     if (!linkedArticleId) return;
 
     const linkedAnchor = params.get('anchor')?.trim() || '';
-    if (String(articleId ?? '') === linkedArticleId && article) return;
+    if (
+      String(articleId ?? '') === linkedArticleId &&
+      (article || articleLoading)
+    ) {
+      return;
+    }
 
     void openArticle(linkedArticleId, '', linkedAnchor);
-  }, [article, articleId, openArticle, params]);
+  }, [article, articleId, articleLoading, openArticle, params]);
 
   /**
    * Navigate to a cross-reference. If the anchor already exists in the open
