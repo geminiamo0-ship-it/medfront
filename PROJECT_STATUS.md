@@ -254,7 +254,8 @@ Merge decision:
 - user explicitly authorized merging without a separate Cloudflare preview;
 - PR #12 merged to `main` as `d70d122631e52ec57989ac572186c4fc6a2c8565`;
 - main GitHub Actions `Verify #70`: typecheck ✅ lint ✅ build ✅;
-- intentionally deferred UI decisions remain deferred: final theme/appearance switch placement, marker/pencil placement, detailed Flashcards UX, final End Block UI.
+- previously deferred appearance placement, marker/pencil placement and final Timed End Block UI were resolved in the later 2026-10-07 Timed/utility-bar slice documented below.
+- still deferred: My Notebook shared cross-theme UX, detailed Flashcards/Anki creation UX, and the full Results/Review product design.
 
 
 
@@ -369,3 +370,72 @@ Evidence:
 - smoke clicks a rewritten AMBOSS link and successfully loads the internal MedPark Library article;
 - PR #17 merged as `daf470d64eda4560c02c15d9ef9c80a97db578a7`;
 - frontend main Verify #86 ✅.
+
+
+## AMBOSS Timed + utility-bar checkpoint — 2026-10-07
+
+The user explicitly approved this slice and it is now merged and production-verified.
+
+### Timed lifecycle
+- [x] Standard Timed Create Test uses **60 seconds per question** (40 questions → 40:00).
+- [x] AMBOSS top bar owns the primary countdown.
+- [x] Existing sidebar timer remains visible as a synchronized secondary display from the same core timer state.
+- [x] Timed option click is blue selected state only; no correctness, percentages or explanation before End Block.
+- [x] Timed draft selection persists independently from scored submissions via backend `PATCH /tests/:id/timed-selection`.
+- [x] Timed draft survives question navigation, reload, Suspend and Resume.
+- [x] Draft persistence does not create `QuestionSubmission` rows and therefore does not contaminate Correct/Incorrect/Omitted before End Block.
+- [x] Manual End Block and timer-expiry use the same canonical atomic `submit-batch` completion path.
+- [x] End Block confirmation summarizes Answered / Unanswered / Marked / Time Left.
+- [x] Suspend flushes pending Timed draft writes first, persists backend timing/status and pauses the UI clock.
+- [x] Resume reloads canonical server timing/status and continues the countdown.
+
+### AMBOSS top utility bar
+- [x] three-zone composition shipped:
+  - left: Settings + Tools;
+  - center: Suspend / primary Timer / End Block;
+  - right: Calculator; AI Summary after completion/review only.
+- [x] Settings: AMBOSS Light/Dark + text-size controls.
+- [x] Tools: persisted Marker + transient Pencil + transient Laser.
+- [x] Calculator is functional and local.
+- [x] AI Summary is hidden during live Timed solving and uses the existing authenticated question-AI endpoint only after completion/review.
+- [x] Settings and Tools remain visible in the compact mobile top bar.
+- [x] Question Notes remain the existing per-question Notes capability.
+- [ ] **My Notebook remains deferred** as a shared cross-theme product surface; do not build an AMBOSS-only placeholder.
+- [ ] detailed Flashcards/Anki creation UX remains deferred.
+- [ ] full Results/Review design remains a separate product slice.
+
+### Merge / verification evidence
+Backend:
+- PR #20 merged to `medhvgg/main` as `aa31ab472c996c215b957fbff36a2cd78cc7d6e5`.
+- backend Verify #23 ✅.
+- Railway production deployment `0304f106-ab59-4c52-9c85-8df399edc408` → SUCCESS ✅.
+- temporary diagnostic PR #21 was closed unmerged after live verification.
+- production Exam Runner API Smoke #9 ✅:
+  - `TIMED_DRAFT_OK`
+  - `draft_reload=true`
+  - `no_pre_reveal=true`
+  - `suspend_resume=true`
+  - `end_block=true`
+  - `answer_reload=true`
+  - Tutor/Labs/Library regressions remained green.
+- live diagnostic test was deleted during cleanup.
+
+Frontend:
+- PR #22 merged to `medfront/main` as `9aa266f2e006d2f62b2b1f2e914edef6cd8d16c1`.
+- Verify #104: typecheck ✅ lint ✅ build ✅.
+- AMBOSS Browser Smoke #26 ✅.
+- Browser smoke explicitly covers:
+  - synchronized primary/sidebar Timed countdown;
+  - blue-only Timed selection with no pre-End-Block reveal;
+  - draft autosave + navigation + reload restore;
+  - persisted Marker;
+  - Settings appearance switch;
+  - Calculator arithmetic;
+  - Suspend / paused timer / Resume;
+  - End Block modal + full question batch;
+  - AI Summary absent during solving and present only after completed review.
+
+### Current source-of-truth checkpoint
+- frontend head for this slice: `9aa266f2e006d2f62b2b1f2e914edef6cd8d16c1`.
+- backend head for the Timed draft contract: `aa31ab472c996c215b957fbff36a2cd78cc7d6e5`.
+- Issue #4 remains open only for later Results/Review and other explicitly deferred runner work; this Timed/utility-bar slice is complete.

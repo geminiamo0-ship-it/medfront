@@ -1,6 +1,6 @@
 # EXAM_RUNNER.md — MedPark multi-theme exam runner
 
-**Status:** SPEC APPROVED → IMPLEMENTING  
+**Status:** TIMED/UTILITY SLICE DONE → RESULTS/REVIEW DEFERRED  
 **Primary implementation issue:** #4  
 **Approved first implementation theme:** AMBOSS  
 **User approval recorded:** 2026-10-07
@@ -106,7 +106,7 @@ Approved first-pass toolbar:
 - ADD NOTES — **Question Notes**, not Notebook; use existing Notes backend.
 - MARK — existing dedicated mark endpoint/state.
 - GET ANKI CARDS — maps to MedPark Flashcards capability; detailed flashcard UX is deliberately deferred.
-- Additional marker/pencil/global utilities are a later approved visual pass.
+- Global AMBOSS utilities are now approved and implemented in the top bar: Settings, Marker, Pencil, Laser and Calculator. My Notebook remains deferred as a shared cross-theme surface.
 
 ## 6. Answer lifecycle — no visible Submit button
 
@@ -189,7 +189,7 @@ Dark-mode reference:
 - correct deep teal/green tint;
 - hint badge amber.
 
-The final theme/appearance switch UI is not yet locked; do not invent its final control placement.
+Final AMBOSS appearance placement is now approved and implemented inside the top-bar Settings control.
 
 ## 11. Responsive requirements
 
@@ -201,7 +201,7 @@ Responsive behavior is part of Done.
 - Labs/notes/popovers remain viewport-safe.
 - Touch targets must be practical.
 - No unintended horizontal overflow.
-- Exact final mobile utility placement remains subject to user visual approval during verification.
+- Mobile utility placement is the approved compact icon composition; Settings and Tools remain available rather than being hidden.
 
 ## 11A. Approved Timed + utility-bar slice — 2026-10-07
 
@@ -243,54 +243,53 @@ User explicitly approved this implementation slice and asked for immediate imple
 ## 12. Current implementation slices
 
 ### Slice A — foundation
-- [ ] Typed test/runner API contracts
-- [ ] Theme registry/resolver
-- [ ] Full-screen exam route outside global AppLayout
-- [ ] Shared sanitized HTML renderer
-- [ ] Backend exposes 5-tier `difficultyTier` in test retrieval
+- [x] Typed test/runner API contracts
+- [x] Theme registry/resolver
+- [x] Full-screen exam route outside global AppLayout
+- [x] Shared sanitized HTML renderer
+- [x] Backend exposes 5-tier `difficultyTier` in test retrieval
 
 ### Slice B — AMBOSS shell
-- [ ] AMBOSS layout/tokens
-- [ ] collapsible session sidebar
-- [ ] 1–5 difficulty hammers
-- [ ] question navigator + mark states
-- [ ] Light/Dark token foundation (final switch placement deferred)
+- [x] AMBOSS layout/tokens
+- [x] collapsible session sidebar
+- [x] 1–5 difficulty hammers
+- [x] question navigator + mark states
+- [x] Light/Dark token foundation + approved Settings placement
 
 ### Slice C — question interaction
-- [ ] sanitized question/options
-- [ ] KEY INFO clue toggle
-- [ ] ATTENDING TIP/hint
-- [ ] no visible Submit
-- [ ] Tutor/Mixed SHOW ANSWER wired to backend
-- [ ] Timed local selection buffer without immediate reveal
-- [ ] explanation reveal/show-all behavior
+- [x] sanitized question/options
+- [x] KEY INFO clue toggle
+- [x] ATTENDING TIP/hint
+- [x] no visible Submit
+- [x] Tutor/Mixed SHOW ANSWER wired to backend
+- [x] Timed blue draft selection + backend draft persistence without immediate reveal
+- [x] explanation reveal/show-all behavior
 
 ### Slice D — tools
-- [ ] Labs live endpoint/panel
-- [ ] Question Notes live read/save
-- [ ] Mark live persistence
-- [ ] Flashcard entry placeholder only
+- [x] Labs live endpoint/panel
+- [x] Question Notes live read/save
+- [x] Mark live persistence
+- [x] Flashcard entry placeholder only
 
 ### Verification
-- [ ] frontend typecheck
-- [ ] frontend lint
-- [ ] frontend build
-- [ ] backend tests/build for difficulty contract
-- [ ] GitHub Actions Verify green
-- [ ] authenticated AMBOSS Tutor smoke
-- [ ] authenticated AMBOSS Timed selection/End-Block smoke
-- [ ] mark persists after reload
-- [ ] notes persist after reload
-- [ ] labs load
-- [ ] clue toggle affects only AMBOSS `.Highlight`
-- [ ] desktop browser acceptance
-- [ ] tablet/iPad browser acceptance
-- [ ] mobile browser acceptance
+- [x] frontend typecheck
+- [x] frontend lint
+- [x] frontend build
+- [x] backend tests/build for difficulty + Timed draft contracts
+- [x] GitHub Actions Verify green
+- [x] authenticated AMBOSS Tutor smoke
+- [x] authenticated AMBOSS Timed draft/Suspend/Resume/End-Block production smoke
+- [x] mark persists after reload
+- [x] notes persist after reload
+- [x] labs load
+- [x] clue toggle affects only AMBOSS `.Highlight`
+- [x] desktop browser acceptance
+- [x] tablet/iPad browser acceptance
+- [x] mobile browser acceptance
 
 ## 13. Explicitly deferred
-- final global theme/appearance switch control and URL strategy;
-- final marker/pencil placement;
+- My Notebook shared cross-theme UX/customization;
 - detailed Flashcards/Anki creation UX;
 - UWorld production implementation;
 - NBME/MRCP themes;
-- results/review final design beyond what is necessary to keep runner lifecycle safe.
+- full results/review final design beyond the completed-state review helper behavior shipped for this slice.
