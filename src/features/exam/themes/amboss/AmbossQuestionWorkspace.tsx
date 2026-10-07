@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
 import { SafeHtml } from '../../shared/SafeHtml';
 import { parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
+import { AmbossLibraryLinkMenu } from './AmbossLibraryLinkMenu';
+import { AmbossLibrarySplitPane } from './AmbossLibrarySplitPane';
 import { AmbossNotesEditor } from './AmbossNotesEditor';
 import { AmbossOption, type AmbossResolvedOption } from './AmbossOption';
 import { AmbossToolbar } from './AmbossToolbar';
@@ -16,6 +18,16 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
   const [labsOpen, setLabsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [libraryLinkMenu, setLibraryLinkMenu] = useState<{
+    href: string;
+    title: string;
+    left: number;
+    top: number;
+  } | null>(null);
+  const [librarySplit, setLibrarySplit] = useState<{ href: string; title: string } | null>(null);
+  const [librarySplitWidth, setLibrarySplitWidth] = useState(
+    () => (typeof window === 'undefined' ? 520 : Math.min(620, Math.max(420, Math.floor(window.innerWidth * 0.44)))),
+  );
   const [showAllExplanations, setShowAllExplanations] = useState(
     () => question?.isOmitted === true,
   );
@@ -69,7 +81,50 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
   function openLabs() {
     const next = !labsOpen;
     setLabsOpen(next);
-    if (next) controller.ensureLabsLoaded();
+    if (next) {
+      setLibrarySplit(null);
+      controller.ensureLabsLoaded();
+    }
+  }
+
+  function handleLibraryLinkClick(event: ReactMouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    const link = target.closest<HTMLAnchorElement>('a[data-medpark-library-link="1"]');
+    if (!link) return;
+
+    const href = link.getAttribute('href');
+    if (!href) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rect = link.getBoundingClientRect();
+    const menuWidth = 280;
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - menuWidth - 12));
+    const top = Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - 150));
+
+    setLibraryLinkMenu({
+      href,
+      title: link.textContent?.trim() || 'AMBOSS article',
+      left,
+      top,
+    });
+  }
+
+  function openLibrarySplit() {
+    if (!libraryLinkMenu) return;
+    setLabsOpen(false);
+    setLibrarySplit({
+      href: libraryLinkMenu.href,
+      title: libraryLinkMenu.title,
+    });
+    setLibraryLinkMenu(null);
+  }
+
+  function openLibraryNewTab() {
+    if (!libraryLinkMenu) return;
+    window.open(libraryLinkMenu.href, '_blank', 'noopener,noreferrer');
+    setLibraryLinkMenu(null);
   }
 
   function activateOption(optionId: number) {
@@ -111,7 +166,19 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
 
   return (
     <>
-      <section className={labsOpen ? 'amboss-workspace has-labs' : 'amboss-workspace'}>
+      <section
+        className={[
+          'amboss-workspace',
+          labsOpen ? 'has-labs' : '',
+          librarySplit ? 'has-library-split' : '',
+        ].filter(Boolean).join(' ')}
+        style={
+          librarySplit
+            ? ({ '--amboss-library-split-width': `${librarySplitWidth}px` } as CSSProperties)
+            : undefined
+        }
+        onClickCapture={handleLibraryLinkClick}
+      >
         <div className="amboss-question-card">
           <div className="amboss-question-content">
             <div className="amboss-aa">AA</div>
@@ -221,6 +288,28 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
           </button>
         </footer>
       </section>
+
+      {librarySplit ? (
+        <AmbossLibrarySplitPane
+          href={librarySplit.href}
+          title={librarySplit.title}
+          width={librarySplitWidth}
+          onWidthChange={setLibrarySplitWidth}
+          onClose={() => setLibrarySplit(null)}
+          onOpenNewTab={() => window.open(librarySplit.href, '_blank', 'noopener,noreferrer')}
+        />
+      ) : null}
+
+      {libraryLinkMenu ? (
+        <AmbossLibraryLinkMenu
+          left={libraryLinkMenu.left}
+          top={libraryLinkMenu.top}
+          title={libraryLinkMenu.title}
+          onSplit={openLibrarySplit}
+          onNewTab={openLibraryNewTab}
+          onClose={() => setLibraryLinkMenu(null)}
+        />
+      ) : null}
 
       <AmbossLabsPanel
         open={labsOpen}

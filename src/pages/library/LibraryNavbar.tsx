@@ -4,6 +4,7 @@ import { LIBRARY_SOURCES } from '@/lib/nav';
 export type AnnotationToolName = 'pencil' | 'highlighter' | 'eraser' | 'laser' | null;
 
 interface LibraryNavbarProps {
+  embedded?: boolean;
   onToggleSidebar: () => void;
   sourceLabel: string;
   sourceOpen: boolean;
@@ -30,6 +31,7 @@ interface LibraryNavbarProps {
 }
 
 export function LibraryNavbar({
+  embedded = false,
   onToggleSidebar,
   sourceLabel,
   sourceOpen,
@@ -55,27 +57,29 @@ export function LibraryNavbar({
 }: LibraryNavbarProps) {
   return (
     <nav id="nav">
-      <button
-        className="tb"
-        id="tnav-sb"
-        title="Toggle Sidebar"
-        style={{ marginRight: 4 }}
-        onClick={onToggleSidebar}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <line x1="9" y1="3" x2="9" y2="21" />
-        </svg>
-      </button>
+      {!embedded ? (
+        <>
+          <button
+            className="tb"
+            id="tnav-sb"
+            title="Toggle Sidebar"
+            style={{ marginRight: 4 }}
+            onClick={onToggleSidebar}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+          </button>
 
-      <Link to="/hub" className="logo">
-        <img src="/favicon.svg" alt="MedPark" />
-        <span>MedPark</span>
-      </Link>
+          <Link to="/hub" className="logo">
+            <img src="/favicon.svg" alt="MedPark" />
+            <span>MedPark</span>
+          </Link>
 
-      <div className="vdiv" />
+          <div className="vdiv" />
 
-      <div id="lsw">
+          <div id="lsw">
         <button id="lbtn" onClick={() => onSourceOpenChange(!sourceOpen)}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -98,9 +102,11 @@ export function LibraryNavbar({
             </div>
           ))}
         </div>
-      </div>
+          </div>
 
-      <div className="vdiv" />
+          <div className="vdiv" />
+        </>
+      ) : null}
       <button
         className={`tb${annotationTool === 'pencil' ? ' act' : ''}`}
         id="tp"
@@ -218,9 +224,11 @@ export function LibraryNavbar({
             <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
           </svg>
         </button>
-        <Link to="/hub" className="abtn">
-          ← Hub
-        </Link>
+        {!embedded ? (
+          <Link to="/hub" className="abtn">
+            ← Hub
+          </Link>
+        ) : null}
       </div>
     </nav>
   );

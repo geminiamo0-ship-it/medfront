@@ -4,6 +4,8 @@
   .amboss-runner.sidebar-open .amboss-workspace{left:var(--amboss-sidebar)}
   .amboss-runner.sidebar-open .amboss-bottom-nav{left:var(--amboss-sidebar)}
   .amboss-workspace.has-labs{right:min(480px,44vw)}
+  .amboss-workspace.has-library-split{right:var(--amboss-library-split-width)}
+  .amboss-workspace.has-library-split .amboss-bottom-nav{right:var(--amboss-library-split-width)}
 }
 
 @media(max-width:899px){
@@ -62,4 +64,15 @@
   }
 
   .amboss-bottom-nav{z-index:40}
+
+  .amboss-workspace.has-library-split{right:0}
+
+  .amboss-library-split{
+    z-index:90;
+    width:100vw!important;
+    min-width:0;
+    max-width:none;
+  }
+
+  .amboss-library-resizer{display:none}
 }

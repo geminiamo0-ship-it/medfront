@@ -176,8 +176,8 @@ function json(route, body, status = 200) {
   });
 }
 
-async function installApiMocks(page) {
-  await page.route('https://medhvgg-production.up.railway.app/api/**', async (route) => {
+async function installApiMocks(target) {
+  await target.route('https://medhvgg-production.up.railway.app/api/**', async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace(/^\/api/, '');
     const method = route.request().method();
@@ -312,8 +312,8 @@ async function preparePage(browser, viewport) {
   await context.addInitScript(() => {
     localStorage.setItem('token', 'browser-smoke-token');
   });
+  await installApiMocks(context);
   const page = await context.newPage();
-  await installApiMocks(page);
   return { context, page };
 }
 
@@ -422,9 +422,64 @@ try {
     assert(!internalHref?.includes('amboss.com'), `AMBOSS link still points outside MedPark: ${internalHref}`);
 
     await internalLibraryLink.click();
-    await page.waitForURL(/\/library\?.*article=SM0yLg/);
-    await page.getByText('Internal AMBOSS article smoke').waitFor();
-    await page.getByText('Edema', { exact: true }).first().waitFor();
+    const linkMenu = page.getByRole('menu', { name: /Open edema/i });
+    await linkMenu.waitFor();
+    assert(
+      (await page.getByRole('menuitem', { name: /Open in split view/i }).count()) === 1,
+      'Split-view option missing from AMBOSS article menu',
+    );
+    assert(
+      (await page.getByRole('menuitem', { name: /Open in new tab/i }).count()) === 1,
+      'New-tab option missing from AMBOSS article menu',
+    );
+
+    // New tab keeps the normal full Library experience.
+    const popupPromise = context.waitForEvent('page');
+    await page.getByRole('menuitem', { name: /Open in new tab/i }).click();
+    const popup = await popupPromise;
+    await popup.waitForURL(/\/library\?.*article=SM0yLg/);
+    await popup.getByText('Internal AMBOSS article smoke').waitFor();
+    assert(!popup.url().includes('embedded=1'), 'New-tab Library unexpectedly opened in embedded mode');
+    await popup.close();
+
+    // Split keeps the exam in place and embeds the same Library reader.
+    await internalLibraryLink.click();
+    await page.getByRole('menuitem', { name: /Open in split view/i }).click();
+    const splitPane = page.locator('.amboss-library-split');
+    await splitPane.waitFor();
+    const libraryFrame = page.frameLocator('.amboss-library-frame');
+    await libraryFrame.getByText('Internal AMBOSS article smoke').waitFor();
+    assert(
+      (await libraryFrame.locator('#sb').count()) === 0,
+      'Embedded Library must not render the browse sidebar',
+    );
+    assert(
+      (await libraryFrame.getByRole('button', { name: /Key exam info/i }).count()) === 1,
+      'Embedded Library lost Key Exam control',
+    );
+    assert(
+      (await libraryFrame.getByRole('button', { name: /High-yield/i }).count()) === 1,
+      'Embedded Library lost High-yield control',
+    );
+
+    const beforeSplitBox = await splitPane.boundingBox();
+    assert(beforeSplitBox, 'Split pane has no bounding box');
+    const resizer = page.locator('.amboss-library-resizer');
+    const resizeBox = await resizer.boundingBox();
+    assert(resizeBox, 'Split pane resize handle missing');
+    await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + 100);
+    await page.mouse.down();
+    await page.mouse.move(resizeBox.x - 80, resizeBox.y + 100, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    const afterSplitBox = await splitPane.boundingBox();
+    assert(
+      afterSplitBox && beforeSplitBox && afterSplitBox.width > beforeSplitBox.width + 40,
+      'Dragging the split divider did not resize the Library pane',
+    );
+
+    await page.getByRole('button', { name: /Close library split view/i }).click();
+    assert((await page.locator('.amboss-library-split').count()) === 0, 'Library split did not close');
 
     await context.close();
   }
@@ -470,7 +525,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true');
 } finally {
   await browser.close();
 }

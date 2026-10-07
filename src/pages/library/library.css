@@ -1394,3 +1394,34 @@ mark.msr.cur{background:#fb923c;color:#fff}
 /* Amboss card article headers */
 .library-root.dark-mode .amboss-card-header h2 { color: #f4f4f5 !important; }
 
+
+
+/* Exam split-view embedding: keep the full article reader/toolset while
+   removing browsing chrome. The toolbar may scroll horizontally in narrow
+   panes instead of hiding features. */
+.library-root.embedded-mode #nav{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+}
+
+.library-root.embedded-mode #nav::-webkit-scrollbar{display:none}
+
+.library-root.embedded-mode #navr{
+  margin-left:0;
+  flex:0 0 auto;
+}
+
+.library-root.embedded-mode #layout{
+  width:100%;
+}
+
+.library-root.embedded-mode #ahdr{
+  padding-left:14px;
+  padding-right:14px;
+}
+
+.library-root.embedded-mode #acon{
+  padding-left:20px;
+  padding-right:20px;
+}
