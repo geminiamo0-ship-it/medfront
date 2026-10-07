@@ -57,12 +57,12 @@ export function AmbossOption({
       onKeyDown={selectFromKeyboard}
     >
       <span className="amboss-option-letter">{option.displayOrder}</span>
-      <span className="amboss-option-main">
+      <div className="amboss-option-main">
         <SafeHtml html={option.textHtml} className="amboss-option-text" />
         {showExplanation ? (
           <SafeHtml html={option.explanationHtml} className="amboss-option-explanation" />
         ) : null}
-      </span>
+      </div>
       <span className="amboss-option-stat">
         {revealed && option.uworldChosenBy != null ? `${option.uworldChosenBy}%` : ''}
         {correct ? ' ✓' : incorrectSelected ? ' ×' : ''}
