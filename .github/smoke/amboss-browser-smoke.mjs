@@ -91,6 +91,22 @@ let savedNote = null;
 const submittedByQuestion = new Map();
 const submitBodies = [];
 
+const timedQuestions = [
+  makeQuestion(3001, 1, 'hard'),
+  makeQuestion(3002, 2, 'easy'),
+  makeQuestion(3003, 3, 'very_hard'),
+  makeQuestion(3004, 4, 'medium'),
+  makeQuestion(3005, 5, 'very_easy'),
+];
+let timedStatus = 'in_progress';
+let timedTimeSpentSeconds = 0;
+let timedStartedAt = new Date().toISOString();
+const timedDrafts = new Map();
+let timedBatchBody = null;
+let timedSelectionSaves = 0;
+let timedHighlightSaves = 0;
+let timedAiSummaryCalls = 0;
+
 function correctOptionFor(question) {
   return question.options.find((option) => option.displayOrder === 'H');
 }
@@ -153,6 +169,71 @@ function decoratedTestState() {
   return body;
 }
 
+function timedTestPayload() {
+  const completed = timedStatus === 'completed';
+  const body = {
+    id: 9002,
+    title: 'AMBOSS timed smoke',
+    type: 'timed',
+    mode: 'unused',
+    step: 1,
+    status: timedStatus,
+    totalQuestions: timedQuestions.length,
+    answeredQuestions: completed
+      ? timedQuestions.filter((q) => timedDrafts.get(q.id) != null).length
+      : 0,
+    correctAnswers: completed
+      ? timedQuestions.filter((q) => timedDrafts.get(q.id) === correctOptionFor(q)?.id).length
+      : 0,
+    timeSpentSeconds: timedTimeSpentSeconds,
+    timeLimitSeconds: timedQuestions.length * 60,
+    startedAt: timedStartedAt,
+    completedAt: completed ? new Date().toISOString() : null,
+    viewerThemeProfileSnapshot: null,
+    filters: { questionBankIds: [1] },
+    resumeQuestionId: timedQuestions[0].id,
+    resumeDisplayOrder: 1,
+    omittedQuestionIds: [],
+    blockResultsLocked: false,
+    questions: structuredClone(timedQuestions),
+  };
+
+  for (const question of body.questions) {
+    const selectedOptionId = timedDrafts.has(question.id) ? timedDrafts.get(question.id) : null;
+    if (!completed) {
+      question.draftSelectedOptionId = selectedOptionId;
+      question.userAnswer = null;
+      question.isAnswered = false;
+      question.isOmitted = false;
+      question.status = 'unanswered';
+      continue;
+    }
+
+    const correctOptionId = correctOptionFor(question)?.id ?? null;
+    const isCorrect = selectedOptionId != null && selectedOptionId === correctOptionId;
+    question.draftSelectedOptionId = null;
+    question.userAnswer = {
+      selectedOptionId,
+      isCorrect,
+      timeSpentSeconds: 1,
+      answerChanges: 0,
+    };
+    question.isAnswered = selectedOptionId != null;
+    question.isOmitted = selectedOptionId == null;
+    question.status = selectedOptionId == null ? 'omitted' : 'answered';
+    question.explanationHtml = ambossExplanationBlob(question);
+    question.options = question.options.map((option) => ({
+      ...option,
+      isCorrect: option.id === correctOptionId,
+      explanationHtml: null,
+      uworldChosenBy: option.id === correctOptionId ? 61 : 10,
+    }));
+  }
+
+  body.omittedQuestionIds = body.questions.filter((q) => q.isOmitted).map((q) => q.id);
+  return body;
+}
+
 function explanationPayload(question) {
   return {
     // Mirrors current AMBOSS imports: all A/B/C/D/E explanations live in the
@@ -199,6 +280,64 @@ async function installApiMocks(target) {
 
     if (path === '/tests/9001' && method === 'GET') {
       return json(route, decoratedTestState());
+    }
+
+    if (path === '/tests/9002' && method === 'GET') {
+      return json(route, timedTestPayload());
+    }
+
+    if (path === '/tests/9002/timed-selection' && method === 'PATCH') {
+      const data = JSON.parse(route.request().postData() || '{}');
+      timedDrafts.set(Number(data.questionId), data.selectedOptionId ?? null);
+      timedSelectionSaves += 1;
+      return json(route, {
+        ok: true,
+        questionId: Number(data.questionId),
+        selectedOptionId: data.selectedOptionId ?? null,
+      });
+    }
+
+    if (path === '/tests/9002/highlights' && method === 'PATCH') {
+      timedHighlightSaves += 1;
+      return json(route, { ok: true });
+    }
+
+    if (path === '/tests/9002/suspend' && method === 'PUT') {
+      timedStatus = 'suspended';
+      timedTimeSpentSeconds = Math.max(1, timedTimeSpentSeconds + 1);
+      return json(route, timedTestPayload());
+    }
+
+    if (path === '/tests/9002/resume' && method === 'PUT') {
+      timedStatus = 'in_progress';
+      timedStartedAt = new Date().toISOString();
+      return json(route, timedTestPayload());
+    }
+
+    if (path === '/tests/9002/submit-batch' && method === 'POST') {
+      timedBatchBody = JSON.parse(route.request().postData() || '{}');
+      for (const answer of timedBatchBody.answers || []) {
+        timedDrafts.set(Number(answer.questionId), answer.selectedOptionId ?? null);
+      }
+      timedTimeSpentSeconds = Number(timedBatchBody.totalTimeSpentSeconds || timedTimeSpentSeconds);
+      timedStatus = 'completed';
+      return json(route, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        answeredQuestions: timedQuestions.filter((q) => timedDrafts.get(q.id) != null).length,
+        correctAnswers: timedQuestions.filter((q) => timedDrafts.get(q.id) === correctOptionFor(q)?.id).length,
+        omittedQuestions: timedQuestions.filter((q) => timedDrafts.get(q.id) == null).length,
+        percentageScore: 0,
+        timeSpentSeconds: timedTimeSpentSeconds,
+      });
+    }
+
+    if (path === '/tests/9002/questions/3001/ai-explain' && method === 'POST') {
+      timedAiSummaryCalls += 1;
+      return json(route, {
+        content: 'AI review summary for the completed timed question.',
+        language: 'en',
+      });
     }
 
     if (path === '/tests/9001/mark' && method === 'PATCH') {
@@ -481,6 +620,94 @@ try {
     await page.getByRole('button', { name: /Close library split view/i }).click();
     assert((await page.locator('.amboss-library-split').count()) === 0, 'Library split did not close');
 
+    await context.close();
+  }
+
+  {
+    timedStatus = 'in_progress';
+    timedTimeSpentSeconds = 0;
+    timedStartedAt = new Date().toISOString();
+    timedDrafts.clear();
+    timedBatchBody = null;
+    timedSelectionSaves = 0;
+    timedHighlightSaves = 0;
+    timedAiSummaryCalls = 0;
+
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await page.goto(`${baseUrl}/test/9002`, { waitUntil: 'networkidle' });
+    await page.getByText('70% ethanol').waitFor();
+
+    assert((await page.getByRole('button', { name: /AI Summary/i }).count()) === 0, 'AI Summary leaked into active Timed block');
+
+    const topTimer = page.locator('.amboss-primary-timer strong');
+    const sideTimer = page.locator('.amboss-sidebar-time strong');
+    const firstTopTimer = (await topTimer.textContent())?.trim();
+    const firstSideTimer = (await sideTimer.textContent())?.trim();
+    assert(/^0[45]:\d{2}$/.test(firstTopTimer || ''), `Timed top countdown did not start near 05:00: ${firstTopTimer}`);
+    assert(firstTopTimer === firstSideTimer, `Top/sidebar timers are not synchronized: ${firstTopTimer} vs ${firstSideTimer}`);
+
+    const timedRows = page.locator('.amboss-option');
+    await timedRows.nth(0).click();
+    await page.waitForTimeout(120);
+    assert(timedSelectionSaves >= 1, 'Timed option click did not autosave a draft');
+    assert(await timedRows.nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed selected option did not turn blue');
+    assert(!await timedRows.nth(0).evaluate((node) => node.classList.contains('is-correct')), 'Timed selection leaked correct styling');
+    assert(!await timedRows.nth(0).evaluate((node) => node.classList.contains('is-incorrect')), 'Timed selection leaked incorrect styling');
+    assert((await page.locator('.amboss-option-explanation').count()) === 0, 'Timed selection leaked an explanation');
+
+    await page.getByRole('button', { name: /NEXT/i }).click();
+    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.getByRole('button', { name: /PREVIOUS/i }).click();
+    await page.getByText('70% ethanol').waitFor();
+    assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed selection was lost across navigation');
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByText('70% ethanol').waitFor();
+    assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed draft was not restored after reload');
+
+    await page.getByRole('button', { name: /^Tools$/i }).click();
+    await page.getByRole('button', { name: /^Marker$/i }).click();
+    await page.locator('.amboss-stem').selectText();
+    await page.locator('.amboss-question-content').dispatchEvent('mouseup');
+    await page.waitForTimeout(100);
+    assert(timedHighlightSaves >= 1, 'Marker did not persist through the dedicated highlights endpoint');
+    assert((await page.locator('mark[data-medpark-marker="1"]').count()) >= 1, 'Marker highlight was not rendered');
+
+    await page.getByRole('button', { name: /^Settings$/i }).click();
+    await page.getByRole('button', { name: /^Dark$/i }).click();
+    assert(await page.locator('.amboss-runner').getAttribute('data-appearance') === 'dark', 'Settings did not switch AMBOSS appearance');
+
+    await page.getByRole('button', { name: /^Calculator$/i }).click();
+    await page.getByRole('button', { name: /^2$/ }).click();
+    await page.getByRole('button', { name: /^\+$/ }).click();
+    await page.getByRole('button', { name: /^3$/ }).click();
+    await page.getByRole('button', { name: /^=$/ }).click();
+    assert((await page.locator('.amboss-calculator-display').textContent())?.trim() === '5', 'Calculator 2 + 3 did not equal 5');
+
+    await page.getByRole('button', { name: /^Suspend$/i }).click();
+    await page.getByText('Your progress and remaining time are saved.').waitFor();
+    assert(timedStatus === 'suspended', 'Suspend did not call the backend status transition');
+    assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Primary timer did not enter paused state');
+
+    await page.getByRole('button', { name: /Resume block/i }).click();
+    await page.getByRole('button', { name: /^Suspend$/i }).waitFor();
+    assert(timedStatus === 'in_progress', 'Resume did not restore in-progress status');
+
+    await page.getByRole('button', { name: /^End Block$/i }).click();
+    await page.getByRole('heading', { name: /End this block/i }).waitFor();
+    await page.getByText('Answered').waitFor();
+    await page.getByText('Unanswered').waitFor();
+    await page.getByRole('button', { name: /End block now/i }).click();
+    await page.getByRole('button', { name: /AI Summary/i }).waitFor();
+    assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
+    assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
+    assert(timedStatus === 'completed', 'End Block did not complete the timed test');
+
+    await page.getByRole('button', { name: /AI Summary/i }).click();
+    await page.getByText('AI review summary for the completed timed question.').waitFor();
+    assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
+
+    await page.screenshot({ path: `${outDir}/amboss-timed-toolbar.png`, fullPage: true });
     await context.close();
   }
 
