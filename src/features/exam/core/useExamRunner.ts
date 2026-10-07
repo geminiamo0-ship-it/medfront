@@ -126,7 +126,6 @@ export function useExamRunner(testIdParam: string | undefined) {
   }, [elapsedSeconds, test?.timeLimitSeconds]);
 
   useEffect(() => {
-    setClockNow(Date.now());
     if (!isTimed || test?.status !== 'in_progress' || !test.timeLimitSeconds) return;
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
@@ -398,8 +397,9 @@ export function useExamRunner(testIdParam: string | undefined) {
     ) {
       return;
     }
-    endTimedBlock();
-  }, [isTimed, remainingSeconds, test?.status, timedBlockMutation.isPending]);
+    autoEndTriggeredRef.current = true;
+    timedBlockMutation.mutate();
+  }, [isTimed, remainingSeconds, test?.status, timedBlockMutation]);
 
   const aiSummaryQuery = useQuery({
     queryKey: ['exam-ai-summary', testId, currentQuestion?.id],
@@ -456,6 +456,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     toggleCurrentMark,
     markMutation,
     getQuestionHighlights,
+    currentQuestionHighlights: currentQuestion ? getQuestionHighlights(currentQuestion) : [],
     saveQuestionHighlights,
     highlightMutation,
     note: noteQuery.data ?? null,
