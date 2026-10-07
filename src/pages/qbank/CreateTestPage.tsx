@@ -54,6 +54,26 @@ const TIERS: Array<{ key: DifficultyTier; label: string }> = [
 const MAX_TEST_QUESTIONS = 50;
 const MAX_CUSTOM_IDS = 50;
 const MAX_QUESTION_ID = 2_147_483_647;
+const TIMED_PRESETS = [60, 90, 120, 180] as const;
+const MIN_SECONDS_PER_QUESTION = 30;
+const MAX_SECONDS_PER_QUESTION = 600;
+
+function formatBlockDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.round(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  if (hours > 0) {
+    return `${hours}h ${String(minutes).padStart(2, '0')}m${seconds ? ` ${String(seconds).padStart(2, '0')}s` : ''}`;
+  }
+  return `${minutes}m${seconds ? ` ${String(seconds).padStart(2, '0')}s` : ''}`;
+}
+
+function formatPerQuestionTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
 
 interface ParsedCustomIds {
   ids: number[];
@@ -131,6 +151,8 @@ export default function CreateTestPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [timed, setTimed] = useState(false);
+  const [timedSecondsPerQuestion, setTimedSecondsPerQuestion] = useState<number>(60);
+  const [customTimedMinutes, setCustomTimedMinutes] = useState<number>(1);
   const [questionTab, setQuestionTab] = useState<'standard' | 'custom'>('standard');
   const [modes, setModes] = useState<QuestionStatusMode[]>(['unused']);
   const [tiers, setTiers] = useState<DifficultyTier[]>([]);
@@ -155,6 +177,15 @@ export default function CreateTestPage() {
     !Number.isInteger(numQuestions) || numQuestions < 1 || numQuestions > MAX_TEST_QUESTIONS;
   const invalidCustomPreview = customIdState.invalidTokens.slice(0, 8).join(', ');
   const invalidCustomMore = Math.max(0, customIdState.invalidTokens.length - 8);
+  const customTimedSeconds = Math.round(customTimedMinutes * 60);
+  const customTimedInvalid =
+    !Number.isFinite(customTimedMinutes) ||
+    customTimedSeconds < MIN_SECONDS_PER_QUESTION ||
+    customTimedSeconds > MAX_SECONDS_PER_QUESTION;
+  const effectiveSecondsPerQuestion =
+    timedSecondsPerQuestion === 0 ? customTimedSeconds : timedSecondsPerQuestion;
+  const configuredQuestionCount = questionTab === 'custom' ? customIds.length : numQuestions;
+  const configuredBlockSeconds = Math.max(0, configuredQuestionCount) * Math.max(0, effectiveSecondsPerQuestion);
 
   // Final availability/create filters include the learner's system/topic selections.
   const filters = useMemo<TestFilters>(
@@ -272,6 +303,11 @@ export default function CreateTestPage() {
       return;
     }
 
+    if (timed && (effectiveSecondsPerQuestion < MIN_SECONDS_PER_QUESTION || effectiveSecondsPerQuestion > MAX_SECONDS_PER_QUESTION || customTimedInvalid && timedSecondsPerQuestion === 0)) {
+      setError('Timed tests support between 30 seconds and 10 minutes per question.');
+      return;
+    }
+
     setCreating(true);
     setError(null);
     try {
@@ -287,8 +323,9 @@ export default function CreateTestPage() {
         mode: isCustom ? 'all' : (single ?? 'mixed_modes'),
         step,
         totalQuestions: total,
-        // Product contract: Timed Standard tests use one minute per question.
-        ...(timed ? { timeLimitSeconds: Math.max(60, total * 60) } : {}),
+        ...(timed
+          ? { timeLimitSeconds: Math.max(MIN_SECONDS_PER_QUESTION, total * effectiveSecondsPerQuestion) }
+          : {}),
         filters: isCustom ? { questionBankIds: [bankId] } : single ? filters : { ...filters, modes },
         ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
       });
@@ -609,10 +646,78 @@ export default function CreateTestPage() {
 
       {/* Test mode + count + create */}
       <section className="mt-5 flex flex-col gap-5 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 md:w-auto md:gap-4">
-          <span className="mr-1 text-sm font-bold text-ink">Test Mode</span>
-          <ModeToggle active={!timed} label="Tutor" onClick={() => setTimed(false)} />
-          <ModeToggle active={timed} label="Timed" onClick={() => setTimed(true)} />
+        <div className="flex w-full flex-col gap-3 md:w-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4">
+            <span className="mr-1 text-sm font-bold text-ink">Test Mode</span>
+            <ModeToggle active={!timed} label="Tutor" onClick={() => setTimed(false)} />
+            <ModeToggle active={timed} label="Timed" onClick={() => setTimed(true)} />
+          </div>
+
+          {timed ? (
+            <div className="rounded-xl border border-mp/15 bg-mp/5 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-bold uppercase tracking-wide text-ink-muted">
+                  Time per question
+                </span>
+                {TIMED_PRESETS.map((seconds) => (
+                  <button
+                    type="button"
+                    key={seconds}
+                    onClick={() => setTimedSecondsPerQuestion(seconds)}
+                    className={`min-h-9 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                      timedSecondsPerQuestion === seconds
+                        ? 'border-mp bg-mp text-white'
+                        : 'border-line bg-surface text-ink-soft hover:border-mp/50'
+                    }`}
+                  >
+                    {formatPerQuestionTime(seconds)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setTimedSecondsPerQuestion(0)}
+                  className={`min-h-9 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                    timedSecondsPerQuestion === 0
+                      ? 'border-mp bg-mp text-white'
+                      : 'border-line bg-surface text-ink-soft hover:border-mp/50'
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {timedSecondsPerQuestion === 0 ? (
+                <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                  <span className="font-bold text-ink">Minutes / question</span>
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={10}
+                    step={0.25}
+                    value={customTimedMinutes}
+                    onChange={(event) => setCustomTimedMinutes(Number(event.target.value))}
+                    aria-invalid={customTimedInvalid}
+                    className={`w-24 rounded-lg border bg-surface px-3 py-2 text-sm focus:outline-none ${
+                      customTimedInvalid ? 'border-bad/60 focus:border-bad' : 'border-line focus:border-mp'
+                    }`}
+                  />
+                  <span className="text-ink-faint">0.5–10 minutes</span>
+                </label>
+              ) : null}
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <span className="font-semibold text-ink-muted">
+                  Per question: <strong className="text-ink">{formatPerQuestionTime(Math.max(0, effectiveSecondsPerQuestion))}</strong>
+                </span>
+                <span className="font-semibold text-ink-muted">
+                  Block time:{' '}
+                  <strong className="text-mp">
+                    {configuredQuestionCount > 0 ? formatBlockDuration(configuredBlockSeconds) : '—'}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          ) : null}
         </div>
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center md:w-auto">
           {questionTab === 'standard' && (
