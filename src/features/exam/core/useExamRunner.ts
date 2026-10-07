@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 import {
@@ -34,6 +34,7 @@ interface RevealedQuestion {
 interface TutorSubmitInput {
   question: ExamQuestion;
   selectedOptionId: number | null;
+  timeSpentSeconds?: number;
 }
 
 export function useExamRunner(testIdParam: string | undefined) {
@@ -59,6 +60,17 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const timedSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const autoEndTriggeredRef = useRef(false);
+
+  // Tutor active-solving clock. This deliberately lives in the shared Exam
+  // Core, not in AMBOSS, so every future theme gets identical semantics.
+  // The server persists completed question deltas; these refs track only the
+  // active solving time accumulated during the current mounted runner.
+  const tutorClockTestIdRef = useRef<number | null>(null);
+  const tutorBaseSecondsRef = useRef(0);
+  const tutorSessionAccumulatedMsRef = useRef(0);
+  const tutorQuestionAccumulatedMsRef = useRef<Record<number, number>>({});
+  const tutorActiveQuestionIdRef = useRef<number | null>(null);
+  const tutorActiveSinceRef = useRef<number | null>(null);
 
   const resumeQuestion = useMemo(() => {
     if (!test?.questions.length) return null;
