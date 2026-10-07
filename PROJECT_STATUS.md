@@ -151,6 +151,41 @@ Implement and verify the first AMBOSS Exam Runner slices on `feat/amboss-exam-ru
 
 Do not implement final theme/appearance switch placement, marker/pencil placement, or detailed Flashcard UX until those exact UI details are approved.
 
+## AMBOSS implementation checkpoint — 2026-10-07
+
+Implemented on `feat/amboss-exam-runner`:
+- shared typed Exam Runner API/core/registry;
+- full-screen `/test/:testId` outside global `AppLayout`;
+- isolated `themes/amboss` package;
+- collapsible desktop sidebar + mobile drawer foundation;
+- canonical 1–5 difficulty hammer rendering;
+- sanitized AMBOSS rich HTML;
+- `KEY INFO` clue toggle for imported `.Highlight`;
+- `ATTENDING TIP` extraction from `.amboss-hint`;
+- no visible Submit button;
+- Tutor/Mixed `SHOW ANSWER` wired through canonical submit + explanation endpoints;
+- Timed local selection/batch controller path without per-question reveal;
+- Lab Values panel, Question Notes read/save, Mark persistence;
+- Flashcards entry placeholder only;
+- adopted SVG icon pack now used through shared `ExamIcon`;
+- AMBOSS options isolated into their own component so rich HTML is not nested inside native buttons.
+
+Verification evidence:
+- frontend current head `219c49923e3c3bdf8a7fcdd4b9660a7919606b6f`;
+- frontend PR #12 remains draft;
+- frontend GitHub Actions `Verify #56`: typecheck ✅ lint ✅ build ✅;
+- backend companion PR `geminiamo0-ship-it/medhvgg#1`;
+- backend `difficultyTier` contract + backend Verify #1 build ✅.
+
+Still open before Done:
+- authenticated Tutor/Mixed smoke;
+- authenticated Timed/End-Block smoke;
+- reload persistence for Mark + Notes;
+- real Labs payload rendering;
+- imported image/media path validation for relative `offline_media/...` sources;
+- desktop/tablet/mobile browser acceptance;
+- final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
+
 ## 8. Definition of Done
 
 A page/feature is not Done because code exists. Applicable gates include:
