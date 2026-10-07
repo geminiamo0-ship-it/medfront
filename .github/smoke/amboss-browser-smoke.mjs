@@ -768,6 +768,94 @@ try {
   }
 
   {
+    createdTimedBody = null;
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await page.goto(`${baseUrl}/qbank/1/create-test?step=1`, { waitUntil: 'networkidle' });
+    await page.getByRole('heading', { name: 'Create Test' }).waitFor();
+
+    await page.getByRole('button', { name: /^Timed$/i }).click();
+    await page.getByText('Time per question', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Custom$/i }).click();
+    const customMinutes = page.getByLabel('Minutes / question');
+    await customMinutes.fill('2.5');
+    await page.getByText('1h 40m', { exact: true }).waitFor();
+
+    await page.getByRole('button', { name: /^1:30$/ }).click();
+    await page.getByText('1h 00m', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Create Test$/i }).click();
+    await page.waitForURL(/\/test\/9002/);
+    assert(createdTimedBody?.type === 'timed', 'Create Test did not send type=timed');
+    assert(Number(createdTimedBody?.totalQuestions) === 40, 'Create Test did not preserve 40 questions');
+    assert(Number(createdTimedBody?.timeLimitSeconds) === 3600, `Expected 40 × 90s = 3600s, got ${createdTimedBody?.timeLimitSeconds}`);
+    await context.close();
+  }
+
+  {
+    tutorLifecycleStatus = 'in_progress';
+    tutorLifecycleTimeSpentSeconds = 0;
+    tutorLifecycleStartedAt = new Date().toISOString();
+    tutorSuspendBody = null;
+    tutorCompleteBody = null;
+
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await page.goto(`${baseUrl}/test/9003`, { waitUntil: 'networkidle' });
+    await page.getByText('70% ethanol').waitFor();
+
+    const tutorTopTimer = page.locator('.amboss-primary-timer strong');
+    const tutorSideTimer = page.locator('.amboss-sidebar-time strong');
+    const tutorFirst = (await tutorTopTimer.textContent())?.trim();
+    assert((await page.getByRole('button', { name: /^End Block$/i }).count()) === 1, 'Tutor is missing End Block');
+
+    await page.waitForTimeout(1150);
+    const tutorSecond = (await tutorTopTimer.textContent())?.trim();
+    const tutorSideSecond = (await tutorSideTimer.textContent())?.trim();
+    assert(
+      timerTextToSeconds(tutorSecond) > timerTextToSeconds(tutorFirst),
+      `Tutor counter did not count up: ${tutorFirst} → ${tutorSecond}`,
+    );
+    assert(tutorSecond === tutorSideSecond, `Tutor top/sidebar timers drifted: ${tutorSecond} vs ${tutorSideSecond}`);
+
+    await page.getByRole('button', { name: /^Suspend$/i }).click();
+    await page.waitForURL(/\/qbank\/1\/previous-tests\?step=1/);
+    assert(tutorLifecycleStatus === 'suspended', 'Tutor Suspend did not persist suspended status');
+    assert(
+      Number(tutorSuspendBody?.totalTimeSpentSeconds) >= 1,
+      `Tutor Suspend did not send elapsed session time: ${JSON.stringify(tutorSuspendBody)}`,
+    );
+    await page.getByText('AMBOSS tutor lifecycle smoke', { exact: true }).waitFor();
+
+    const tutorRow = page.getByRole('row').filter({ hasText: 'AMBOSS tutor lifecycle smoke' });
+    await tutorRow.getByRole('link', { name: 'Open' }).click();
+    await page.waitForURL(/\/test\/9003/);
+    await page.getByRole('button', { name: /Resume block/i }).waitFor();
+    assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Suspended Tutor timer was not paused');
+
+    await page.getByRole('button', { name: /Resume block/i }).click();
+    await page.getByRole('button', { name: /^Suspend$/i }).waitFor();
+    const resumedFirst = (await tutorTopTimer.textContent())?.trim();
+    await page.waitForTimeout(1150);
+    const resumedSecond = (await tutorTopTimer.textContent())?.trim();
+    assert(
+      timerTextToSeconds(resumedSecond) > timerTextToSeconds(resumedFirst),
+      `Tutor timer did not continue after Resume: ${resumedFirst} → ${resumedSecond}`,
+    );
+
+    await page.getByRole('button', { name: /^End Block$/i }).click();
+    const tutorEndDialog = page.locator('.amboss-end-block-dialog');
+    await tutorEndDialog.getByText('Session time', { exact: true }).waitFor();
+    await tutorEndDialog.getByRole('button', { name: /End block now/i }).click();
+    await page.getByRole('button', { name: /AI Summary/i }).waitFor();
+    assert(tutorLifecycleStatus === 'completed', 'Tutor End Block did not complete the test');
+    assert(
+      Number(tutorCompleteBody?.totalTimeSpentSeconds) >= Number(tutorSuspendBody?.totalTimeSpentSeconds),
+      'Tutor End Block lost elapsed time accumulated before Suspend/Resume',
+    );
+
+    await page.screenshot({ path: `${outDir}/amboss-tutor-lifecycle.png`, fullPage: true });
+    await context.close();
+  }
+
+  {
     timedStatus = 'in_progress';
     timedTimeSpentSeconds = 0;
     timedStartedAt = new Date().toISOString();
@@ -920,7 +1008,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true pencil_palette=true');
 } finally {
   await browser.close();
 }
