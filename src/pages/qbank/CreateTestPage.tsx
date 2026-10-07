@@ -176,8 +176,9 @@ export default function CreateTestPage() {
       questionBankIds: [bankId],
       ...(subjectIds.length > 0 ? { subjectIds } : {}),
       ...(tiers.length > 0 ? { difficulty: tiers } : {}),
+      modes,
     }),
-    [bankId, subjectIds, tiers],
+    [bankId, subjectIds, tiers, modes],
   );
 
   const countsQuery = useQuery({
@@ -210,8 +211,12 @@ export default function CreateTestPage() {
   const tierCounts = difficultyQuery.data;
 
   const subjectsQuery = useQuery({
-    queryKey: ['test-subjects', step, bankId],
-    queryFn: () => getSubjects(step, [bankId]),
+    queryKey: ['test-subjects', step, bankId, [...modes].sort().join(','), tiers],
+    queryFn: () =>
+      getSubjects(step, [bankId], {
+        modes,
+        difficulty: tiers,
+      }),
   });
   const subjects = useMemo(() => subjectsQuery.data ?? [], [subjectsQuery.data]);
   const subjectColumns = useMemo(() => splitColumns(subjects), [subjects]);
