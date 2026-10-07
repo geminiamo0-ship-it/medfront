@@ -10,7 +10,7 @@
   --amboss-danger:#e4484f;
   --amboss-warning:#f0a51f;
   --amboss-sidebar:296px;
-  --amboss-top-h:50px;
+  --amboss-top-h:58px;
   min-height:100vh;
   background:var(--amboss-page);
   color:var(--amboss-text);
