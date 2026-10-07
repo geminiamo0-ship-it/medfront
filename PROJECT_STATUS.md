@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, configurable Timed duration, Tutor/Timed lifecycle controls, annotation palettes, Calculator, review-only AI Summary, and the shared Tutor **active-solving-time** contract. Tutor time now counts only unanswered pre-submit solving time; it pauses immediately on first answer/SHOW ANSWER and excludes explanation/review time. Frontend latest feature merge: PR #28 (`f8b754257...`). Backend active-time contract: PR #26 (`f027476d...`) live on Railway. Issue #4 remains open for Test Analysis/Results, My Notebook, detailed Flashcards UX, and later themes.
+**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, configurable Timed duration, shared Tutor active-solving-time, Tutor/Timed lifecycle controls, annotation palettes, Calculator, review-only AI Summary, and completed-Omitted review. After End Block, Omitted remains Omitted but now exposes the correct answer and click-to-fetch explanations without creating a submission or changing score/filter state. Frontend latest feature merge: PR #30 (`662a7715...`). Backend review contract required no code change and was verified live on Railway. Issue #4 remains open for the final Test Analysis/Results page, My Notebook, detailed Flashcards UX, and later themes.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed/filter correctness retained; Timed now supports 1:00 / 1:30 / 2:00 / 3:00 / Custom per-question duration with derived block-time preview |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED + VERIFIED** | PR #28 makes Tutor timing net active-solving time in shared Exam Core: unanswered runs, first submit/SHOW ANSWER pauses, review time excluded, unanswered navigation resumes. Timed continuous countdown unchanged. Production/browser evidence green. |
+| Test runner | **AMBOSS MERGED + VERIFIED** | Shared Exam Core now also unlocks completed Omitted review: correct answer visible immediately; option explanations lazy-fetch on click; SHOW ALL works; review cannot mutate Omitted/score/submission state. PR #30 + Browser Smoke #34 + Production API Smoke #13 green. |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -150,16 +150,18 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-The approved Tutor active-solving-time contract is merged, production-deployed, and verified.
+The completed-Omitted review contract is merged, production-deployed, and verified.
 
-Latest completed rule, shared by Exam Core:
-1. unanswered Tutor question → clock runs;
-2. first answer or SHOW ANSWER → clock pauses immediately;
-3. explanation/review/tool time after submission is excluded;
-4. navigating to another unanswered question resumes the accumulated clock;
-5. navigating to answered/omitted questions keeps it paused;
-6. per-question solving deltas persist in `question_submissions.timeSpentSeconds`; aggregate net solving time persists in `tests.timeSpentSeconds`;
-7. Timed mode remains a continuous countdown and is unchanged.
+Latest completed review rule, shared by Exam Core:
+1. End Block may leave a question permanently **Omitted** for that attempt;
+2. Omitted remains an outcome/filter state — reviewing it does not convert it into Answered;
+3. completed Omitted review exposes the canonical correct answer immediately;
+4. clicking an option may lazy-fetch/show its explanation;
+5. `SHOW ALL EXPLANATIONS` works;
+6. review never creates a submission, changes selectedOptionId, score, answered count, or QBank Omitted/Correct/Incorrect state;
+7. backend block-results locking still controls whether correctness is exposed.
+
+The previously approved Tutor active-solving-time rule remains canonical and unchanged.
 
 Next Issue #4 design work should be selected explicitly by the user:
 1. **Test Analysis / Results** design and final post-End-Block destination;
@@ -467,3 +469,30 @@ Evidence:
 - main frontend Verify after merge ✅.
 
 Do not reintroduce Tutor wall-clock counting in a theme. This is now a shared engine contract.
+
+
+## Completed-Omitted review checkpoint — 2026-10-08
+
+Canonical rule:
+- `Omitted` records that no answer was submitted before End Block; it is not a post-completion visibility lock.
+- completed Omitted questions expose the server-authoritative correct answer;
+- explanations stay collapsed by default and open per option on click, with `SHOW ALL EXPLANATIONS` available;
+- review is presentation-only and must not create/update a submission, draft, score, answered count, or QBank result state;
+- block-result locking remains authoritative.
+
+Implementation/deployment:
+- frontend PR #30 → `662a7715a487d8357c450193ebb241d63c7f088e`;
+- Cloudflare Workers production Build `fdb02340-106c-42f4-8624-0aa50c175f41`;
+- Cloudflare production Version `15880f3a-b667-4d28-ba19-dc0c4ae173b4` → SUCCESS;
+- no backend code change required.
+
+Evidence:
+- frontend Verify #123 ✅;
+- AMBOSS Browser Smoke #34 ✅:
+  `omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true`;
+- production Railway Exam Runner API Smoke #13 ✅:
+  `OMITTED_REVIEW_OK test=223237 question=823 omitted=true userAnswer=null correctness=true explanation=true no_mutation=true`;
+- backend diagnostic PR #28 was closed unmerged after Verify #31 + production smoke passed;
+- frontend main Verify after merge ✅.
+
+Do not treat Omitted as a reason to hide answers after completion in future themes.
