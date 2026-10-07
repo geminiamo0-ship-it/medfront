@@ -310,7 +310,7 @@ User explicitly approved this timing rule as a shared Exam Core behavior for Tut
 - Reopen answered Q1 → no timer movement.
 - Open unanswered Q3 → timer resumes.
 
-## 11D. Approved completed-Omitted review contract — 2026-10-08
+## 11D. Completed-Omitted review contract — APPROVED + IMPLEMENTED + VERIFIED — 2026-10-08
 
 User explicitly approved/fixed this as a review rule shared by every exam theme.
 
@@ -391,6 +391,11 @@ User explicitly approved/fixed this as a review rule shared by every exam theme.
 - [x] browser proves Tutor timer resumes on unanswered navigation
 - [x] browser proves Tutor submit sends per-question `timeSpentSeconds`
 - [x] production API proves Tutor server snapshot does not wall-clock creep before submit or during review
+- [x] completed Omitted review exposes the canonical correct answer
+- [x] completed Omitted option click lazy-fetches/shows explanation
+- [x] completed Omitted review does not auto-expand every explanation
+- [x] completed Omitted review does not mutate submission/draft/result state
+- [x] production API proves untouched completed Omitted can have `userAnswer=null` while correctness/explanation remain reviewable
 
 ## 13. Explicitly deferred
 - global cross-theme appearance URL strategy;
@@ -451,3 +456,36 @@ Evidence:
 
 Architecture rule:
 **Do not implement Tutor timing separately inside future themes.** UWorld, NBME, MRCP, and later themes consume this shared Exam Core contract.
+
+
+## 16. Completed-Omitted review closeout — 2026-10-08
+
+Root cause:
+- canonical backend already exposed correctness/explanations after completion;
+- shared frontend reveal logic incorrectly required `userAnswer`, so untouched completed Omitted questions with `userAnswer=null` stayed visually locked.
+
+Implemented:
+- shared Exam Core accepts completed server-provided correctness as review reveal state even without a submission;
+- AMBOSS completed review shows the correct option immediately;
+- completed Omitted explanations are collapsed by default;
+- clicking an option lazy-fetches its explanation without submitting;
+- `SHOW ALL EXPLANATIONS` expands all review explanations;
+- active Tutor `SHOW ANSWER` omission keeps its existing immediate reveal behavior;
+- block-results lock stays authoritative because the frontend never invents correctness.
+
+Merged/deployed:
+- frontend PR #30 → `662a7715a487d8357c450193ebb241d63c7f088e`;
+- Cloudflare production Build `fdb02340-106c-42f4-8624-0aa50c175f41`;
+- Cloudflare Version `15880f3a-b667-4d28-ba19-dc0c4ae173b4` → SUCCESS.
+
+Verification:
+- frontend Verify #123 ✅;
+- AMBOSS Browser Smoke #34 ✅ with
+  `omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true`;
+- production Exam Runner API Smoke #13 ✅:
+  `OMITTED_REVIEW_OK ... omitted=true userAnswer=null correctness=true explanation=true no_mutation=true`;
+- backend Verify #31 ✅ on the diagnostic branch; no backend code was merged because the API contract was already correct;
+- main frontend Verify after merge ✅.
+
+Architecture rule:
+**Omitted is an outcome, not a completed-review visibility restriction.** Future UWorld/NBME/MRCP themes must consume this shared review contract.
