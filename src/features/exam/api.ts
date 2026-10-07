@@ -76,8 +76,14 @@ export function saveTimedSelection(
   );
 }
 
-export function suspendExamTest(testId: number) {
-  return api.put<ExamTest>(`/tests/${testId}/suspend`, {});
+export function suspendExamTest(testId: number, totalTimeSpentSeconds?: number) {
+  return api.put<ExamTest>(`/tests/${testId}/suspend`, {
+    ...(totalTimeSpentSeconds != null ? { totalTimeSpentSeconds } : {}),
+  });
+}
+
+export function completeExamTest(testId: number, totalTimeSpentSeconds: number) {
+  return api.put<ExamTest>(`/tests/${testId}/complete`, { totalTimeSpentSeconds });
 }
 
 export function resumeExamTest(testId: number) {
