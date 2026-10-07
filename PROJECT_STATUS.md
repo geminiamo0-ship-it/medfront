@@ -68,6 +68,20 @@ Approved and implemented:
 - [x] final availability/create requests still include selected systems/topics
 - [x] backend headroom remains higher (`totalQuestions` DTO max 200)
 - [x] Custom UI `unused only` vs canonical backend behavior discrepancy is documented, not falsely marked verified
+- [x] canonical status-filter contract is aligned across counts, selection, metadata and frontend refresh:
+  - `All` = every accessible active question matching taxonomy/difficulty filters
+  - `Used` = assigned to any user test; `Unused` = never assigned to any user test
+  - `Correct` / `Incorrect` = latest answered attempt, mutually exclusive
+  - `Marked` = current mark; `Marked Correct` / `Marked Incorrect` = mark ∩ latest result
+  - `Omitted` = explicit blank or completed-unanswered question until later answered
+  - `Suspended` = untouched question in a suspended test, cleared on resume/later attempt
+  - mixed modes = DISTINCT union; `All` dominates narrower selections
+- [x] backend count epoch invalidates on create, answer/omission, mark, suspend/resume, complete/end-block and delete
+- [x] mixed-count cache uses the same per-user epoch; inaccessible-bank mixed counts fail closed to zero
+- [x] frontend marks QBank count/progress/metadata queries stale after create, answer/omission, mark and timed End Block
+- [x] Subjects/Systems/Topics count metadata accepts the selected single/mixed status modes
+- [x] backend PR #18 merged; frontend PR #20 merged; frontend Verify #94 + AMBOSS Browser Smoke #19 green
+- [x] Railway production smoke #8 passed controlled Used/Unused, Incorrect→Correct, Marked Incorrect→Marked Correct, Omitted→Answered, Suspended→Resume, mixed-set identities, cleanup, Tutor and Timed regressions
 
 Page spec: `docs/page-specs/CREATE_TEST.md`.
 
