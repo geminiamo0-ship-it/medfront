@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import { AmbossAiSummaryPanel } from './AmbossAiSummaryPanel';
 import { AmbossCalculator } from './AmbossCalculator';
@@ -14,12 +15,15 @@ import {
 import './amboss.css';
 
 export function AmbossTheme({ controller }: { controller: ExamRunnerController }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window === 'undefined' || window.innerWidth >= 900,
   );
   const [appearance, setAppearance] = useState<AmbossAppearance>('light');
   const [textSize, setTextSize] = useState<AmbossTextSize>('normal');
   const [activeTool, setActiveTool] = useState<AmbossToolMode>(null);
+  const [markerColor, setMarkerColor] = useState('#f6d84a');
+  const [pencilColor, setPencilColor] = useState('#d44545');
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [endBlockOpen, setEndBlockOpen] = useState(false);
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
@@ -44,6 +48,28 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
     }
   }
 
+  async function suspendAndLeave() {
+    try {
+      await controller.suspendTestAsync();
+      const bankId =
+        controller.test?.filters?.questionBankIds?.[0] ??
+        controller.currentQuestion?.questionBank?.id ??
+        null;
+      const step = controller.test?.step ?? 1;
+
+      if (bankId) {
+        navigate(`/qbank/${bankId}/previous-tests?step=${step}`);
+      } else {
+        navigate(`/qbank?step=${step}`);
+      }
+    } catch {
+      // Mutation state retains the error and the learner remains in the runner.
+    }
+  }
+
+  const canEndBlock =
+    controller.isTimed || controller.test.type === 'tutor';
+
   return (
     <div
       className={sidebarOpen ? 'amboss-runner sidebar-open' : 'amboss-runner'}
@@ -59,8 +85,13 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
         onTextSizeChange={setTextSize}
         activeTool={activeTool}
         onToolChange={setActiveTool}
+        markerColor={markerColor}
+        onMarkerColorChange={setMarkerColor}
+        pencilColor={pencilColor}
+        onPencilColorChange={setPencilColor}
         calculatorOpen={calculatorOpen}
         onCalculatorToggle={() => setCalculatorOpen((value) => !value)}
+        onSuspendRequest={() => void suspendAndLeave()}
         onEndBlockRequest={() => setEndBlockOpen(true)}
         onAiSummary={openAiSummary}
       />
@@ -85,6 +116,8 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
         key={controller.currentQuestion.id}
         controller={controller}
         activeTool={activeTool}
+        markerColor={markerColor}
+        pencilColor={pencilColor}
       />
 
       <AmbossCalculator
@@ -105,7 +138,7 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
         <div className="amboss-suspended-overlay" role="dialog" aria-modal="true" aria-label="Block suspended">
           <div>
             <span>BLOCK PAUSED</span>
-            <h2>Your progress and remaining time are saved.</h2>
+            <h2>Your progress and time are saved.</h2>
             <p>Resume when you are ready to continue this block.</p>
             <button
               type="button"
@@ -118,19 +151,24 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
         </div>
       ) : null}
 
-      {endBlockOpen && controller.isTimed && !controller.isCompleted ? (
+      {endBlockOpen && canEndBlock && !controller.isCompleted ? (
         <AmbossEndBlockDialog
-          answered={controller.timedAnsweredCount}
-          unanswered={controller.timedUnansweredCount}
+          answered={controller.answeredCount}
+          unanswered={controller.unansweredCount}
           marked={controller.markedCount}
-          remainingSeconds={controller.remainingSeconds ?? 0}
-          pending={controller.timedBlockMutation.isPending}
+          timeLabel={controller.isTimed ? 'Time left' : 'Session time'}
+          timeSeconds={controller.isTimed ? controller.remainingSeconds ?? 0 : controller.elapsedSeconds}
+          pending={
+            controller.isTimed
+              ? controller.timedBlockMutation.isPending
+              : controller.completeTestMutation.isPending
+          }
           onClose={() => setEndBlockOpen(false)}
           onReviewUnanswered={() => {
             if (firstUnanswered) controller.goToQuestion(firstUnanswered.id);
             setEndBlockOpen(false);
           }}
-          onConfirm={controller.endTimedBlock}
+          onConfirm={controller.endBlock}
         />
       ) : null}
 
