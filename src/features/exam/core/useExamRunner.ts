@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 import {
   getExamExplanation,
   getExamTest,
@@ -156,7 +157,10 @@ export function useExamRunner(testIdParam: string | undefined) {
           explanation,
         },
       }));
-      void queryClient.invalidateQueries({ queryKey: ['exam-test', testId] });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['exam-test', testId] }),
+        invalidateQbankProgressQueries(queryClient),
+      ]);
     },
   });
 
@@ -199,6 +203,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     },
     onSuccess: ({ isMarked }, variables) => {
       setMarkOverrides((current) => ({ ...current, [variables.questionId]: isMarked }));
+      void invalidateQbankProgressQueries(queryClient);
     },
   });
 
@@ -250,7 +255,10 @@ export function useExamRunner(testIdParam: string | undefined) {
     mutationFn: (answers: TimedBatchAnswer[]) =>
       submitTimedExamBlock(testId, answers, test?.timeSpentSeconds ?? undefined),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['exam-test', testId] });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['exam-test', testId] }),
+        invalidateQbankProgressQueries(queryClient),
+      ]);
     },
   });
 
