@@ -650,6 +650,7 @@ export default function LibraryPage() {
       try {
         const art = await getArticle(id);
         setArticle(art);
+        setArticleTitle(art.name || art.title || title || 'Article');
         setIsRead(!!art.isRead);
         setIsBookmarked(!!art.isBookmarked);
       } catch {
@@ -660,6 +661,18 @@ export default function LibraryPage() {
     },
     [showToast],
   );
+
+  // Exam explanations deep-link here with the AMBOSS external article ID.
+  // The backend resolves that external ID to the internal LibraryArticle PK.
+  useEffect(() => {
+    const linkedArticleId = params.get('article')?.trim() || '';
+    if (!linkedArticleId) return;
+
+    const linkedAnchor = params.get('anchor')?.trim() || '';
+    if (String(articleId ?? '') === linkedArticleId && article) return;
+
+    void openArticle(linkedArticleId, '', linkedAnchor);
+  }, [article, articleId, openArticle, params]);
 
   /**
    * Navigate to a cross-reference. If the anchor already exists in the open
