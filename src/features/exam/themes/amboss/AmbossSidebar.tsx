@@ -12,9 +12,9 @@ interface AmbossSidebarProps {
 }
 
 function questionStatus(question: ExamQuestion) {
+  if (question.isOmitted) return '○';
   if (question.userAnswer?.isCorrect === true) return '✓';
   if (question.userAnswer?.isCorrect === false) return '×';
-  if (question.isOmitted) return '○';
   return '•';
 }
 

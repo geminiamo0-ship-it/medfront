@@ -110,9 +110,11 @@
   padding:8px 10px 8px 0;
   text-align:left;
   color:var(--amboss-text);
+  cursor:pointer;
+  transition:background-color .16s ease,border-color .16s ease;
 }
 
-.amboss-option:not(.is-revealed):hover,
+.amboss-option:hover,
 .amboss-option.is-selected{
   background:var(--amboss-surface-soft);
 }
@@ -164,6 +166,21 @@
   margin-top:9px;
   font-size:13px;
   line-height:1.48;
+  transform-origin:top;
+  animation:amboss-option-explanation-in .22s ease-out;
+}
+
+@keyframes amboss-option-explanation-in{
+  from{
+    opacity:0;
+    transform:translateY(-6px);
+    clip-path:inset(0 0 100% 0);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+    clip-path:inset(0);
+  }
 }
 
 .amboss-option-explanation img{
@@ -206,4 +223,9 @@
 .amboss-timed-message{
   font-size:11px;
   color:var(--amboss-muted);
+}
+
+
+@media (prefers-reduced-motion:reduce){
+  .amboss-option-explanation{animation:none}
 }

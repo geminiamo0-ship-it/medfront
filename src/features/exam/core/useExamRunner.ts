@@ -19,7 +19,13 @@ import type {
 interface RevealedQuestion {
   correctOptionId: number | null;
   isCorrect: boolean;
+  submittedOptionId: number | null;
   explanation: ExamExplanationResponse;
+}
+
+interface TutorSubmitInput {
+  question: ExamQuestion;
+  selectedOptionId: number | null;
 }
 
 export function useExamRunner(testIdParam: string | undefined) {
@@ -35,6 +41,7 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const test = testQuery.data;
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+
   const [selectedByQuestion, setSelectedByQuestion] = useState<Record<number, number | null>>({});
   const [revealedByQuestion, setRevealedByQuestion] = useState<Record<number, RevealedQuestion>>({});
   const [markOverrides, setMarkOverrides] = useState<Record<number, boolean>>({});
@@ -57,10 +64,13 @@ export function useExamRunner(testIdParam: string | undefined) {
     ? test.questions.findIndex((question) => question.id === currentQuestion.id)
     : -1;
 
+  const hasLocalSelection = currentQuestion
+    ? Object.prototype.hasOwnProperty.call(selectedByQuestion, currentQuestion.id)
+    : false;
   const selectedOptionId = currentQuestion
-    ? selectedByQuestion[currentQuestion.id] ??
-      currentQuestion.userAnswer?.selectedOptionId ??
-      null
+    ? hasLocalSelection
+      ? selectedByQuestion[currentQuestion.id] ?? null
+      : currentQuestion.userAnswer?.selectedOptionId ?? null
     : null;
 
   const serverAlreadyRevealed =
@@ -77,11 +87,33 @@ export function useExamRunner(testIdParam: string | undefined) {
   const isTimed = test?.type === 'timed';
 
   function selectOption(optionId: number) {
-    if (!currentQuestion || isRevealed) return;
+    if (!currentQuestion || isRevealed || showAnswerMutation.isPending) return;
+
+    // Timed keeps local selections until the canonical End Block batch.
+    if (isTimed) {
+      setSelectedByQuestion((current) => ({
+        ...current,
+        [currentQuestion.id]: optionId,
+      }));
+      return;
+    }
+
+    // AMBOSS Tutor/Mixed semantics: the FIRST option click is the submit.
+    // Later option clicks are explanation-only and never reach this controller
+    // because the theme handles them locally once the question is revealed.
+    if (!isTutorLike) return;
+
+    // Pin the question before the submit-triggered refetch can advance the
+    // backend resumeQuestionId to the next unanswered question.
+    setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
       [currentQuestion.id]: optionId,
     }));
+    showAnswerMutation.mutate({
+      question: currentQuestion,
+      selectedOptionId: optionId,
+    });
   }
 
   function goToQuestion(questionId: number) {
@@ -100,26 +132,27 @@ export function useExamRunner(testIdParam: string | undefined) {
   }
 
   const showAnswerMutation = useMutation({
-    mutationFn: async (question: ExamQuestion) => {
-      const selected =
-        selectedByQuestion[question.id] ??
-        question.userAnswer?.selectedOptionId ??
-        null;
-
+    mutationFn: async ({ question, selectedOptionId: submittedOptionId }: TutorSubmitInput) => {
       const answer = await submitExamAnswer(testId, {
         questionId: question.id,
-        selectedOptionId: selected ?? undefined,
-        answerSequence: selected ? [selected] : [],
+        // null is deliberate: SHOW ANSWER with no first choice = omitted.
+        selectedOptionId: submittedOptionId,
+        answerSequence: submittedOptionId != null ? [submittedOptionId] : [],
       });
       const explanation = await getExamExplanation(testId, question.id);
-      return { questionId: question.id, answer, explanation };
+      return { questionId: question.id, submittedOptionId, answer, explanation };
     },
-    onSuccess: ({ questionId, answer, explanation }) => {
+    onSuccess: ({ questionId, submittedOptionId, answer, explanation }) => {
+      setSelectedByQuestion((current) => ({
+        ...current,
+        [questionId]: answer.submission.selectedOptionId ?? submittedOptionId,
+      }));
       setRevealedByQuestion((current) => ({
         ...current,
         [questionId]: {
           correctOptionId: answer.submission.correctOptionId,
           isCorrect: answer.submission.isCorrect,
+          submittedOptionId: answer.submission.selectedOptionId ?? submittedOptionId,
           explanation,
         },
       }));
@@ -128,8 +161,27 @@ export function useExamRunner(testIdParam: string | undefined) {
   });
 
   function showAnswer() {
-    if (!currentQuestion || !isTutorLike || isRevealed) return;
-    showAnswerMutation.mutate(currentQuestion);
+    if (
+      !currentQuestion ||
+      !isTutorLike ||
+      isRevealed ||
+      showAnswerMutation.isPending
+    ) {
+      return;
+    }
+
+    // No selected option exists in Tutor/Mixed before first submit because an
+    // option click submits immediately. SHOW ANSWER therefore means omission.
+    // Keep the omission reveal on the same question across the refetch.
+    setCurrentQuestionId(currentQuestion.id);
+    setSelectedByQuestion((current) => ({
+      ...current,
+      [currentQuestion.id]: null,
+    }));
+    showAnswerMutation.mutate({
+      question: currentQuestion,
+      selectedOptionId: null,
+    });
   }
 
   const markMutation = useMutation({
@@ -226,6 +278,9 @@ export function useExamRunner(testIdParam: string | undefined) {
     selectedOptionId,
     currentReveal,
     isRevealed,
+    isOmitted:
+      currentQuestion?.isOmitted === true ||
+      (!!currentReveal && currentReveal.submittedOptionId === null),
     isTutorLike,
     isTimed,
     selectOption,
