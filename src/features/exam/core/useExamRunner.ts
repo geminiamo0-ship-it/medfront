@@ -313,6 +313,10 @@ export function useExamRunner(testIdParam: string | undefined) {
 
     if (!isTutorLike) return;
 
+    const timeSpentSeconds = isTutor
+      ? pauseTutorForSubmit(currentQuestion.id)
+      : undefined;
+
     setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
@@ -321,29 +325,55 @@ export function useExamRunner(testIdParam: string | undefined) {
     showAnswerMutation.mutate({
       question: currentQuestion,
       selectedOptionId: optionId,
+      timeSpentSeconds,
     });
   }
 
   function goToQuestion(questionId: number) {
-    if (!test?.questions.some((question) => question.id === questionId)) return;
+    if (!test) return;
+    const target = test.questions.find((question) => question.id === questionId);
+    if (!target) return;
+
+    if (isTutor) {
+      const now = Date.now();
+      let nextClock = settleTutorClock(now);
+      const targetShouldRun =
+        test.status === 'in_progress' &&
+        !target.userAnswer &&
+        !hasLocalSubmissionIntent(target.id);
+
+      nextClock = {
+        ...nextClock,
+        activeQuestionId: targetShouldRun ? target.id : null,
+        activeStartedAt: targetShouldRun ? now : null,
+      };
+      setTutorClock(nextClock);
+      setClockNow(now);
+    }
+
     setCurrentQuestionId(questionId);
   }
 
   function goPrevious() {
     if (!test || currentIndex <= 0) return;
-    setCurrentQuestionId(test.questions[currentIndex - 1].id);
+    goToQuestion(test.questions[currentIndex - 1].id);
   }
 
   function goNext() {
     if (!test || currentIndex < 0 || currentIndex >= test.questions.length - 1) return;
-    setCurrentQuestionId(test.questions[currentIndex + 1].id);
+    goToQuestion(test.questions[currentIndex + 1].id);
   }
 
   const showAnswerMutation = useMutation({
-    mutationFn: async ({ question, selectedOptionId: submittedOptionId }: TutorSubmitInput) => {
+    mutationFn: async ({
+      question,
+      selectedOptionId: submittedOptionId,
+      timeSpentSeconds,
+    }: TutorSubmitInput) => {
       const answer = await submitExamAnswer(testId, {
         questionId: question.id,
         selectedOptionId: submittedOptionId,
+        timeSpentSeconds,
         answerSequence: submittedOptionId != null ? [submittedOptionId] : [],
       });
       const explanation = await getExamExplanation(testId, question.id);
@@ -368,6 +398,33 @@ export function useExamRunner(testIdParam: string | undefined) {
         invalidateQbankProgressQueries(queryClient),
       ]);
     },
+    onError: (_error, variables) => {
+      setSelectedByQuestion((current) => {
+        const next = { ...current };
+        delete next[variables.question.id];
+        return next;
+      });
+
+      if (test?.type === 'tutor' && test.status === 'in_progress' && !variables.question.userAnswer) {
+        const now = Date.now();
+        setTutorClock((current) => {
+          const seed =
+            current.testId === test.id
+              ? current
+              : {
+                  ...EMPTY_TUTOR_CLOCK,
+                  testId: test.id,
+                  baseSeconds: Math.max(0, Number(test.timeSpentSeconds || 0)),
+                };
+          return {
+            ...seed,
+            activeQuestionId: variables.question.id,
+            activeStartedAt: now,
+          };
+        });
+        setClockNow(now);
+      }
+    },
   });
 
   function showAnswer() {
@@ -382,6 +439,10 @@ export function useExamRunner(testIdParam: string | undefined) {
       return;
     }
 
+    const timeSpentSeconds = isTutor
+      ? pauseTutorForSubmit(currentQuestion.id)
+      : undefined;
+
     setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
@@ -390,6 +451,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     showAnswerMutation.mutate({
       question: currentQuestion,
       selectedOptionId: null,
+      timeSpentSeconds,
     });
   }
 
