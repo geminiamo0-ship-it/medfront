@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createTest,
   getDifficultyCounts,
@@ -128,6 +128,7 @@ function mergeTopicsByName(
 export default function CreateTestPage() {
   const { bank, step, bankId } = useOutletContext<WorkspaceContext>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [timed, setTimed] = useState(false);
   const [questionTab, setQuestionTab] = useState<'standard' | 'custom'>('standard');
   const [modes, setModes] = useState<QuestionStatusMode[]>(['unused']);
@@ -275,8 +276,31 @@ export default function CreateTestPage() {
         ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
       });
       const testId = res.id ?? null;
-      if (testId) navigate(`/test/${testId}`);
-      else setError('Test created but no ID returned.');
+      if (testId) {
+        // The backend has already persisted test_questions and bumped its
+        // filtered-count cache epoch before returning. Mark every frontend
+        // progress/availability cache stale now, without blocking navigation
+        // on unnecessary refetches while the exam route is opening.
+        const stalePrefixes = [
+          'test-counts',
+          'test-availability',
+          'qbank-statistics',
+          'question-banks',
+          'question-bank',
+          'previous-tests',
+        ] as const;
+        await Promise.all(
+          stalePrefixes.map((prefix) =>
+            queryClient.invalidateQueries({
+              queryKey: [prefix],
+              refetchType: 'none',
+            }),
+          ),
+        );
+        navigate(`/test/${testId}`);
+      } else {
+        setError('Test created but no ID returned.');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create test.');
     } finally {
