@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
@@ -10,14 +10,25 @@ import { AmbossLibrarySplitPane } from './AmbossLibrarySplitPane';
 import { AmbossNotesEditor } from './AmbossNotesEditor';
 import { AmbossOption, type AmbossResolvedOption } from './AmbossOption';
 import { AmbossToolbar } from './AmbossToolbar';
+import { AmbossSketchOverlay } from './AmbossSketchOverlay';
+import { applyQuestionHighlights, selectionToQuestionHighlight } from './ambossMarkers';
+import type { AmbossToolMode } from './AmbossTopbar';
 
-export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunnerController }) {
+export function AmbossQuestionWorkspace({
+  controller,
+  activeTool,
+}: {
+  controller: ExamRunnerController;
+  activeTool: AmbossToolMode;
+}) {
   const question = controller.currentQuestion;
   const [cluesOn, setCluesOn] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const [labsOpen, setLabsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [laserPoint, setLaserPoint] = useState<{ x: number; y: number } | null>(null);
+  const stemRef = useRef<HTMLDivElement>(null);
   const [libraryLinkMenu, setLibraryLinkMenu] = useState<{
     href: string;
     title: string;
@@ -54,6 +65,13 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
     () => parseAmbossExplanationHtml(explanationBlob),
     [explanationBlob],
   );
+
+  const questionHighlights = question ? controller.getQuestionHighlights(question) : [];
+
+  useEffect(() => {
+    if (!stemRef.current) return;
+    applyQuestionHighlights(stemRef.current, questionHighlights);
+  }, [question?.id, parsed.stemHtml, questionHighlights]);
 
   if (!question || !controller.test) return null;
 
@@ -128,6 +146,7 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
   }
 
   function activateOption(optionId: number) {
+    if (activeTool === 'pencil' || activeTool === 'laser') return;
     // A rapid second click cannot race the first submit.
     if (!controller.isRevealed && controller.showAnswerMutation.isPending) return;
 
@@ -164,6 +183,32 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
     setShowAllExplanations(true);
   }
 
+  function saveMarkerSelection() {
+    if (activeTool !== 'marker' || !stemRef.current) return;
+    const highlight = selectionToQuestionHighlight(stemRef.current);
+    if (!highlight) return;
+
+    const existing = controller.getQuestionHighlights(question);
+    const duplicate = existing.some(
+      (item) =>
+        (item.source ?? 'question') === 'question' &&
+        item.startIndex === highlight.startIndex &&
+        item.endIndex === highlight.endIndex,
+    );
+    const next = duplicate ? existing : [...existing, highlight];
+    controller.saveQuestionHighlights(question.id, next);
+    applyQuestionHighlights(stemRef.current, next);
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function trackLaser(event: ReactPointerEvent<HTMLElement>) {
+    if (activeTool !== 'laser') {
+      if (laserPoint) setLaserPoint(null);
+      return;
+    }
+    setLaserPoint({ x: event.clientX, y: event.clientY });
+  }
+
   return (
     <>
       <section
@@ -178,11 +223,16 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
             : undefined
         }
         onClickCapture={handleLibraryLinkClick}
+        onPointerMove={trackLaser}
+        onPointerLeave={() => setLaserPoint(null)}
+        data-active-tool={activeTool ?? 'none'}
       >
         <div className="amboss-question-card">
-          <div className="amboss-question-content">
+          <AmbossSketchOverlay active={activeTool === 'pencil'} />
+          <div className="amboss-question-content" onMouseUp={saveMarkerSelection}>
             <div className="amboss-aa">AA</div>
             <SafeHtml
+              ref={stemRef}
               html={parsed.stemHtml}
               className={cluesOn ? 'amboss-stem amboss-clues-on' : 'amboss-stem'}
             />
@@ -247,6 +297,12 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
             })}
           </div>
 
+          {controller.timedDraftError && controller.isTimed && !controller.isCompleted ? (
+            <div className="amboss-timed-save-warning">
+              Selection is kept in this block, but background save needs another try before Suspend.
+            </div>
+          ) : null}
+
           <div className="amboss-answer-actions">
             {canReveal ? (
               <button
@@ -288,6 +344,14 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
           </button>
         </footer>
       </section>
+
+      {laserPoint && activeTool === 'laser' ? (
+        <div
+          className="amboss-laser-dot"
+          style={{ left: laserPoint.x, top: laserPoint.y }}
+          aria-hidden="true"
+        />
+      ) : null}
 
       {librarySplit ? (
         <AmbossLibrarySplitPane
