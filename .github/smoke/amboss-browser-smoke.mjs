@@ -90,6 +90,7 @@ let marked = false;
 let savedNote = null;
 const submittedByQuestion = new Map();
 const submitBodies = [];
+let tutorPersistedTimeSpentSeconds = 0;
 
 const timedQuestions = [
   makeQuestion(3001, 1, 'hard'),
@@ -137,10 +138,8 @@ function ambossExplanationBlob(question) {
 
 function decoratedTestState() {
   const body = structuredClone(testState);
-  const startedAtMs = new Date(testState.startedAt).getTime();
-  body.timerElapsedSeconds =
-    Number(testState.timeSpentSeconds || 0) +
-    Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+  body.timeSpentSeconds = tutorPersistedTimeSpentSeconds;
+  body.timerElapsedSeconds = tutorPersistedTimeSpentSeconds;
   body.answeredQuestions = 0;
   body.correctAnswers = 0;
   body.omittedQuestionIds = [];
@@ -155,7 +154,7 @@ function decoratedTestState() {
     question.userAnswer = {
       selectedOptionId,
       isCorrect: submission.isCorrect,
-      timeSpentSeconds: 1,
+      timeSpentSeconds: Number(submission.timeSpentSeconds || 0),
       answerChanges: 0,
     };
     question.isAnswered = !omitted;
@@ -259,11 +258,7 @@ function tutorLifecyclePayload() {
   body.status = tutorLifecycleStatus;
   body.timeSpentSeconds = tutorLifecycleTimeSpentSeconds;
   body.startedAt = null;
-  body.timerElapsedSeconds =
-    tutorLifecycleTimeSpentSeconds +
-    (tutorLifecycleStatus === 'in_progress'
-      ? Math.max(0, Math.floor((Date.now() - new Date(tutorLifecycleStartedAt).getTime()) / 1000))
-      : 0);
+  body.timerElapsedSeconds = tutorLifecycleTimeSpentSeconds;
   body.completedAt = tutorLifecycleStatus === 'completed' ? new Date().toISOString() : null;
   body.questions = body.questions.map((question) => ({
     ...question,
@@ -563,15 +558,21 @@ async function installApiMocks(target) {
       const correctOptionId = correctOptionFor(question)?.id ?? null;
       const isCorrect = selectedOptionId != null && selectedOptionId === correctOptionId;
 
+      const submittedTimeSpentSeconds = Math.max(0, Number(data.timeSpentSeconds || 0));
       submitBodies.push(data);
-      submittedByQuestion.set(question.id, { selectedOptionId, isCorrect });
+      submittedByQuestion.set(question.id, {
+        selectedOptionId,
+        isCorrect,
+        timeSpentSeconds: submittedTimeSpentSeconds,
+      });
+      tutorPersistedTimeSpentSeconds += submittedTimeSpentSeconds;
 
       return json(route, {
         submission: {
           selectedOptionId,
           isCorrect,
           correctOptionId,
-          timeSpentSeconds: 1,
+          timeSpentSeconds: submittedTimeSpentSeconds,
         },
         testStats: {
           answeredQuestions: selectedOptionId == null ? 0 : 1,
@@ -858,7 +859,7 @@ try {
 
     await page.getByRole('button', { name: /^End Block$/i }).click();
     const tutorEndDialog = page.locator('.amboss-end-block-dialog');
-    await tutorEndDialog.getByText('Session time', { exact: true }).waitFor();
+    await tutorEndDialog.getByText('Solving time', { exact: true }).waitFor();
     await tutorEndDialog.getByRole('button', { name: /End block now/i }).click();
     await page.getByRole('button', { name: /AI Summary/i }).waitFor();
     assert(tutorLifecycleStatus === 'completed', 'Tutor End Block did not complete the test');
@@ -991,6 +992,7 @@ try {
     savedNote = null;
     submittedByQuestion.clear();
     submitBodies.length = 0;
+    tutorPersistedTimeSpentSeconds = 0;
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.getByText('70% ethanol').waitFor();
