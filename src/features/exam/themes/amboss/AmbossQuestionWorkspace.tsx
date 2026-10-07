@@ -17,9 +17,13 @@ import type { AmbossToolMode } from './AmbossTopbar';
 export function AmbossQuestionWorkspace({
   controller,
   activeTool,
+  markerColor,
+  pencilColor,
 }: {
   controller: ExamRunnerController;
   activeTool: AmbossToolMode;
+  markerColor: string;
+  pencilColor: string;
 }) {
   const question = controller.currentQuestion;
   const [cluesOn, setCluesOn] = useState(false);
@@ -185,7 +189,7 @@ export function AmbossQuestionWorkspace({
 
   function saveMarkerSelection() {
     if (!question || activeTool !== 'marker' || !stemRef.current) return;
-    const highlight = selectionToQuestionHighlight(stemRef.current);
+    const highlight = selectionToQuestionHighlight(stemRef.current, markerColor);
     if (!highlight) return;
 
     const existing = controller.getQuestionHighlights(question);
@@ -228,7 +232,7 @@ export function AmbossQuestionWorkspace({
         data-active-tool={activeTool ?? 'none'}
       >
         <div className="amboss-question-card">
-          <AmbossSketchOverlay active={activeTool === 'pencil'} />
+          <AmbossSketchOverlay active={activeTool === 'pencil'} color={pencilColor} />
           <div className="amboss-question-content" onMouseUp={saveMarkerSelection}>
             <div className="amboss-aa">AA</div>
             <SafeHtml
