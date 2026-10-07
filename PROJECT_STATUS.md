@@ -180,11 +180,16 @@ Verification evidence:
 - production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed;
 - reusable AMBOSS media diagnostic merged via backend PR #3 (`1be935e3de8ce1ac135651ac959ae0ebec47c170`).
 
+Automated browser verification:
+- `AMBOSS Browser Smoke #1` passed in real Chromium on Desktop 1440×1000, iPad 834×1194, and Mobile 390×844.
+- Verified sidebar/drawer behavior, 1–5 hammers, clue toggle, attending hint, Labs, Notes, Mark, SHOW ANSWER, and no page-level horizontal overflow.
+- Screenshot artifact: `amboss-browser-smoke-37634636170` (artifact id `11488260316`).
+- Final human visual approval remains open.
+
 Still open before Done:
 - Media deferral: AMBOSS `offline_media/...` files are not uploaded yet; user explicitly asked to skip this for the current runner pass.
 - Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
-- clue behavior/browser isolation verification inside AMBOSS;
-- desktop/tablet/mobile browser acceptance;
+- final human visual approval by the user;
 - final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
 
 ## 8. Definition of Done
