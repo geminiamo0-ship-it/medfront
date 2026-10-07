@@ -537,10 +537,20 @@ export function useExamRunner(testIdParam: string | undefined) {
   const suspendMutation = useMutation({
     mutationFn: async () => {
       if (isTimed) await flushTimedSelectionQueue();
-      await suspendExamTest(testId, elapsedSeconds);
+      const lifecycleElapsed = isTutor
+        ? getTutorNetElapsedSeconds(Date.now())
+        : elapsedSeconds;
+      await suspendExamTest(testId, lifecycleElapsed);
       return getExamTest(testId);
     },
     onSuccess: (freshTest) => {
+      if (freshTest.type === 'tutor') {
+        setTutorClock({
+          ...EMPTY_TUTOR_CLOCK,
+          testId: freshTest.id,
+          baseSeconds: Math.max(0, Number(freshTest.timeSpentSeconds || 0)),
+        });
+      }
       queryClient.setQueryData(['exam-test', testId], freshTest);
       void invalidateQbankProgressQueries(queryClient);
     },
@@ -553,14 +563,41 @@ export function useExamRunner(testIdParam: string | undefined) {
     },
     onSuccess: (freshTest) => {
       autoEndTriggeredRef.current = false;
-      setClockNow(Date.now());
+      const now = Date.now();
+
+      if (freshTest.type === 'tutor') {
+        const targetId =
+          currentQuestionId ??
+          freshTest.resumeQuestionId ??
+          freshTest.questions[0]?.id ??
+          null;
+        const target = targetId
+          ? freshTest.questions.find((question) => question.id === targetId) ?? null
+          : null;
+        const shouldRun =
+          freshTest.status === 'in_progress' &&
+          !!target &&
+          !target.userAnswer &&
+          !hasLocalSubmissionIntent(target.id);
+
+        setTutorClock({
+          ...EMPTY_TUTOR_CLOCK,
+          testId: freshTest.id,
+          baseSeconds: Math.max(0, Number(freshTest.timeSpentSeconds || 0)),
+          activeQuestionId: shouldRun && target ? target.id : null,
+          activeStartedAt: shouldRun ? now : null,
+        });
+      }
+
+      setClockNow(now);
       queryClient.setQueryData(['exam-test', testId], freshTest);
       void invalidateQbankProgressQueries(queryClient);
     },
   });
 
   const completeTestMutation = useMutation({
-    mutationFn: () => completeExamTest(testId, elapsedSeconds),
+    mutationFn: (totalTimeSpentSeconds: number) =>
+      completeExamTest(testId, totalTimeSpentSeconds),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['exam-test', testId] }),
@@ -606,7 +643,13 @@ export function useExamRunner(testIdParam: string | undefined) {
     }
 
     if (test.type === 'tutor' && !completeTestMutation.isPending) {
-      completeTestMutation.mutate();
+      const now = Date.now();
+      const settled = settleTutorClock(now);
+      const finalTutorElapsed =
+        settled.baseSeconds + Math.floor(settled.localAccumulatedMs / 1000);
+      setTutorClock(settled);
+      setClockNow(now);
+      completeTestMutation.mutate(finalTutorElapsed);
     }
   }
 
