@@ -184,7 +184,7 @@ export function AmbossQuestionWorkspace({
   }
 
   function saveMarkerSelection() {
-    if (activeTool !== 'marker' || !stemRef.current) return;
+    if (!question || activeTool !== 'marker' || !stemRef.current) return;
     const highlight = selectionToQuestionHighlight(stemRef.current);
     if (!highlight) return;
 
