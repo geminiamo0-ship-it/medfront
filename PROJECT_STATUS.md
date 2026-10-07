@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED — AMBOSS Exam Runner, first-answer flow, explanation-blob support, final-option regression coverage, and internal MedPark Library links are on `main` via PRs #12, #14, #15, #16 and #17. Backend canonical option ordering is on `medhvgg/main` via PR #7. Frontend main Verify #86 is green. Deferred follow-ups remain tracked under Issue #4.
+**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner now includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, real Tutor/Timed clocks, configurable Timed duration, Tutor/Timed Suspend + End Block lifecycle, Marker/Pencil color palettes with dark-mode contrast, Calculator, and review-only AI Summary. Frontend latest feature merge is PR #24 (`14ecb212...`); backend timer persistence is PR #22 (`1500e4ae...`) and is live on Railway. Issue #4 remains open for Test Analysis/Results, My Notebook, detailed Flashcards UX, and later themes.
 
 ## 1. Repository ownership
 
@@ -27,10 +27,10 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Dashboard | Implemented | Existing dashboard slice |
 | QBank listing `/qbank` | **VERIFYING navigation polish** | Step tabs now act as Step roots and clear provider drill-down state |
 | Selected QBank `/qbank/:bankId/*` | **VERIFYING responsive shell** | Dedicated workspace outside global AppLayout; desktop sidebar + responsive drawer; missing-Step recovery added |
-| Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
+| Create Test | **VERIFYING** | Mixed/filter correctness retained; Timed now supports 1:00 / 1:30 / 2:00 / 3:00 / Custom per-question duration with derived block-time preview |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED** | PRs #12/#14/#15/#16/#17 merged; backend PR #7 canonicalizes option order; modular multi-theme architecture preserved |
+| Test runner | **AMBOSS MERGED + VERIFIED** | PR #24 adds live Tutor/Timed clocks, configurable timing, Suspend→Previous Tests, Tutor End Block, Marker/Pencil palettes + dark contrast; production Tutor timer smoke green |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -150,18 +150,22 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-AMBOSS Runner and the approved first-answer interaction are merged and verified on `main`.
+The approved AMBOSS timer/lifecycle/color refinement is merged and verified.
 
-Next work under Issue #4 should begin only when explicitly selected by the user:
-1. post-merge visual/runtime refinements if any are noticed;
-2. final End Block UI;
-3. final theme/appearance switch placement;
-4. marker/pencil placement;
-5. detailed Flashcards/Anki UX;
-6. results/review design;
-7. next production theme (UWorld / NBME / MRCP) after its own UI approval.
+Completed in the latest slice:
+1. Timed countdown and Tutor count-up move every second from one shared source;
+2. Create Test Timed duration is configurable and sends the derived canonical `timeLimitSeconds`;
+3. Tutor/Timed Suspend persists timing; successful in-runner Suspend navigates to Previous Tests;
+4. End Block is available for Tutor and Timed;
+5. Marker/Pencil palettes and custom colors are implemented; marker dark-mode contrast is fixed.
 
-Media remains intentionally deferred until AMBOSS source media files are uploaded.
+Next Issue #4 design work should be selected explicitly by the user:
+1. **Test Analysis / Results** design and final post-End-Block destination;
+2. **My Notebook** shared cross-theme drawer — approved future placement is the top-bar right helper zone beside Calculator;
+3. detailed Flashcards/Anki UX;
+4. next production theme (UWorld / NBME / MRCP) after its own design approval.
+
+AMBOSS source media remains intentionally deferred until the media files are uploaded.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -202,7 +206,7 @@ Still open before Done:
 - Media deferral: AMBOSS `offline_media/...` files are not uploaded yet; user explicitly asked to skip this for the current runner pass.
 - Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
 - post-merge visual refinements only when explicitly requested by the user;
-- final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
+- My Notebook shared drawer, detailed Flashcards/Anki UX, and final Test Analysis/Results design remain deferred; End Block, Settings placement, and Marker/Pencil placement are no longer deferred.
 
 ## 8. Definition of Done
 
@@ -223,7 +227,7 @@ Explicit documented deferrals are allowed only when the user deliberately choose
 
 ## 9. Continuation command for a new AI/developer
 
-> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, `docs/page-specs/CREATE_TEST.md`, and next-design Issue #4. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 runtime verification task. Step tabs are Step-root navigation and must clear provider drill-down state. Library mobile/tablet is deferred. After #11 acceptance, begin Issue #4 **DESIGN discussion only**; do not implement Exam Runner before approved specs and do not mark any checkpoint Done without evidence and green Verify.
+> Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, `docs/BACKEND_CAPABILITY_MAP.md`, master Issue #1, active Issue #4, `docs/page-specs/EXAM_RUNNER.md`, plus Issue #11/QBank specs for remaining verification debt. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. AMBOSS timer/lifecycle/color work through frontend `14ecb212...` and backend `1500e4ae...` is complete and must not be repeated. The next Issue #4 work requires design approval for Test Analysis/Results or My Notebook/detailed Flashcards; My Notebook's future placement is the top-bar right helper zone beside Calculator. Library mobile/tablet and AMBOSS source media remain deferred.
 
 ## AMBOSS final technical checkpoint — 2026-10-07
 
@@ -369,3 +373,35 @@ Evidence:
 - smoke clicks a rewritten AMBOSS link and successfully loads the internal MedPark Library article;
 - PR #17 merged as `daf470d64eda4560c02c15d9ef9c80a97db578a7`;
 - frontend main Verify #86 ✅.
+
+
+## AMBOSS timer / lifecycle / annotation refinement checkpoint — 2026-10-07
+
+Merged:
+- frontend PR #24 → `14ecb212cfac91b5abbf514adc09c9219f30b6bc`;
+- backend PR #22 → `1500e4aeb71a1b7cf563e0a196f0a05ffc6a9e17`;
+- Railway deployment `c98b91a9-44ea-4f8b-920a-8922433405df` → SUCCESS.
+
+Delivered:
+- real one-second Timed countdown and Tutor count-up, shared by topbar/sidebar;
+- Timed Create Test presets 1:00 / 1:30 / 2:00 / 3:00 / Custom plus derived block time;
+- Tutor elapsed-time persistence across Suspend/Resume;
+- successful Suspend navigation to Previous Tests;
+- End Block available for Tutor and Timed;
+- Marker/Pencil six-color palettes + Custom color;
+- exact Marker color persistence and dark-mode contrast-safe rendering;
+- Pencil uses selected color for new strokes; Laser unchanged.
+
+Evidence:
+- frontend Verify #108 ✅;
+- AMBOSS Browser Smoke #28 ✅: `timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true pencil_palette=true`;
+- backend Verify #25 ✅;
+- production Exam Runner API Smoke #10 ✅: `TUTOR_TIMER_OK test=223221 suspend_elapsed=37 resume_preserved=true complete_elapsed=42`;
+- Tutor/Timed/Labs/AMBOSS Library production regressions remained green.
+
+Deferred by product decision:
+- final Test Analysis / Results page and post-End-Block navigation;
+- My Notebook shared cross-theme drawer (future top-bar right helper zone beside Calculator);
+- detailed Flashcards/Anki UX;
+- AMBOSS media upload/path completion;
+- other production themes.
