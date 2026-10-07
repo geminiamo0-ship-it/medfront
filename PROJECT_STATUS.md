@@ -405,3 +405,26 @@ Deferred by product decision:
 - detailed Flashcards/Anki UX;
 - AMBOSS media upload/path completion;
 - other production themes.
+
+
+## AMBOSS live timer production bugfix — 2026-10-07
+
+Observed production symptom:
+- visible Tutor/Timed timer could appear frozen while server timing continued.
+
+Root fix:
+- backend `GET /tests/:id` now returns server-authoritative `timerElapsedSeconds`;
+- frontend uses that snapshot as the display baseline and advances it locally every second;
+- `startedAt` parsing is fallback only;
+- returning to a visible browser tab forces an immediate timer resync.
+
+Evidence:
+- backend PR #24 → `e8f2743d053bfb1701b4feea4e9b51194b8b6102`;
+- Railway deployment `05fb3803-5c5a-4b1e-9048-5c89a9608fb0` → SUCCESS;
+- production Exam Runner Smoke #11: Tutor `0→1`, Timed `0→1` for `timerElapsedSeconds`;
+- frontend PR #26 → `9b5d3114e4031494e34351828a01bb22485c5643`;
+- frontend main Verify → SUCCESS;
+- AMBOSS Browser Smoke #29 → SUCCESS with `startedAt` intentionally unavailable in Tutor/Timed mocks;
+- Cloudflare Workers production Version `c30cb541-8344-4ebb-841d-b6384f5126ba` → SUCCESS.
+
+The frozen visible-timer bug is closed.
