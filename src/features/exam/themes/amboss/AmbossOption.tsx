@@ -14,6 +14,7 @@ interface AmbossOptionProps {
   revealed: boolean;
   inspected: boolean;
   showExplanation: boolean;
+  showCorrectAnswer?: boolean;
   onActivate: () => void;
 }
 
@@ -23,9 +24,13 @@ export function AmbossOption({
   revealed,
   inspected,
   showExplanation,
+  showCorrectAnswer = false,
   onActivate,
 }: AmbossOptionProps) {
-  const correct = revealed && inspected && option.isCorrect === true;
+  const correct =
+    revealed &&
+    option.isCorrect === true &&
+    (inspected || showCorrectAnswer);
   const incorrect = revealed && inspected && option.isCorrect === false;
   const classes = [
     'amboss-option',
