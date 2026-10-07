@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED — AMBOSS Exam Runner + first-answer flow + imported explanation-blob support are on `main` via PRs #12, #14 and #15; main Verify #81 is green. Deferred follow-ups remain tracked under Issue #4.
+**Current status:** MERGED — AMBOSS Exam Runner, first-answer flow, explanation-blob support, final-option regression coverage, and internal MedPark Library links are on `main` via PRs #12, #14, #15, #16 and #17. Backend canonical option ordering is on `medhvgg/main` via PR #7. Frontend main Verify #86 is green. Deferred follow-ups remain tracked under Issue #4.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED** | PRs #12 + #14 merged to `main`; modular multi-theme architecture preserved |
+| Test runner | **AMBOSS MERGED** | PRs #12/#14/#15/#16/#17 merged; backend PR #7 canonicalizes option order; modular multi-theme architecture preserved |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -303,3 +303,55 @@ Evidence:
 - `AMBOSS Browser Smoke #13` ✅ with `blob_explanations=true`;
 - smoke mocks the real import shape: all option `explanationHtml=null`, all A/B/C/D/E explanations in the question-level blob;
 - frontend `main` `Verify #81` ✅.
+
+
+## AMBOSS option-order + internal-library checkpoint — 2026-10-07
+
+### Canonical option ordering
+Source SQLite `options.option_order` is now treated as authoritative.
+
+Backend PR #7:
+- preserves letter-valued `option_order` such as A/B/C/.../H during both SQLite import paths;
+- continues to support 0-based and 1-based numeric order sources;
+- explicitly sorts runtime question options by canonical `displayOrder` before API output;
+- caches static question content with canonical option ordering;
+- explanation endpoint now selects `opt.displayOrder` and sorts options consistently;
+- shared order utility has targeted Jest coverage.
+
+Evidence:
+- backend option-order unit tests: 3/3 ✅;
+- backend Verify #9 ✅;
+- production Exam Runner API Smoke #3 ✅;
+- backend PR #7 merged to `main` as `78ed4bc6e94f0827cdbfc0ab4307ff5942351510`.
+
+### Final-option explanation
+Frontend PR #16 added an 8-option A–H regression with H as the final/correct option:
+- H explanation parsed from the combined question-level AMBOSS blob ✅;
+- H correct styling ✅;
+- SHOW ALL reveals all 8 explanations ✅;
+- omission reveal exposes all 8 explanations ✅.
+
+Evidence:
+- frontend Verify #83 ✅;
+- AMBOSS Browser Smoke #14 ✅;
+- PR #16 merged as `dd5e44a34bf2d32f64021086ee57b63b8532ac60`.
+
+### AMBOSS explanation links → MedPark Library
+Production backend verification proved real AMBOSS external article IDs resolve locally:
+- `SM0yLg` → internal article `2583`;
+- `Of0Im2` → internal article `2494`;
+- `ek0x5T` → internal article `2875`.
+
+Frontend PR #17:
+- rewrites AMBOSS explanation links carrying `data-learningcard-id` / `xid` to `/library?source=amboss&article=<externalId>&anchor=<anker>`;
+- keeps the stable AMBOSS external ID in the URL instead of coupling Exam Runner to internal article PKs;
+- LibraryPage resolves the deep-linked external ID through the existing backend resolver;
+- preserves section anchor;
+- deduplicates in-flight deep-link article loads.
+
+Evidence:
+- frontend Verify #85 ✅;
+- AMBOSS Browser Smoke #15 ✅ with `internal_library_link=true`;
+- smoke clicks a rewritten AMBOSS link and successfully loads the internal MedPark Library article;
+- PR #17 merged as `daf470d64eda4560c02c15d9ef9c80a97db578a7`;
+- frontend main Verify #86 ✅.
