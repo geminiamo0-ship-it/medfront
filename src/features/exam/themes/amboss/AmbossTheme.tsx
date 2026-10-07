@@ -12,7 +12,7 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
   if (!controller.test || !controller.currentQuestion) return null;
 
   return (
-    <div className={sidebarOpen ? 'amboss-runner sidebar-open' : 'amboss-runner'}>
+    <div className={sidebarOpen ? 'amboss-runner sidebar-open' : 'amboss-runner'} data-appearance="light">
       <header className="amboss-topbar">
         <button
           type="button"
@@ -23,7 +23,6 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
           ☰
         </button>
         <div className="amboss-topbar-space" />
-        <span className="amboss-theme-name">AMBOSS</span>
       </header>
 
       <AmbossSidebar
