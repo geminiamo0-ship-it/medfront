@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED — AMBOSS Exam Runner is on `main` via PR #12; main Verify #70 is green. Deferred follow-ups remain tracked under Issue #4.
+**Current status:** MERGED — AMBOSS Exam Runner + first-answer inline explanation flow are on `main` via PRs #12 and #14; main Verify #78 is green. Deferred follow-ups remain tracked under Issue #4.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED** | PR #12 merged to `main`; modular multi-theme architecture preserved |
+| Test runner | **AMBOSS MERGED** | PRs #12 + #14 merged to `main`; modular multi-theme architecture preserved |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -136,7 +136,7 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-AMBOSS Runner is merged and verified on `main`.
+AMBOSS Runner and the approved first-answer interaction are merged and verified on `main`.
 
 Next work under Issue #4 should begin only when explicitly selected by the user:
 1. post-merge visual/runtime refinements if any are noticed;
@@ -161,7 +161,7 @@ Implemented on `feat/amboss-exam-runner`:
 - `KEY INFO` clue toggle for imported `.Highlight`;
 - `ATTENDING TIP` extraction from `.amboss-hint`;
 - no visible Submit button;
-- Tutor/Mixed `SHOW ANSWER` wired through canonical submit + explanation endpoints;
+- Tutor/Mixed first option click submits immediately and becomes the only persisted answer; later option clicks are explanation-only; `SHOW ANSWER` with no choice records omission and reveals all;
 - Timed local selection/batch controller path without per-question reveal;
 - Lab Values panel, Question Notes read/save, Mark persistence;
 - Flashcards entry placeholder only;
@@ -170,7 +170,7 @@ Implemented on `feat/amboss-exam-runner`:
 
 Verification evidence:
 - latest implementation refactor head `03a55a58c9d863723f207f26e94fb2e0f52c4b00`;
-- frontend PR #12 remains draft;
+- initial AMBOSS PR #12 merged to `main`; first-answer refinement PR #14 also merged;
 - frontend GitHub Actions `Verify #60`: typecheck ✅ lint ✅ build ✅;
 - AMBOSS styling is now split by responsibility under `themes/amboss/styles/` (tokens / shell / question / panels / responsive / appearance); `amboss.css` is import-only;
 - backend difficulty contract merged to `medhvgg/main` via PR #1 (`fbba279f6ee8d615644497dd63f4ee6ede8d4410`);
@@ -187,7 +187,7 @@ Automated browser verification:
 Still open before Done:
 - Media deferral: AMBOSS `offline_media/...` files are not uploaded yet; user explicitly asked to skip this for the current runner pass.
 - Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
-- final human visual approval by the user;
+- post-merge visual refinements only when explicitly requested by the user;
 - final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
 
 ## 8. Definition of Done
@@ -252,3 +252,30 @@ Merge decision:
 - User explicitly chose to merge without a separate Cloudflare preview, noting that later refinements remain easy because the theme is isolated and structured.
 - AMBOSS media remains deferred until source media files are uploaded.
 - Issue #4 stays open only for deferred runner follow-ups and results/review scope; AMBOSS runner implementation itself is merged.
+
+
+## AMBOSS first-answer interaction checkpoint — 2026-10-07
+
+Approved interaction is now merged to `main`.
+
+Behavior:
+- first Tutor/Mixed option click is the only persisted answer submit;
+- that first answer remains the canonical correct/incorrect result;
+- the first clicked option opens its inline explanation after server acknowledgement;
+- later option clicks are presentation-only and open their own explanation/correctness state without another submit;
+- `SHOW ALL EXPLANATIONS` opens every option without changing the recorded answer;
+- `SHOW ANSWER` before any option sends `selectedOptionId=null`, records an explicit omission, and reveals all explanations;
+- omission is returned as omitted immediately on Tutor/Mixed reload;
+- Timed behavior is unchanged and continues to use End Block batch semantics;
+- current question is pinned across post-submit refetches so a backend `resumeQuestionId` advance cannot jump the UI away before explanation reveal.
+
+Merge evidence:
+- backend PR #6 merged: `d399eadc6c258b47bbfa3ec2d252d6ac92a435d4`;
+- frontend PR #14 merged: `50fd0552a55856c67f3ad7eb6820d07e399ae3a7`;
+- frontend `Verify #77` on PR head: typecheck ✅ lint ✅ build ✅;
+- `AMBOSS Browser Smoke #12`: ✅;
+- browser smoke assertions: `first_answer_submit=true post_submit_inline=true show_all=true omitted=true`;
+- frontend `main` `Verify #78`: ✅;
+- backend PR #6 `Verify #7`: ✅.
+
+No further first-answer-flow work is pending unless runtime feedback exposes a real issue.
