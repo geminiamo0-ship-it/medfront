@@ -695,8 +695,9 @@ try {
 
     await page.getByRole('button', { name: /^End Block$/i }).click();
     await page.getByRole('heading', { name: /End this block/i }).waitFor();
-    await page.getByText('Answered').waitFor();
-    await page.getByText('Unanswered').waitFor();
+    const endBlockDialog = page.locator('.amboss-end-block-dialog');
+    await endBlockDialog.getByText('Answered', { exact: true }).waitFor();
+    await endBlockDialog.getByText('Unanswered', { exact: true }).waitFor();
     await page.getByRole('button', { name: /End block now/i }).click();
     await page.getByRole('button', { name: /AI Summary/i }).waitFor();
     assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
