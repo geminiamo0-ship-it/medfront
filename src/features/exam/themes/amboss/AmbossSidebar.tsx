@@ -101,7 +101,7 @@ export function AmbossSidebar({
           type="button"
           className="amboss-sidebar-toggle"
           onClick={onToggle}
-          aria-label="Collapse session sidebar"
+          aria-label="Toggle session sidebar"
         >
           <ExamIcon name="previous" size={19} />
         </button>
