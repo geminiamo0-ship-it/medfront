@@ -643,7 +643,7 @@ try {
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
 
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     // Global media migration: the same API adapter handles nested question
     // stems and option HTML; unrelated external URLs are untouched.
@@ -752,7 +752,7 @@ try {
 
     // Moving to a fresh unanswered question resumes active solving time.
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
     const secondQuestionStart = (await tutorTopTimer.textContent())?.trim();
     await page.waitForTimeout(1150);
     const secondQuestionRunning = (await tutorTopTimer.textContent())?.trim();
@@ -904,7 +904,7 @@ try {
 
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9003`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     const tutorTopTimer = page.locator('.amboss-primary-timer strong');
     const tutorSideTimer = page.locator('.amboss-sidebar-timer-cell:first-child .amboss-sidebar-time strong');
@@ -979,7 +979,7 @@ try {
 
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9002`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     assert((await page.getByRole('button', { name: /AI Summary/i }).count()) === 0, 'AI Summary leaked into active Timed block');
 
@@ -1009,13 +1009,13 @@ try {
     assert((await page.locator('.amboss-option-explanation').count()) === 0, 'Timed selection leaked an explanation');
 
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
     await page.getByRole('button', { name: /PREVIOUS/i }).click();
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed selection was lost across navigation');
 
     await page.reload({ waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed draft was not restored after reload');
 
     await page.getByRole('button', { name: /^Tools$/i }).click();
@@ -1090,7 +1090,7 @@ try {
     const savesBeforeOmittedReview = timedSelectionSaves;
     const batchBeforeOmittedReview = JSON.stringify(timedBatchBody);
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
 
     const omittedReviewRows = page.locator('.amboss-option');
     assert(
@@ -1126,7 +1126,7 @@ try {
     assert(timedStatus === 'completed', 'Omitted review changed completed test status');
 
     await page.getByRole('button', { name: /PREVIOUS/i }).click();
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     await page.getByRole('button', { name: /AI Summary/i }).click();
     await page.getByText('AI review summary for the completed timed question.').waitFor();
     assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
@@ -1146,7 +1146,7 @@ try {
     tutorPersistedTimeSpentSeconds = 0;
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-baseline.png`, fullPage: true });
 
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 0, `${device.name}: drawer should start closed`);
