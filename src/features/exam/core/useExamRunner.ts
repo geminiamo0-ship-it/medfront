@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 import {
@@ -686,6 +686,10 @@ export function useExamRunner(testIdParam: string | undefined) {
   const markedCount = test
     ? test.questions.filter((question) => isQuestionMarked(question)).length
     : 0;
+  const timerPaused =
+    isSuspended ||
+    isCompleted ||
+    (isTutor && !tutorClockRunning);
 
   return {
     testId,
@@ -708,6 +712,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     remainingSeconds,
     timerSeconds: isTimed && remainingSeconds != null ? remainingSeconds : elapsedSeconds,
     timerCountsDown: isTimed && remainingSeconds != null,
+    timerPaused,
     answeredCount,
     unansweredCount,
     markedCount,
