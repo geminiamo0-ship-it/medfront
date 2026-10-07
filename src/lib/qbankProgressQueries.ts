@@ -11,6 +11,8 @@ import type { QueryClient } from '@tanstack/react-query';
 export const QBANK_PROGRESS_QUERY_PREFIXES = [
   'test-counts',
   'test-availability',
+  'test-subjects',
+  'test-systems',
   'qbank-statistics',
   'question-banks',
   'question-bank',
