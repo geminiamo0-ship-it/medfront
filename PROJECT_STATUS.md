@@ -181,6 +181,7 @@ Verification evidence:
 - reusable AMBOSS media diagnostic merged via backend PR #3 (`1be935e3de8ce1ac135651ac959ae0ebec47c170`).
 
 Still open before Done:
+- Media deferral: AMBOSS `offline_media/...` files are not uploaded yet; user explicitly asked to skip this for the current runner pass.
 - Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
 - clue behavior/browser isolation verification inside AMBOSS;
 - desktop/tablet/mobile browser acceptance;
