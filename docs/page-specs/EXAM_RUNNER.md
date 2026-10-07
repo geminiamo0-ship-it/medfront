@@ -310,6 +310,25 @@ User explicitly approved this timing rule as a shared Exam Core behavior for Tut
 - Reopen answered Q1 → no timer movement.
 - Open unanswered Q3 → timer resumes.
 
+## 11D. Approved completed-Omitted review contract — 2026-10-08
+
+User explicitly approved/fixed this as a review rule shared by every exam theme.
+
+### Canonical semantics
+- `Omitted` means the learner did not submit an answer before End Block; it remains an Omitted result/filter state permanently unless a later independent attempt answers the question.
+- Omitted is **not** an answer-visibility restriction after the test is completed.
+- After End Block, opening an Omitted question reveals the canonical correct answer exactly like other completed-review questions.
+- Clicking any answer option in completed review may reveal/fetch that option's explanation.
+- `SHOW ALL EXPLANATIONS` remains available in completed review.
+- Reviewing an Omitted question must never create a submission, mutate selectedOptionId, change scoring, or change Omitted/Correct/Incorrect QBank states.
+- Block-results locking remains authoritative: if backend withholds correctness because a block-bank review is still locked, the frontend must not manufacture it.
+
+### Presentation
+- A completed untouched Omitted question should not auto-expand every explanation merely because it is Omitted.
+- The correct answer is visually identifiable immediately in completed review.
+- Option explanations expand on click; all may be expanded explicitly with `SHOW ALL EXPLANATIONS`.
+- Explicit Tutor `SHOW ANSWER` omission during an active Tutor session keeps its existing immediate reveal behavior.
+
 ## 12. Current implementation slices
 
 ### Slice A — foundation
