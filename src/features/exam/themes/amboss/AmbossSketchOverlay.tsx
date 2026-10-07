@@ -23,7 +23,7 @@ export function AmbossSketchOverlay({ active, color }: { active: boolean; color:
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.lineWidth = 2;
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = '#d44545';
       }
       setHasInk(false);
     };
@@ -32,7 +32,7 @@ export function AmbossSketchOverlay({ active, color }: { active: boolean; color:
     const observer = new ResizeObserver(resize);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [color]);
+  }, []);
 
   function point(event: ReactPointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current!;
