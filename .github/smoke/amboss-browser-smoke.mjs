@@ -287,7 +287,7 @@ try {
     await page.getByText(/Ethyl alcohol at concentrations of 60–80%/i).waitFor();
 
     await page.getByRole('button', { name: /^LABS$/i }).click();
-    await page.getByText('LAB VALUES').waitFor();
+    await page.getByText('LAB VALUES', { exact: true }).waitFor();
     await page.getByText('Calcium').waitFor();
     await page.getByRole('button', { name: /Close lab values/i }).click();
 
@@ -381,7 +381,7 @@ try {
     assert((await page.locator('.amboss-stem.amboss-clues-on .Highlight').count()) >= 1, `${device.name}: clue toggle failed`);
 
     await page.getByRole('button', { name: /^LABS$/i }).click();
-    await page.getByText('LAB VALUES').waitFor();
+    await page.getByText('LAB VALUES', { exact: true }).waitFor();
     await page.waitForTimeout(350);
     const labBox = await page.locator('.amboss-labs.is-open').boundingBox();
     assert(labBox && Math.round(labBox.width) >= device.width - 2, `${device.name}: Labs panel is not viewport-wide`);
