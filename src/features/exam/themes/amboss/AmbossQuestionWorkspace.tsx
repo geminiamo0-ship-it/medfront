@@ -66,7 +66,7 @@ export function AmbossQuestionWorkspace({
     [explanationBlob],
   );
 
-  const questionHighlights = question ? controller.getQuestionHighlights(question) : [];
+  const questionHighlights = controller.currentQuestionHighlights;
 
   useEffect(() => {
     if (!stemRef.current) return;
