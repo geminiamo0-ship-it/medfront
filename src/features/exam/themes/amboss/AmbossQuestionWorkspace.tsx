@@ -16,7 +16,17 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
   const [labsOpen, setLabsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
-  const [showAllExplanations, setShowAllExplanations] = useState(false);
+  const [showAllExplanations, setShowAllExplanations] = useState(
+    () => question?.isOmitted === true,
+  );
+  const [expandedOptionIds, setExpandedOptionIds] = useState<Set<number>>(() => {
+    if (!question) return new Set<number>();
+    if (question.isOmitted) {
+      return new Set(question.options.map((option) => option.id));
+    }
+    const submitted = question.userAnswer?.selectedOptionId;
+    return submitted != null ? new Set([submitted]) : new Set<number>();
+  });
 
   const parsed = useMemo(
     () => parseAmbossQuestionHtml(question?.textHtml ?? ''),
@@ -43,6 +53,43 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
     const next = !labsOpen;
     setLabsOpen(next);
     if (next) controller.ensureLabsLoaded();
+  }
+
+  function activateOption(optionId: number) {
+    // A rapid second click cannot race the first submit.
+    if (!controller.isRevealed && controller.showAnswerMutation.isPending) return;
+
+    if (!controller.isRevealed) {
+      // Timed stays local. Tutor/Mixed submits this first click immediately.
+      if (controller.isTutorLike) {
+        setExpandedOptionIds(new Set([optionId]));
+      }
+      controller.selectOption(optionId);
+      return;
+    }
+
+    // After the first Tutor/Mixed answer, clicks are presentation-only.
+    setExpandedOptionIds((current) => {
+      if (current.has(optionId)) return current;
+      const next = new Set(current);
+      next.add(optionId);
+      return next;
+    });
+  }
+
+  function revealWithoutAnswer() {
+    // SHOW ANSWER before a first choice = explicit omission + reveal all.
+    setShowAllExplanations(true);
+    controller.showAnswer();
+  }
+
+  function toggleAllExplanations() {
+    if (showAllExplanations) {
+      setShowAllExplanations(false);
+      setExpandedOptionIds(new Set());
+      return;
+    }
+    setShowAllExplanations(true);
   }
 
   return (
@@ -96,11 +143,11 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
             {resolvedOptions.map((option) => {
               const selected = controller.selectedOptionId === option.id;
               const revealed = controller.isRevealed;
-              const correct = revealed && option.isCorrect === true;
+              const inspected = showAllExplanations || expandedOptionIds.has(option.id);
               const showExplanation =
                 revealed &&
-                !!option.explanationHtml &&
-                (showAllExplanations || selected || correct);
+                inspected &&
+                !!option.explanationHtml;
 
               return (
                 <AmbossOption
@@ -108,8 +155,9 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
                   option={option}
                   selected={selected}
                   revealed={revealed}
+                  inspected={inspected}
                   showExplanation={showExplanation}
-                  onSelect={() => controller.selectOption(option.id)}
+                  onActivate={() => activateOption(option.id)}
                 />
               );
             })}
@@ -120,7 +168,7 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
               <button
                 type="button"
                 className="amboss-show-answer"
-                onClick={controller.showAnswer}
+                onClick={revealWithoutAnswer}
                 disabled={controller.showAnswerMutation.isPending}
               >
                 ☑ {controller.showAnswerMutation.isPending ? 'LOADING ANSWER…' : 'SHOW ANSWER'}
@@ -129,7 +177,7 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
               <button
                 type="button"
                 className="amboss-show-answer"
-                onClick={() => setShowAllExplanations((value) => !value)}
+                onClick={toggleAllExplanations}
               >
                 ↕ {showAllExplanations ? 'HIDE ALL EXPLANATIONS' : 'SHOW ALL EXPLANATIONS'}
               </button>
