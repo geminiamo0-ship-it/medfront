@@ -1,0 +1,52 @@
+name: Public R2 Media Availability
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/media.ts"
+      - "src/lib/sanitize.ts"
+      - ".github/workflows/r2-media-availability.yml"
+  workflow_dispatch:
+    inputs:
+      object_key:
+        description: "Known existing public R2 object key, without leading slash"
+        required: false
+        default: "offline_media/ihg_681237c83e6287_31701899.jpg"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      R2_ORIGIN: https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev
+      DEFAULT_KEY: offline_media/ihg_681237c83e6287_31701899.jpg
+      REQUESTED_KEY: ${{ inputs.object_key }}
+    steps:
+      - name: Probe actual public object availability (informational)
+        shell: bash
+        run: |
+          set -uo pipefail
+          key="${REQUESTED_KEY:-$DEFAULT_KEY}"
+          # Avoid external hosts/traversal supplied through the input.
+          if [[ "$key" != offline_media/* ]] || [[ "$key" == *..* ]] || [[ "$key" == *://* ]]; then
+            echo "::error::Invalid object key (offline_media/ only)."
+            exit 1
+          fi
+          url="$R2_ORIGIN/$key"
+          echo "Checking: $url"
+          if response=$(curl --silent --show-error --location --max-time 20 --output /dev/null --write-out '%{http_code}|%{content_type}' "$url"); then
+            code="${response%%|*}"
+            mime="${response#*|}"
+            echo "LIVE_R2_RESPONSE status=$code mime=$mime"
+            if [[ "$code" == "200" && "$mime" == image/* ]]; then
+              echo "LIVE_R2_OBJECT_OK key=$key"
+            else
+              echo "::warning::Media object not verified 200 with image MIME; check upload/path/public access."
+            fi
+          else
+            echo "::warning::Could not probe live R2 from runner; no object availability claim."
+          fi
