@@ -775,7 +775,7 @@ try {
 
     await page.getByRole('button', { name: /^Timed$/i }).click();
     await page.getByText('Time per question', { exact: true }).waitFor();
-    await page.getByRole('button', { name: /^Custom$/i }).click();
+    await page.getByRole('button', { name: /^Custom$/i }).last().click();
     const customMinutes = page.getByLabel('Minutes / question');
     await customMinutes.fill('2.5');
     await page.getByText('1h 40m', { exact: true }).waitFor();
