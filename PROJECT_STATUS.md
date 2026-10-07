@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — MedPark frontend reconstruction
 
-**Last updated:** 2026-10-06  
+**Last updated:** 2026-10-07  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
@@ -174,15 +174,14 @@ Verification evidence:
 - frontend current head `219c49923e3c3bdf8a7fcdd4b9660a7919606b6f`;
 - frontend PR #12 remains draft;
 - frontend GitHub Actions `Verify #56`: typecheck ✅ lint ✅ build ✅;
-- backend companion PR `geminiamo0-ship-it/medhvgg#1`;
-- backend `difficultyTier` contract + backend Verify #1 build ✅.
+- backend difficulty contract merged to `medhvgg/main` via PR #1 (`fbba279f6ee8d615644497dd63f4ee6ede8d4410`);
+- reusable authenticated production Exam Runner smoke merged via backend PR #2 (`876151a6120aa0da168708eac3be399d069b20fa`);
+- backend Verify #2 build ✅;
+- production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed.
 
 Still open before Done:
-- authenticated Tutor/Mixed smoke;
-- authenticated Timed/End-Block smoke;
-- reload persistence for Mark + Notes;
-- real Labs payload rendering;
 - imported image/media path validation for relative `offline_media/...` sources;
+- clue behavior/browser isolation verification inside AMBOSS;
 - desktop/tablet/mobile browser acceptance;
 - final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
 
