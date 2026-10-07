@@ -52,8 +52,14 @@ Approved reference: the supplied AMBOSS screenshots and standalone prototype dis
 ### Top bar
 - AMBOSS teal/green chrome.
 - Remove the AMBOSS search field from MedPark.
-- Reserve the top utility area for later-approved global exam utilities/theme appearance controls.
-- Do not invent additional top controls before they are approved.
+- Approved utility composition is split into three calm zones rather than one crowded row:
+  - **Left / utility:** Settings + a compact Tools popover.
+  - **Center / exam lifecycle:** Suspend · primary countdown timer · End Block.
+  - **Right / helper:** Calculator during the live block. AI Summary is hidden during Timed solving and appears only after End Block / review.
+- Tools popover contains **Marker / Pencil / Laser**. These are AMBOSS presentation tools and must not duplicate core answer state.
+- My Notebook is deliberately deferred; do not ship a theme-local Notebook placeholder because the eventual Notebook experience is shared across themes.
+- Settings owns the approved AMBOSS appearance/text controls instead of adding another top-level appearance button.
+- The primary timer lives in the top bar. The existing sidebar timer remains visible as a secondary display; both derive from the same timer source of truth.
 
 ### Left session sidebar
 - Collapsible/expandable with a smooth animation.
@@ -114,10 +120,16 @@ Tutor/Mixed:
 - the frontend does not calculate correctness.
 
 Timed:
-- no immediate answer reveal during the block;
-- selections remain buffered for the canonical timed End-Block batch path;
+- one minute per requested question for Standard Create Test (for example 40 questions → 40:00);
+- the top-bar timer is the primary countdown; the sidebar timer stays visible as a secondary synchronized display;
+- selecting an option shows a **blue selected state only** and updates the local timed answer buffer;
+- Next / Previous navigation keeps the buffered selection visible when returning to the question;
+- no correct/incorrect styling, explanation, percentages or answer reveal during the live block;
 - no hidden per-question `/submit` call for Timed;
-- clue/hint tools remain available in the current first-pass design unless later changed explicitly.
+- End Block submits the entire buffered answer set through the canonical timed batch endpoint;
+- when the countdown reaches zero, the runner automatically executes the same End Block path once;
+- Suspend persists server timing state and pauses the displayed countdown; Resume continues from the server-preserved remaining time;
+- clue/hint tools remain available in the current approved design.
 
 ## 7. Explanation behavior
 
@@ -166,6 +178,7 @@ Labs:
 ## 10. Appearance
 
 AMBOSS Light and AMBOSS Dark are both approved directions.
+The approved Settings control in the top bar is now the AMBOSS placement for appearance and readable text-size controls; this resolves the previously deferred placement without changing the shared theme registry boundary.
 Dark-mode reference:
 - charcoal/dark green-gray surfaces, not pure black;
 - AMBOSS teal top chrome retained;
@@ -189,6 +202,43 @@ Responsive behavior is part of Done.
 - Touch targets must be practical.
 - No unintended horizontal overflow.
 - Exact final mobile utility placement remains subject to user visual approval during verification.
+
+## 11A. Approved Timed + utility-bar slice — 2026-10-07
+
+User explicitly approved this implementation slice and asked for immediate implementation.
+
+### Live Timed block
+- Standard Create Test uses **60 seconds per question** for Timed.
+- The primary countdown appears in the top bar; the existing sidebar time display remains visible and synchronized from the same core timer state.
+- Timed answer selection is blue-only and local until End Block.
+- Navigation does not reveal correctness or explanations.
+- Timer expiry automatically triggers the same idempotent End Block action.
+
+### Suspend / End Block
+- Center controls are `Suspend · Timer · End Block`.
+- Suspend uses the canonical backend suspend endpoint, preserves elapsed/remaining time, then leaves the runner in a resumable suspended state.
+- Resume uses the canonical backend resume endpoint before continuing the running countdown.
+- End Block opens a confirmation summary with Answered / Unanswered / Marked / Remaining Time and offers cancel/review-navigation versus final End Block.
+- End Block must be single-flight/idempotent in the client so timeout + manual click cannot double-submit.
+
+### Top utility layout
+- Left: `Settings`, `Tools`.
+- Tools popover: `Marker`, `Pencil`, `Laser`.
+- Right during solving: `Calculator`.
+- `My Notebook` remains deferred as a shared cross-theme product surface.
+- `AI Summary` is not visible during Timed solving. It becomes available only once the test is completed/reviewable, using the existing authenticated per-question AI endpoint when invoked.
+
+### Tool behavior
+- Settings: AMBOSS light/dark appearance and readable text-size controls.
+- Marker: question-text selection highlight using the existing dedicated highlight persistence endpoint; it must not create answer-submission rows.
+- Pencil: transient drawing overlay for scratch annotation in the current question workspace; no fake persistence contract is invented.
+- Laser: transient pointer mode for visual focus; no persistence.
+- Calculator: local basic calculator panel with keyboard-safe arithmetic controls.
+- Question Notes remain the existing per-question Notes capability in the question toolbar and are not renamed to Notebook.
+
+### Review gate
+- Completion unlocks review-only helper UI, including AI Summary.
+- Final full Results/Review page design remains a separate later slice; this implementation only provides lifecycle-safe completed-state review behavior needed by End Block.
 
 ## 12. Current implementation slices
 

@@ -1,6 +1,8 @@
 import { api } from '@/api/client';
 import type {
+  ExamAiSummaryResponse,
   ExamExplanationResponse,
+  ExamHighlight,
   ExamTest,
   LabValuesByCategory,
   QuestionNote,
@@ -60,4 +62,42 @@ export function saveQuestionNote(questionId: number, content: string) {
 
 export function getLabValues() {
   return api.get<LabValuesByCategory>('/lab-values');
+}
+
+
+export function saveTimedSelection(
+  testId: number,
+  questionId: number,
+  selectedOptionId: number | null,
+) {
+  return api.patch<{ ok: boolean; questionId: number; selectedOptionId: number | null }>(
+    `/tests/${testId}/timed-selection`,
+    { questionId, selectedOptionId },
+  );
+}
+
+export function suspendExamTest(testId: number) {
+  return api.put<ExamTest>(`/tests/${testId}/suspend`, {});
+}
+
+export function resumeExamTest(testId: number) {
+  return api.put<ExamTest>(`/tests/${testId}/resume`, {});
+}
+
+export function updateExamHighlights(
+  testId: number,
+  questionId: number,
+  highlights: ExamHighlight[],
+) {
+  return api.patch<{ ok: boolean }>(`/tests/${testId}/highlights`, {
+    questionId,
+    highlights,
+  });
+}
+
+export function getExamAiSummary(testId: number, questionId: number, lang: 'en' | 'ar' = 'en') {
+  return api.post<ExamAiSummaryResponse>(
+    `/tests/${testId}/questions/${questionId}/ai-explain`,
+    { type: 'question', lang },
+  );
 }

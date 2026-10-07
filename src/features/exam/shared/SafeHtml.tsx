@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { safeRichHtml } from '@/lib/sanitize';
 
 interface SafeHtmlProps {
@@ -5,11 +6,14 @@ interface SafeHtmlProps {
   className?: string;
 }
 
-export function SafeHtml({ html, className }: SafeHtmlProps) {
-  return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: safeRichHtml(html) }}
-    />
-  );
-}
+export const SafeHtml = forwardRef<HTMLDivElement, SafeHtmlProps>(
+  function SafeHtml({ html, className }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        dangerouslySetInnerHTML={{ __html: safeRichHtml(html) }}
+      />
+    );
+  },
+);
