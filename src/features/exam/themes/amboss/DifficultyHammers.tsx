@@ -25,8 +25,8 @@ export function DifficultyHammers({ tier }: DifficultyHammersProps) {
           className={index < count ? 'amboss-hammer is-active' : 'amboss-hammer'}
           aria-hidden="true"
         >
-          <path d="M2.7 3.2h6.1l2.6 2.6-2.2 2.2-1.5-1.5-4.9 4.9-2-2 4.9-4.9-1.4-1.3H2.7Z" />
-          <path d="m10.5 7.2 4.8 4.8-2.2 2.2-4.8-4.8Z" />
+          <path d="M12.2 2.2 17 7l-2.4 2.4-1.5-1.5-5.8 5.8 1.6 1.6-2.3 2.3-4.9-4.9L4 10.4 5.6 12l5.8-5.8-1.6-1.6 2.4-2.4Z" />
+          <path d="m15.2 7.8 1.7-1.7 4.2 4.2-1.7 1.7-4.2-4.2Z" />
         </svg>
       ))}
     </span>
