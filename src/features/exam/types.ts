@@ -19,6 +19,14 @@ export interface ExamOption {
   uworldChosenBy?: number | null;
 }
 
+export interface ExamHighlight {
+  text: string;
+  startIndex: number;
+  endIndex: number;
+  color: string;
+  source?: 'question' | 'explanation';
+}
+
 export interface ExamUserAnswer {
   selectedOptionId: number | null;
   isCorrect?: boolean;
@@ -38,6 +46,12 @@ export interface ExamQuestion {
   questionBank?: ExamQuestionBank | null;
   options: ExamOption[];
   userAnswer: ExamUserAnswer | null;
+  draftSelectedOptionId?: number | null;
+  highlightData?: {
+    highlights: ExamHighlight[];
+    questionHtmlCache?: string | null;
+    explanationHtmlCache?: string | null;
+  } | null;
   isMarked: boolean;
   isAnswered: boolean;
   isOmitted: boolean;
@@ -127,4 +141,10 @@ export interface TimedBatchResponse {
   percentageScore: number;
   timeSpentSeconds: number;
   alreadyCompleted?: boolean;
+}
+
+
+export interface ExamAiSummaryResponse {
+  content: string;
+  language: string;
 }
