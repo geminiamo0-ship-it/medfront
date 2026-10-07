@@ -1019,6 +1019,19 @@ try {
     );
     await page.getByRole('button', { name: /^Tools$/i }).click();
 
+    // Tool-mode test cleanup: review clicks should run with Pencil disabled.
+    await page.getByRole('button', { name: /^Tools$/i }).click();
+    await page
+      .locator('.amboss-tools-popover .amboss-tool-config')
+      .nth(1)
+      .locator('.amboss-popover-action')
+      .click();
+    assert(
+      (await page.locator('.amboss-pencil-canvas.is-active').count()) === 0,
+      'Pencil smoke cleanup did not disable drawing mode',
+    );
+    await page.getByRole('button', { name: /^Tools$/i }).click();
+
     await page.getByRole('button', { name: /^Calculator$/i }).click();
     await page.getByRole('button', { name: /^2$/ }).click();
     await page.getByRole('button', { name: /^\+$/ }).click();
