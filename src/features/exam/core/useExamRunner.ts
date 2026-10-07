@@ -120,10 +120,16 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const selectedOptionId = currentQuestion ? getSelectedOptionId(currentQuestion) : null;
 
-  const serverAlreadyRevealed =
-    !!currentQuestion?.userAnswer &&
-    currentQuestion.userAnswer.isCorrect !== undefined &&
+  const serverProvidesCorrectness =
+    !!currentQuestion &&
     currentQuestion.options.some((option) => option.isCorrect !== undefined);
+
+  const serverAlreadyRevealed =
+    serverProvidesCorrectness &&
+    (
+      !!currentQuestion?.userAnswer ||
+      test?.status === 'completed'
+    );
 
   const currentReveal = currentQuestion
     ? revealedByQuestion[currentQuestion.id] ?? null
@@ -455,6 +461,39 @@ export function useExamRunner(testIdParam: string | undefined) {
     });
   }
 
+  const reviewExplanationMutation = useMutation({
+    mutationFn: (question: ExamQuestion) =>
+      getExamExplanation(testId, question.id),
+    onSuccess: (explanation, question) => {
+      const correctOptionId =
+        explanation.options.find((option) => option.isCorrect)?.id ?? null;
+
+      setRevealedByQuestion((current) => ({
+        ...current,
+        [question.id]: {
+          correctOptionId,
+          isCorrect: question.userAnswer?.isCorrect ?? false,
+          submittedOptionId: question.userAnswer?.selectedOptionId ?? null,
+          explanation,
+        },
+      }));
+    },
+  });
+
+  function ensureCurrentReviewExplanation() {
+    if (
+      !currentQuestion ||
+      !isCompleted ||
+      !isRevealed ||
+      currentReveal ||
+      reviewExplanationMutation.isPending
+    ) {
+      return;
+    }
+
+    reviewExplanationMutation.mutate(currentQuestion);
+  }
+
   const markMutation = useMutation({
     mutationFn: async ({ questionId, isMarked }: { questionId: number; isMarked: boolean }) =>
       setExamQuestionMark(testId, questionId, isMarked),
@@ -723,6 +762,8 @@ export function useExamRunner(testIdParam: string | undefined) {
     goNext,
     showAnswer,
     showAnswerMutation,
+    ensureCurrentReviewExplanation,
+    reviewExplanationMutation,
     isQuestionMarked,
     toggleCurrentMark,
     markMutation,
