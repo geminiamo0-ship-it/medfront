@@ -666,6 +666,13 @@ try {
     await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
     assert((await page.locator('input[placeholder="Find AMBOSS content"]').count()) === 0, 'Removed AMBOSS search field reappeared');
+    const questionRows = page.locator('.amboss-question-row');
+    assert((await questionRows.count()) === 5, 'Sidebar lost question navigation rows');
+    assert((await questionRows.nth(0).locator('.amboss-question-title').textContent() || '').startsWith('The occupational health department'), 'Sidebar is not displaying the real first question stem');
+    assert((await questionRows.nth(1).locator('.amboss-question-title').textContent() || '').includes('AMBOSS sample question 2'), 'Inactive question row has no stem preview');
+    assert((await page.locator('.amboss-sidebar-progress').getAttribute('aria-valuenow')) === '0', 'Initial sidebar question progress should be zero');
+    assert((await page.locator('.amboss-sidebar-timer-cell').count()) === 2, 'Sidebar does not expose SESSION and QUESTION clocks');
+    assert((await page.getByRole('button', { name: 'EXIT SESSION' }).count()) === 1, 'Sidebar Exit Session action is missing');
 
     const activeHammers = await page.locator('.amboss-question-row.is-active .amboss-hammer.is-active').count();
     assert(activeHammers === 4, `Expected 4 active hammers for hard difficulty, got ${activeHammers}`);
@@ -900,13 +907,17 @@ try {
     await page.getByText('70% ethanol').waitFor();
 
     const tutorTopTimer = page.locator('.amboss-primary-timer strong');
-    const tutorSideTimer = page.locator('.amboss-sidebar-time strong');
+    const tutorSideTimer = page.locator('.amboss-sidebar-timer-cell:first-child .amboss-sidebar-time strong');
+    const tutorQuestionTimer = page.locator('.amboss-sidebar-timer-cell:nth-child(2) strong');
+    const tutorQuestionBefore = (await tutorQuestionTimer.textContent())?.trim();
     const tutorFirst = (await tutorTopTimer.textContent())?.trim();
     assert((await page.getByRole('button', { name: /^End Block$/i }).count()) === 1, 'Tutor is missing End Block');
 
     await page.waitForTimeout(1150);
     const tutorSecond = (await tutorTopTimer.textContent())?.trim();
     const tutorSideSecond = (await tutorSideTimer.textContent())?.trim();
+    const tutorQuestionAfter = (await tutorQuestionTimer.textContent())?.trim();
+    assert(timerTextToSeconds(tutorQuestionAfter) > timerTextToSeconds(tutorQuestionBefore), 'Tutor QUESTION clock did not tick');
     assert(
       timerTextToSeconds(tutorSecond) > timerTextToSeconds(tutorFirst),
       `Tutor counter did not count up: ${tutorFirst} → ${tutorSecond}`,
@@ -950,6 +961,8 @@ try {
     );
 
     await page.screenshot({ path: `${outDir}/amboss-tutor-lifecycle.png`, fullPage: true });
+    await page.getByRole('button', { name: 'EXIT SESSION' }).click();
+    await page.waitForURL(/\/qbank\/1\/previous-tests\?step=1/);
     await context.close();
   }
 
@@ -971,7 +984,7 @@ try {
     assert((await page.getByRole('button', { name: /AI Summary/i }).count()) === 0, 'AI Summary leaked into active Timed block');
 
     const topTimer = page.locator('.amboss-primary-timer strong');
-    const sideTimer = page.locator('.amboss-sidebar-time strong');
+    const sideTimer = page.locator('.amboss-sidebar-timer-cell:first-child .amboss-sidebar-time strong');
     const firstTopTimer = (await topTimer.textContent())?.trim();
     const firstSideTimer = (await sideTimer.textContent())?.trim();
     assert(/^0[45]:\d{2}$/.test(firstTopTimer || ''), `Timed top countdown did not start near 05:00: ${firstTopTimer}`);
@@ -1164,7 +1177,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
