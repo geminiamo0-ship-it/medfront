@@ -114,9 +114,19 @@
   transition:background-color .16s ease,border-color .16s ease;
 }
 
-.amboss-option:hover,
-.amboss-option.is-selected{
+.amboss-option:hover{
   background:var(--amboss-surface-soft);
+}
+
+.amboss-option.is-selected:not(.is-revealed){
+  background:#e7f2fb;
+  border-left:4px solid #2c78b7;
+}
+
+.amboss-option.is-selected:not(.is-revealed) .amboss-option-letter{
+  border-color:#2c78b7;
+  background:#2c78b7;
+  color:#fff;
 }
 
 .amboss-option.is-correct{
@@ -228,4 +238,80 @@
 
 @media (prefers-reduced-motion:reduce){
   .amboss-option-explanation{animation:none}
+}
+
+
+.amboss-runner[data-text-size="compact"] .amboss-stem,
+.amboss-runner[data-text-size="compact"] .amboss-option-text{font-size:13px}
+
+.amboss-runner[data-text-size="large"] .amboss-stem,
+.amboss-runner[data-text-size="large"] .amboss-option-text{font-size:16px}
+
+.amboss-user-marker{
+  background:var(--amboss-marker-color,#ffe36e);
+  color:inherit;
+  padding:0;
+}
+
+.amboss-workspace[data-active-tool="marker"] .amboss-stem{
+  cursor:text;
+  user-select:text;
+}
+
+.amboss-workspace[data-active-tool="laser"]{
+  cursor:none;
+}
+
+.amboss-question-card{
+  position:relative;
+}
+
+.amboss-pencil-canvas{
+  position:absolute;
+  z-index:24;
+  inset:0 auto auto 0;
+  pointer-events:none;
+  touch-action:none;
+}
+
+.amboss-pencil-canvas.is-active{
+  pointer-events:auto;
+  cursor:crosshair;
+}
+
+.amboss-pencil-clear{
+  position:sticky;
+  z-index:26;
+  top:10px;
+  float:right;
+  margin:10px 10px 0 0;
+  border:1px solid #d99;
+  border-radius:7px;
+  background:#fff7f7;
+  color:#a33;
+  padding:7px 10px;
+  font-size:10px;
+  font-weight:800;
+}
+
+.amboss-laser-dot{
+  position:fixed;
+  z-index:160;
+  width:14px;
+  height:14px;
+  margin:-7px 0 0 -7px;
+  border-radius:50%;
+  background:#ff3038;
+  box-shadow:0 0 0 5px rgba(255,48,56,.18),0 0 16px rgba(255,48,56,.72);
+  pointer-events:none;
+}
+
+.amboss-timed-save-warning{
+  border-top:1px solid #e6c26e;
+  border-bottom:1px solid #e6c26e;
+  background:#fff8e3;
+  color:#77520b;
+  padding:8px 20px;
+  font-size:11px;
+  font-weight:700;
 }
