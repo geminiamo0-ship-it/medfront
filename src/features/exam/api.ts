@@ -17,7 +17,7 @@ export function submitExamAnswer(
   testId: number,
   payload: {
     questionId: number;
-    selectedOptionId?: number;
+    selectedOptionId?: number | null;
     timeSpentSeconds?: number;
     answerSequence?: number[];
   },
