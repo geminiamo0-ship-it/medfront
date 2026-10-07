@@ -3,7 +3,7 @@ import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
 import { SafeHtml } from '../../shared/SafeHtml';
-import { parseAmbossQuestionHtml } from './ambossMarkup';
+import { parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
 import { AmbossNotesEditor } from './AmbossNotesEditor';
 import { AmbossOption, type AmbossResolvedOption } from './AmbossOption';
@@ -33,15 +33,32 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
     [question?.textHtml],
   );
 
+  const explanationBlob =
+    controller.currentReveal?.explanation.explanationHtml ??
+    question?.explanationHtml ??
+    '';
+
+  const parsedExplanation = useMemo(
+    () => parseAmbossExplanationHtml(explanationBlob),
+    [explanationBlob],
+  );
+
   if (!question || !controller.test) return null;
 
   const revealOptions = controller.currentReveal?.explanation.options ?? [];
   const resolvedOptions: AmbossResolvedOption[] = question.options.map((option: ExamOption) => {
     const reveal = revealOptions.find((item) => item.id === option.id);
+    const directExplanation = reveal?.explanationHtml ?? option.explanationHtml;
+    const blobExplanation =
+      parsedExplanation.optionExplanations[String(option.displayOrder).toUpperCase()];
+
     return {
       ...option,
       isCorrect: reveal?.isCorrect ?? option.isCorrect,
-      explanationHtml: reveal?.explanationHtml ?? option.explanationHtml,
+      explanationHtml:
+        directExplanation && directExplanation.trim()
+          ? directExplanation
+          : blobExplanation ?? null,
       uworldChosenBy: reveal?.uworldChosenBy ?? option.uworldChosenBy,
     };
   });

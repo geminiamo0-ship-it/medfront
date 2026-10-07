@@ -92,6 +92,19 @@ function correctOptionFor(question) {
   return question.options.find((option) => option.displayOrder === 'E');
 }
 
+function ambossExplanationBlob(question) {
+  const parts = question.options.map((option) => {
+    const state = option.displayOrder === 'E' ? 'Correct' : 'Incorrect';
+    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.</p></div>`;
+  });
+
+  parts.push(
+    '<br><div class="amboss-learning-obj"><b>Key Info:</b><br>Blob learning objective.</div>',
+  );
+
+  return parts.join('<br>');
+}
+
 function decoratedTestState() {
   const body = structuredClone(testState);
   body.answeredQuestions = 0;
@@ -114,10 +127,11 @@ function decoratedTestState() {
     question.isAnswered = !omitted;
     question.isOmitted = omitted;
     question.status = omitted ? 'omitted' : 'answered';
+    question.explanationHtml = ambossExplanationBlob(question);
     question.options = question.options.map((option) => ({
       ...option,
       isCorrect: option.displayOrder === 'E',
-      explanationHtml: `<p>Explanation for option ${option.displayOrder}</p>`,
+      explanationHtml: null,
       uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
     }));
 
@@ -134,12 +148,14 @@ function decoratedTestState() {
 
 function explanationPayload(question) {
   return {
-    explanationHtml: '<p>AMBOSS question explanation.</p>',
+    // Mirrors current AMBOSS imports: all A/B/C/D/E explanations live in the
+    // question-level blob while option-level explanationHtml is null.
+    explanationHtml: ambossExplanationBlob(question),
     updatedAt: new Date().toISOString(),
     options: question.options.map((option) => ({
       id: option.id,
       isCorrect: option.displayOrder === 'E',
-      explanationHtml: `<p>Explanation for option ${option.displayOrder}</p>`,
+      explanationHtml: null,
       uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
     })),
   };
@@ -308,6 +324,7 @@ try {
     // First option click is the ONLY persisted Tutor answer.
     await answerRows.nth(1).click(); // B = wrong
     await answerRows.nth(1).locator('.amboss-option-explanation').waitFor();
+    await answerRows.nth(1).getByText(/Blob explanation for option B/i).waitFor();
     assert(submitBodies.length === 1, `Expected exactly one submit after first click, got ${submitBodies.length}`);
     assert(submitBodies[0].questionId === 2001, 'First submit used the wrong question');
     assert(submitBodies[0].selectedOptionId === 113, 'First submit did not persist option B');
@@ -317,6 +334,7 @@ try {
     // Later clicks are explanation-only: no second submit, but correctness UI opens.
     await answerRows.nth(4).click(); // E = correct
     await answerRows.nth(4).locator('.amboss-option-explanation').waitFor();
+    await answerRows.nth(4).getByText(/Blob explanation for option E/i).waitFor();
     assert(submitBodies.length === 1, 'Post-submit option click incorrectly called submit again');
     assert(await answerRows.nth(4).evaluate((node) => node.classList.contains('is-correct')), 'Post-submit correct option did not turn green');
     assert((await page.locator('.amboss-option-explanation').count()) === 2, 'Second inspected option did not open inline');
@@ -397,7 +415,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true');
 } finally {
   await browser.close();
 }
