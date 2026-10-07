@@ -3,8 +3,8 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #4 — AMBOSS Exam Runner + results/review; global media migration code closed out under #32, with external asset-availability validation still pending.  
-**Active phase:** G2 — Exam Runner; global media URL migration implemented and deployed.  
+**Active issue:** #32 — reopened for global relative `offline_media/` URL rendering correction; Issue #4 remains active for G2 Results/Review DESIGN after media verification.  
+**Active phase:** G2 — Exam Runner; priority media contract fix in IMPLEMENTING, new absolute-origin migration already deployed.  
 **Current status:** MERGED + VERIFIED — global media origin migration is live across the website (frontend #33, backend #29); the screenshot-approved AMBOSS question sidebar refinement (real stem snippets, progress, statuses, hammers, marks, SESSION + QUESTION clocks and functional EXIT SESSION) is merged in frontend PR #34. Historical Tutor active-solving, Timed countdown, Omitted review, notes and marks regressions are preserved. **Public R2 object availability remains unverified** independently of successful code rollout. Issue #4 still includes final Test Analysis/Results, shared My Notebook, detailed Flashcards UX and later themes.
 
 ## 1. Repository ownership
@@ -150,19 +150,13 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-The user's site-wide new R2 media origin is now the canonical URL in frontend and backend. The screenshot-approved AMBOSS sidebar refinement is merged and verified.
+**Priority #32 — IMPLEMENTING (NO VISUAL CHANGE):** A user screenshot exposed a broken AMBOSS `<img src="offline_media/...jpg">`. The shared code from frontend PR #33 only maps absolute legacy CDN hosts. A focused branch `fix/global-relative-r2-media` now centralizes bare relative media keys in `src/lib/media.ts` and `src/lib/sanitize.ts`, with actual `<img>` URL+decode assertions in the AMBOSS Chromium smoke.
 
-**Only external media verification remains:** fetch representative *existing* image object keys directly from
-`https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/`
-and confirm real HTTP 200, correct MIME and no access/CORS issues. Object uploads and public bucket permissions cannot be proven by GitHub Actions alone; do not infer that images exist merely because URLs are rewritten.
+**First unchecked task:** open focused PR, confirm GitHub Actions `Verify` and `AMBOSS Browser Smoke` succeed on that branch, then merge/recheck production deployment. After that, independently confirm a representative actual public R2 image returns HTTP 200 with image MIME (mocked browser tests are not proof of object presence).
 
-Continue Issue #4 by explicit user selection of:
-1. **Test Analysis / Results** page and post-End Block destination;
-2. **My Notebook** shared drawer in right helper zone beside Calculator;
-3. detailed Flashcards/Anki UX;
-4. next UWorld/NBME/MRCP theme with its own approved UI.
+**Current external check limitation:** direct image probes from the assistant execution container cannot resolve public DNS hosts (including unrelated domains), so a 000/curl DNS failure must not be classified as a bucket outage. Real R2 object existence/public access still needs a network-capable check.
 
-Existing Tutor net active-solving, Timed countdown, Omitted review status, correctness locking and QBank filters are non-negotiable engine contracts.
+After the media checkpoint, return to **Issue #4 — DESIGN** and explicitly discuss the first chosen item before code: Test Analysis/Results and post-End Block destination, shared My Notebook drawer, detailed Flashcards/Anki UX or the next independent exam theme. No UI direction should be invented without user approval.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -530,3 +524,13 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 **Automated evidence:** frontend Verify #133 ✅; AMBOSS Browser Smoke #40 ✅ including `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`, plus all prior AMBOSS/regression flags (Tutor timing/Timed correctness, notes, marks, Omitted review).
 
 **Final production deployment checkpoint:** Code-merge Cloudflare first build failed, but subsequent identical product-code main docs merge `e86ce00e04c2b41a85aecd9a8a406f7b12be3f95` triggered production Build `fc96eee6-1aa7-4483-a565-2649b0d8bce5` → SUCCESS, Version `57145276-f70a-4515-88a1-ef4c782d7593`; main Verify SUCCESS. Sidebar now production-deployed.
+
+
+## Global relative-media rendering regression — 2026-10-08 (in progress)
+
+- Existing site-wide R2 origin migration frontend #33 / backend #29 is merged and deployed; it remains the canonical URL.
+- Screenshot evidence: AMBOSS option explanation uses a bare `offline_media/...` img source and displays broken media.
+- Root cause in current `main`: `rewriteLegacyMediaUrls` only handles legacy **absolute** hosts; sanitizer leaves bare `offline_media/` attributes relative to the app route.
+- Reopened Issue #32 for focused contract-only correction, not a new page design.
+- Working branch: `fix/global-relative-r2-media`, shared media URL helper/sanitizer attribute hook plus mocked Chromium stem/option image regression and media documentation.
+- **Pending:** PR `Verify`, Chromium smoke, merge, Cloudflare production rollout, real public R2 object HTTP/MIME availability. No Done claim yet.
