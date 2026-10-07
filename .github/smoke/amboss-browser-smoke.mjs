@@ -305,12 +305,121 @@ async function installApiMocks(target) {
       });
     }
 
+    if (path === '/tests/metadata/question-banks' && method === 'GET') {
+      return json(route, [{
+        id: 1,
+        mainBankId: 1,
+        name: 'Amboss (Step 1)',
+        code: 'AMBOSS_S1',
+        description: 'AMBOSS browser smoke bank',
+        step: 1,
+        totalQuestions: 2785,
+        usedQuestions: 0,
+        isPremium: false,
+        isBlockBank: false,
+        blockSize: 40,
+        icon: null,
+        gradient: null,
+        displayOrder: 1,
+        isLocked: false,
+      }]);
+    }
+
+    if (path === '/tests/counts' && method === 'POST') {
+      return json(route, {
+        all: 2785,
+        unused: 2700,
+        used: 85,
+        incorrect: 20,
+        correct: 40,
+        marked: 10,
+        marked_correct: 4,
+        marked_incorrect: 3,
+        omitted: 2,
+        suspended: 1,
+      });
+    }
+
+    if (path === '/tests/metadata/difficulty-counts' && method === 'POST') {
+      return json(route, {
+        very_hard: 100,
+        hard: 500,
+        medium: 1200,
+        easy: 700,
+        very_easy: 285,
+      });
+    }
+
+    if (path === '/tests/metadata/subjects' && method === 'POST') {
+      return json(route, []);
+    }
+
+    if (path === '/tests/metadata/systems-with-topics' && method === 'POST') {
+      return json(route, []);
+    }
+
+    if (path === '/tests' && method === 'POST') {
+      createdTimedBody = JSON.parse(route.request().postData() || '{}');
+      return json(route, { id: 9002 }, 201);
+    }
+
+    if (path === '/tests' && method === 'GET') {
+      const now = new Date().toISOString();
+      return json(route, [
+        {
+          id: 9003,
+          title: 'AMBOSS tutor lifecycle smoke',
+          type: 'tutor',
+          mode: 'all',
+          step: 1,
+          status: tutorLifecycleStatus,
+          totalQuestions: 5,
+          answeredQuestions: 0,
+          correctAnswers: 0,
+          percentageScore: '0',
+          startedAt: tutorLifecycleStartedAt,
+          completedAt: tutorLifecycleStatus === 'completed' ? now : null,
+          createdAt: now,
+        },
+      ]);
+    }
+
     if (path === '/tests/9001' && method === 'GET') {
       return json(route, decoratedTestState());
     }
 
     if (path === '/tests/9002' && method === 'GET') {
       return json(route, timedTestPayload());
+    }
+
+    if (path === '/tests/9003' && method === 'GET') {
+      return json(route, tutorLifecyclePayload());
+    }
+
+    if (path === '/tests/9003/suspend' && method === 'PUT') {
+      tutorSuspendBody = JSON.parse(route.request().postData() || '{}');
+      tutorLifecycleTimeSpentSeconds = Math.max(
+        tutorLifecycleTimeSpentSeconds,
+        Number(tutorSuspendBody.totalTimeSpentSeconds || 0),
+      );
+      tutorLifecycleStatus = 'suspended';
+      return json(route, tutorLifecyclePayload());
+    }
+
+    if (path === '/tests/9003/resume' && method === 'PUT') {
+      tutorLifecycleStatus = 'in_progress';
+      tutorLifecycleStartedAt = new Date().toISOString();
+      return json(route, tutorLifecyclePayload());
+    }
+
+    if (path === '/tests/9003/complete' && method === 'PUT') {
+      tutorCompleteBody = JSON.parse(route.request().postData() || '{}');
+      tutorLifecycleTimeSpentSeconds = Math.max(
+        tutorLifecycleTimeSpentSeconds,
+        Number(tutorCompleteBody.totalTimeSpentSeconds || 0),
+      );
+      tutorLifecycleStatus = 'completed';
+      return json(route, tutorLifecyclePayload());
     }
 
     if (path === '/tests/9002/timed-selection' && method === 'PATCH') {
