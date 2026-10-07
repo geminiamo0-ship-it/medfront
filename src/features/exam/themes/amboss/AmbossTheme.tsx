@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import { AmbossAiSummaryPanel } from './AmbossAiSummaryPanel';
 import { AmbossCalculator } from './AmbossCalculator';
@@ -23,10 +23,6 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [endBlockOpen, setEndBlockOpen] = useState(false);
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
-
-  useEffect(() => {
-    if (controller.isCompleted) setEndBlockOpen(false);
-  }, [controller.isCompleted]);
 
   if (!controller.test || !controller.currentQuestion) return null;
 
