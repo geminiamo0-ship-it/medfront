@@ -9,13 +9,29 @@ interface AmbossSidebarProps {
   onToggle: () => void;
   onSelect: (questionId: number) => void;
   isMarked: (question: ExamQuestion) => boolean;
+  getSelectedOptionId: (question: ExamQuestion) => number | null;
+  timerSeconds: number;
+  timerCountsDown: boolean;
+  paused: boolean;
 }
 
-function questionStatus(question: ExamQuestion) {
+function questionStatus(question: ExamQuestion, selectedOptionId: number | null) {
   if (question.isOmitted) return '○';
   if (question.userAnswer?.isCorrect === true) return '✓';
   if (question.userAnswer?.isCorrect === false) return '×';
+  if (selectedOptionId != null) return '●';
   return '•';
+}
+
+function formatTimer(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export function AmbossSidebar({
@@ -25,6 +41,10 @@ export function AmbossSidebar({
   onToggle,
   onSelect,
   isMarked,
+  getSelectedOptionId,
+  timerSeconds,
+  timerCountsDown,
+  paused,
 }: AmbossSidebarProps) {
   return (
     <aside className={open ? 'amboss-sidebar is-open' : 'amboss-sidebar'}>
@@ -39,6 +59,8 @@ export function AmbossSidebar({
       <div className="amboss-question-list">
         {test.questions.map((question) => {
           const active = question.id === currentQuestionId;
+          const selectedOptionId = getSelectedOptionId(question);
+          const selectedDraft = selectedOptionId != null && question.userAnswer?.isCorrect === undefined;
           return (
             <button
               type="button"
@@ -46,8 +68,14 @@ export function AmbossSidebar({
               className={active ? 'amboss-question-row is-active' : 'amboss-question-row'}
               onClick={() => onSelect(question.id)}
             >
-              <span className={question.status === 'unanswered' ? 'amboss-question-state' : 'amboss-question-state is-done'}>
-                {questionStatus(question)}
+              <span
+                className={[
+                  'amboss-question-state',
+                  question.status !== 'unanswered' ? 'is-done' : '',
+                  selectedDraft ? 'is-selected-draft' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                {questionStatus(question, selectedOptionId)}
               </span>
               <span className="amboss-question-number">{question.displayOrder}</span>
               <span className="amboss-question-title">
@@ -64,11 +92,11 @@ export function AmbossSidebar({
 
       <div className="amboss-sidebar-footer">
         <div>
-          <span className="amboss-sidebar-time">
+          <span className={paused ? 'amboss-sidebar-time is-paused' : 'amboss-sidebar-time'}>
             <ExamIcon name="timer" size={16} />
-            <strong>{Math.floor(test.timeSpentSeconds / 3600)}h {String(Math.floor((test.timeSpentSeconds % 3600) / 60)).padStart(2, '0')}m</strong>
+            <strong>{formatTimer(timerSeconds)}</strong>
           </span>
-          <small>SESSION</small>
+          <small>{paused ? 'PAUSED' : timerCountsDown ? 'REMAINING' : 'SESSION'}</small>
         </div>
         <div>
           <strong>{test.type.toUpperCase()}</strong>
