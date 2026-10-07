@@ -30,6 +30,9 @@ const options = [
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
   { id: 105, displayOrder: 'E', textHtml: '<p>Herpes simplex virus</p>' },
+  { id: 106, displayOrder: 'F', textHtml: '<p>Varicella-zoster virus</p>' },
+  { id: 107, displayOrder: 'G', textHtml: '<p>Respiratory syncytial virus</p>' },
+  { id: 108, displayOrder: 'H', textHtml: '<p>Influenza virus</p>' },
 ];
 
 function makeQuestion(id, displayOrder, difficultyTier = 'hard') {
@@ -89,12 +92,12 @@ const submittedByQuestion = new Map();
 const submitBodies = [];
 
 function correctOptionFor(question) {
-  return question.options.find((option) => option.displayOrder === 'E');
+  return question.options.find((option) => option.displayOrder === 'H');
 }
 
 function ambossExplanationBlob(question) {
   const parts = question.options.map((option) => {
-    const state = option.displayOrder === 'E' ? 'Correct' : 'Incorrect';
+    const state = option.displayOrder === 'H' ? 'Correct' : 'Incorrect';
     return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.</p></div>`;
   });
 
@@ -130,9 +133,9 @@ function decoratedTestState() {
     question.explanationHtml = ambossExplanationBlob(question);
     question.options = question.options.map((option) => ({
       ...option,
-      isCorrect: option.displayOrder === 'E',
+      isCorrect: option.displayOrder === 'H',
       explanationHtml: null,
-      uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
+      uworldChosenBy: option.displayOrder === 'H' ? 61 : 10,
     }));
 
     if (omitted) body.omittedQuestionIds.push(question.id);
@@ -154,9 +157,9 @@ function explanationPayload(question) {
     updatedAt: new Date().toISOString(),
     options: question.options.map((option) => ({
       id: option.id,
-      isCorrect: option.displayOrder === 'E',
+      isCorrect: option.displayOrder === 'H',
       explanationHtml: null,
-      uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
+      uworldChosenBy: option.displayOrder === 'H' ? 61 : 10,
     })),
   };
 }
@@ -332,17 +335,17 @@ try {
     assert((await page.locator('.amboss-option-explanation').count()) === 1, 'Only the first clicked explanation should open initially');
 
     // Later clicks are explanation-only: no second submit, but correctness UI opens.
-    await answerRows.nth(4).click(); // E = correct
-    await answerRows.nth(4).locator('.amboss-option-explanation').waitFor();
-    await answerRows.nth(4).getByText(/Blob explanation for option E/i).waitFor();
+    await answerRows.nth(7).click(); // H = correct and final option
+    await answerRows.nth(7).locator('.amboss-option-explanation').waitFor();
+    await answerRows.nth(7).getByText(/Blob explanation for option H/i).waitFor();
     assert(submitBodies.length === 1, 'Post-submit option click incorrectly called submit again');
-    assert(await answerRows.nth(4).evaluate((node) => node.classList.contains('is-correct')), 'Post-submit correct option did not turn green');
-    assert((await page.locator('.amboss-option-explanation').count()) === 2, 'Second inspected option did not open inline');
+    assert(await answerRows.nth(7).evaluate((node) => node.classList.contains('is-correct')), 'Final correct option did not turn green');
+    assert((await page.locator('.amboss-option-explanation').count()) === 2, 'Final option explanation did not open inline');
 
     // Show All expands every explanation without changing the recorded first answer.
     await page.getByRole('button', { name: /SHOW ALL EXPLANATIONS/i }).click();
     await page.waitForTimeout(100);
-    assert((await page.locator('.amboss-option-explanation').count()) === 5, 'SHOW ALL EXPLANATIONS did not open every option');
+    assert((await page.locator('.amboss-option-explanation').count()) === 8, 'SHOW ALL EXPLANATIONS did not open every option');
     assert(submitBodies.length === 1, 'SHOW ALL EXPLANATIONS performed an unexpected submit');
 
     // On a fresh question, SHOW ANSWER with no selection is an explicit omission.
@@ -353,7 +356,7 @@ try {
     assert(submitBodies.length === 2, 'Omission did not create exactly one submit');
     assert(submitBodies[1].questionId === 2002, 'Omission submit used the wrong question');
     assert(submitBodies[1].selectedOptionId === null, 'Omission submit must send selectedOptionId=null');
-    assert((await page.locator('.amboss-option-explanation').count()) === 5, 'Omission reveal did not open all explanations');
+    assert((await page.locator('.amboss-option-explanation').count()) === 8, 'Omission reveal did not open all explanations');
     await page.waitForTimeout(100);
     const secondState = await page.locator('.amboss-question-row').nth(1).locator('.amboss-question-state').textContent();
     assert(secondState?.trim() === '○', `Omitted question navigator state should be ○, got ${secondState}`);
@@ -415,7 +418,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true');
 } finally {
   await browser.close();
 }
