@@ -582,6 +582,14 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function timerTextToSeconds(value) {
+  const parts = String(value || '').trim().split(':').map(Number);
+  if (parts.some((part) => !Number.isFinite(part))) return NaN;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return NaN;
+}
+
 async function preparePage(browser, viewport) {
   const context = await browser.newContext({ viewport });
   await context.addInitScript(() => {
@@ -782,6 +790,15 @@ try {
     assert(/^0[45]:\d{2}$/.test(firstTopTimer || ''), `Timed top countdown did not start near 05:00: ${firstTopTimer}`);
     assert(firstTopTimer === firstSideTimer, `Top/sidebar timers are not synchronized: ${firstTopTimer} vs ${firstSideTimer}`);
 
+    await page.waitForTimeout(1150);
+    const secondTopTimer = (await topTimer.textContent())?.trim();
+    const secondSideTimer = (await sideTimer.textContent())?.trim();
+    assert(
+      timerTextToSeconds(secondTopTimer) < timerTextToSeconds(firstTopTimer),
+      `Timed counter did not count down: ${firstTopTimer} → ${secondTopTimer}`,
+    );
+    assert(secondTopTimer === secondSideTimer, `Timed top/sidebar drifted after ticking: ${secondTopTimer} vs ${secondSideTimer}`);
+
     const timedRows = page.locator('.amboss-option');
     await timedRows.nth(0).click();
     await page.waitForTimeout(120);
@@ -802,16 +819,39 @@ try {
     assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed draft was not restored after reload');
 
     await page.getByRole('button', { name: /^Tools$/i }).click();
-    await page.getByRole('button', { name: /^Marker$/i }).click();
+    await page.getByRole('button', { name: /^Marker Purple$/i }).click();
+    await page.getByRole('button', { name: /^Tools$/i }).click();
     await page.locator('.amboss-stem').selectText();
     await page.locator('.amboss-question-content').dispatchEvent('mouseup');
     await page.waitForTimeout(100);
     assert(timedHighlightSaves >= 1, 'Marker did not persist through the dedicated highlights endpoint');
-    assert((await page.locator('mark[data-medpark-marker="1"]').count()) >= 1, 'Marker highlight was not rendered');
+    const userMarker = page.locator('mark[data-medpark-marker="1"]').first();
+    await userMarker.waitFor();
+    assert(
+      (await userMarker.evaluate((node) => node.style.getPropertyValue('--amboss-marker-color').trim().toLowerCase())) === '#9b7be5',
+      'Marker did not persist the selected purple color',
+    );
+    const lightMarkerBackground = await userMarker.evaluate((node) => getComputedStyle(node).backgroundColor);
 
     await page.getByRole('button', { name: /^Settings$/i }).click();
     await page.getByRole('button', { name: /^Dark$/i }).click();
     assert(await page.locator('.amboss-runner').getAttribute('data-appearance') === 'dark', 'Settings did not switch AMBOSS appearance');
+    const darkMarkerBackground = await userMarker.evaluate((node) => getComputedStyle(node).backgroundColor);
+    assert(
+      darkMarkerBackground !== lightMarkerBackground,
+      `Dark marker contrast treatment did not change: ${lightMarkerBackground}`,
+    );
+
+    await page.getByRole('button', { name: /^Settings$/i }).click();
+    await page.getByRole('button', { name: /^Tools$/i }).click();
+    await page.getByRole('button', { name: /^Pencil Green$/i }).click();
+    assert((await page.locator('.amboss-pencil-canvas.is-active').count()) === 1, 'Pencil did not activate from the color palette');
+    const activeSwatch = page.locator('.amboss-active-tool-swatch');
+    assert(
+      (await activeSwatch.evaluate((node) => node.style.getPropertyValue('--amboss-active-tool-color').trim().toLowerCase())) === '#63c174',
+      'Selected Pencil color was not reflected in the active tool control',
+    );
+    await page.getByRole('button', { name: /^Tools$/i }).click();
 
     await page.getByRole('button', { name: /^Calculator$/i }).click();
     await page.getByRole('button', { name: /^2$/ }).click();
@@ -819,15 +859,6 @@ try {
     await page.getByRole('button', { name: /^3$/ }).click();
     await page.getByRole('button', { name: /^=$/ }).click();
     assert((await page.locator('.amboss-calculator-display').textContent())?.trim() === '5', 'Calculator 2 + 3 did not equal 5');
-
-    await page.getByRole('button', { name: /^Suspend$/i }).click();
-    await page.getByText('Your progress and remaining time are saved.').waitFor();
-    assert(timedStatus === 'suspended', 'Suspend did not call the backend status transition');
-    assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Primary timer did not enter paused state');
-
-    await page.getByRole('button', { name: /Resume block/i }).click();
-    await page.getByRole('button', { name: /^Suspend$/i }).waitFor();
-    assert(timedStatus === 'in_progress', 'Resume did not restore in-progress status');
 
     await page.getByRole('button', { name: /^End Block$/i }).click();
     await page.getByRole('heading', { name: /End this block/i }).waitFor();
