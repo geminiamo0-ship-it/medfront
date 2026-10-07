@@ -4,8 +4,8 @@
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #32 — reopened for global relative `offline_media/` URL rendering correction; Issue #4 remains active for G2 Results/Review DESIGN after media verification.  
-**Active phase:** G2 — Exam Runner; priority media contract fix in IMPLEMENTING, new absolute-origin migration already deployed.  
-**Current status:** MERGED + VERIFIED — global media origin migration is live across the website (frontend #33, backend #29); the screenshot-approved AMBOSS question sidebar refinement (real stem snippets, progress, statuses, hammers, marks, SESSION + QUESTION clocks and functional EXIT SESSION) is merged in frontend PR #34. Historical Tutor active-solving, Timed countdown, Omitted review, notes and marks regressions are preserved. **Public R2 object availability remains unverified** independently of successful code rollout. Issue #4 still includes final Test Analysis/Results, shared My Notebook, detailed Flashcards UX and later themes.
+**Active phase:** G2 — Exam Runner; priority global media contract fix merged, currently VERIFYING real R2 media and production deploy.  
+**Current status:** Merged global origin migration (#33) + shared relative offline media fix (#37), CI/browser verified. Earlier AMBOSS sidebar (#34), Tutor active-solving, Timed countdown, Omitted review, notes and marks remain verified. **Live media problem remains:** screenshot sample key on new public R2 returned HTTP **404 text/html** in GitHub Actions; the source image does not yet load, independently of URL fix. Cloudflare production deployment for PR #37 not yet verified. Issue #32 remains open in VERIFYING; Issue #4 has Test Analysis/Results, shared My Notebook, detailed Flashcards UX and later themes awaiting UX selection.
 
 ## 1. Repository ownership
 
@@ -150,13 +150,13 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Priority #32 — IMPLEMENTING (NO VISUAL CHANGE):** A user screenshot exposed a broken AMBOSS `<img src="offline_media/...jpg">`. The shared code from frontend PR #33 only maps absolute legacy CDN hosts. A focused branch `fix/global-relative-r2-media` now centralizes bare relative media keys in `src/lib/media.ts` and `src/lib/sanitize.ts`, with actual `<img>` URL+decode assertions in the AMBOSS Chromium smoke.
+**Priority Issue #32 — VERIFYING:** The user-requested site-wide R2 absolute origin migration (#33) and shared relative `offline_media/` mapping fix (**PR #37 → `daeb1b1d0`**) are merged. PR Verify #140 ✅, AMBOSS Browser Smoke #42 ✅ (`relative_r2_images=true`), main merge Verify #141 / run `37700603674` ✅.
 
-**First unchecked task:** open focused PR, confirm GitHub Actions `Verify` and `AMBOSS Browser Smoke` succeed on that branch, then merge/recheck production deployment. After that, independently confirm a representative actual public R2 image returns HTTP 200 with image MIME (mocked browser tests are not proof of object presence).
+**Exact unchecked work:** (1) confirm Cloudflare production build/version includes merge `daeb1b1d0`; (2) ensure real `offline_media/ihg_681237c83e6287_31701899.jpg` exists and is publicly readable from the new R2 (or correct its true key); (3) retest GET 200 + `image/*` and live image rendering. GitHub Actions live object probe #1 (run `37700441479`) returned **404 `text/html`** for that path. Do not mark the image available or close #32. Other bucket objects are not proven missing.
 
-**Current external check limitation:** direct image probes from the assistant execution container cannot resolve public DNS hosts (including unrelated domains), so a 000/curl DNS failure must not be classified as a bucket outage. Real R2 object existence/public access still needs a network-capable check.
+Browser Smoke deliberately **mocks** public R2 image bytes; green `relative_r2_images` proves correct frontend DOM src rewrite, not the new bucket upload or permissions.
 
-After the media checkpoint, return to **Issue #4 — DESIGN** and explicitly discuss the first chosen item before code: Test Analysis/Results and post-End Block destination, shared My Notebook drawer, detailed Flashcards/Anki UX or the next independent exam theme. No UI direction should be invented without user approval.
+After #32's external availability gate is resolved or explicitly deferred by the user, return to **Issue #4 (DESIGN)**. Discuss and approve which remaining work item comes next (Test Analysis / Results, shared My Notebook drawer, detailed Flashcards, or a new theme) *before* implementing any new page. Library tablet/mobile and Issue #11 browser acceptance remain deferred/open.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -533,4 +533,6 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - Root cause in current `main`: `rewriteLegacyMediaUrls` only handles legacy **absolute** hosts; sanitizer leaves bare `offline_media/` attributes relative to the app route.
 - Reopened Issue #32 for focused contract-only correction, not a new page design.
 - Working branch: `fix/global-relative-r2-media`, shared media URL helper/sanitizer attribute hook plus mocked Chromium stem/option image regression and media documentation.
-- **Pending:** PR `Verify`, Chromium smoke, merge, Cloudflare production rollout, real public R2 object HTTP/MIME availability. No Done claim yet.
+- **Verified:** fix PR #37 merged `daeb1b1d0`; Verify #140 ✅; AMBOSS Browser Smoke #42 ✅; main merge Verify run `37700603674` ✅.
+- **Live R2 failure:** public object probe [run #1](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37700441479) → sample screenshot key `offline_media/ihg_681237c83e6287_31701899.jpg` responds HTTP 404 / text/html. No real image availability claim.
+- **Still pending:** Cloudflare deployment confirmation for fix merge, correct object upload/key matching, GET HTTP 200 image MIME + real browser render. Issue #32 stays OPEN / VERIFYING.
