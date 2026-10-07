@@ -698,7 +698,7 @@ try {
     await page.getByRole('button', { name: /^MARK$/i }).click();
     await page.waitForTimeout(100);
     assert(marked === true, 'Mark PATCH did not update mock state');
-    assert((await page.getByRole('button', { name: /MARKED/i }).count()) === 1, 'Marked UI state did not update');
+    assert((await page.locator('.amboss-tools').getByRole('button', { name: /^MARKED$/i }).count()) === 1, 'Marked UI state did not update');
 
     const answerRows = page.locator('.amboss-option');
     const tutorTopTimer = page.locator('.amboss-primary-timer strong');
