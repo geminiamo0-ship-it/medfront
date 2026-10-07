@@ -231,6 +231,7 @@ try {
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
 
     await page.getByText('70% ethanol').waitFor();
+    await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
     assert((await page.locator('input[placeholder="Find AMBOSS content"]').count()) === 0, 'Removed AMBOSS search field reappeared');
 
@@ -278,7 +279,7 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflow, 'Desktop page has unintended horizontal overflow');
 
-    await page.screenshot({ path: `${outDir}/amboss-desktop.png`, fullPage: true });
+    await page.screenshot({ path: `${outDir}/amboss-desktop-interactions.png`, fullPage: true });
     await context.close();
   }
 
@@ -292,6 +293,7 @@ try {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.getByText('70% ethanol').waitFor();
+    await page.screenshot({ path: `${outDir}/amboss-${device.name}-baseline.png`, fullPage: true });
 
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 0, `${device.name}: drawer should start closed`);
     await page.getByRole('button', { name: /Toggle session navigation/i }).click();
@@ -308,12 +310,14 @@ try {
     await page.getByText('LAB VALUES').waitFor();
     const labBox = await page.locator('.amboss-labs.is-open').boundingBox();
     assert(labBox && Math.round(labBox.width) >= device.width - 2, `${device.name}: Labs panel is not viewport-wide`);
+    await page.screenshot({ path: `${outDir}/amboss-${device.name}-labs.png`, fullPage: true });
     await page.getByRole('button', { name: /Close lab values/i }).click();
+    await page.waitForTimeout(350);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflow, `${device.name}: unintended horizontal page overflow`);
 
-    await page.screenshot({ path: `${outDir}/amboss-${device.name}.png`, fullPage: true });
+    await page.screenshot({ path: `${outDir}/amboss-${device.name}-final.png`, fullPage: true });
     await context.close();
   }
 
