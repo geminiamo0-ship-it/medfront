@@ -15,6 +15,7 @@ import {
 import type { SystemWithTopics } from '@/api/tests';
 import { type WorkspaceContext } from './WelcomePage';
 import { SectionLoader } from '@/components/PulseLoader';
+import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 
 type QuestionStatusMode = keyof QuestionCounts;
 type TestFilters = {
@@ -227,8 +228,19 @@ export default function CreateTestPage() {
 
   function toggleMode(key: QuestionStatusMode) {
     setModes((prev) => {
-      const next = prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key];
-      return next.length > 0 ? next : prev;
+      // All is mutually exclusive with every narrower status mode.
+      // Selecting a narrower mode while All is active replaces All; selecting
+      // All clears the narrower modes. This mirrors the backend union rule
+      // where ALL dominates every other selection.
+      if (key === 'all') return ['all'];
+
+      const withoutAll = prev.filter((mode) => mode !== 'all');
+      const next = withoutAll.includes(key)
+        ? withoutAll.filter((mode) => mode !== key)
+        : [...withoutAll, key];
+
+      // Never leave the status group empty; fall back to All.
+      return next.length > 0 ? next : ['all'];
     });
   }
 
@@ -281,22 +293,7 @@ export default function CreateTestPage() {
         // filtered-count cache epoch before returning. Mark every frontend
         // progress/availability cache stale now, without blocking navigation
         // on unnecessary refetches while the exam route is opening.
-        const stalePrefixes = [
-          'test-counts',
-          'test-availability',
-          'qbank-statistics',
-          'question-banks',
-          'question-bank',
-          'previous-tests',
-        ] as const;
-        await Promise.all(
-          stalePrefixes.map((prefix) =>
-            queryClient.invalidateQueries({
-              queryKey: [prefix],
-              refetchType: 'none',
-            }),
-          ),
-        );
+        await invalidateQbankProgressQueries(queryClient);
         navigate(`/test/${testId}`);
       } else {
         setError('Test created but no ID returned.');
