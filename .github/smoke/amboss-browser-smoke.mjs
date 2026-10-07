@@ -22,10 +22,12 @@ const baseQuestionHtml = `
 <div class="amboss-hint"><br><b>Hint:</b><br>
   <p>Ethyl alcohol at concentrations of 60–80% is a potent virucidal agent that is effective against
   <span class="wichtig">enveloped viruses</span>.</p>
-</div>`;
+</div>
+<span data-global-media-src="https://storage.blablabl234a.online/offline_media/legacy-image.jpg"
+      data-unrelated-url="https://example.com/outside.png">media origin test</span>`;
 
 const options = [
-  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus</p>' },
+  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span></p>' },
   { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' },
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
@@ -642,6 +644,25 @@ try {
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
 
     await page.getByText('70% ethanol').waitFor();
+
+    // Global media migration: the same API adapter handles nested question
+    // stems and option HTML; unrelated external URLs are untouched.
+    assert(
+      await page.locator('[data-global-media-src]').getAttribute('data-global-media-src') ===
+        'https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/legacy-image.jpg',
+      'Legacy image URL in question stem was not replaced globally',
+    );
+    assert(
+      await page.locator('[data-option-media-src]').getAttribute('data-option-media-src') ===
+        'https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/option.png',
+      'Second legacy storage host in option HTML was not migrated',
+    );
+    assert(
+      await page.locator('[data-unrelated-url]').getAttribute('data-unrelated-url') ===
+        'https://example.com/outside.png',
+      'Unrelated third-party URLs were incorrectly changed',
+    );
+
     await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
     assert((await page.locator('input[placeholder="Find AMBOSS content"]').count()) === 0, 'Removed AMBOSS search field reappeared');
@@ -1143,7 +1164,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true pencil_palette=true');
 } finally {
   await browser.close();
 }
