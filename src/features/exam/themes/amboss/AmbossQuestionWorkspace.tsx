@@ -44,11 +44,11 @@ export function AmbossQuestionWorkspace({
     () => (typeof window === 'undefined' ? 520 : Math.min(620, Math.max(420, Math.floor(window.innerWidth * 0.44)))),
   );
   const [showAllExplanations, setShowAllExplanations] = useState(
-    () => question?.isOmitted === true && !!question.userAnswer,
+    () => question?.isOmitted === true && !controller.isCompleted,
   );
   const [expandedOptionIds, setExpandedOptionIds] = useState<Set<number>>(() => {
     if (!question) return new Set<number>();
-    if (question.isOmitted && question.userAnswer) {
+    if (question.isOmitted && !controller.isCompleted) {
       return new Set(question.options.map((option) => option.id));
     }
     const submitted = question.userAnswer?.selectedOptionId;
