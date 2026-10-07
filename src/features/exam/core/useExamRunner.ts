@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getExamExplanation,
@@ -42,21 +42,6 @@ export function useExamRunner(testIdParam: string | undefined) {
   const test = testQuery.data;
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
 
-  // Lock the initial resume position into local navigation state. Without
-  // this, every post-submit refetch can change test.resumeQuestionId to the
-  // next unanswered question and silently jump the user away before the
-  // current inline explanation is shown.
-  useEffect(() => {
-    if (currentQuestionId !== null || !test?.questions.length) return;
-
-    const initialQuestionId =
-      test.resumeQuestionId &&
-      test.questions.some((question) => question.id === test.resumeQuestionId)
-        ? test.resumeQuestionId
-        : test.questions[0].id;
-
-    setCurrentQuestionId(initialQuestionId);
-  }, [currentQuestionId, test]);
   const [selectedByQuestion, setSelectedByQuestion] = useState<Record<number, number | null>>({});
   const [revealedByQuestion, setRevealedByQuestion] = useState<Record<number, RevealedQuestion>>({});
   const [markOverrides, setMarkOverrides] = useState<Record<number, boolean>>({});
@@ -118,6 +103,9 @@ export function useExamRunner(testIdParam: string | undefined) {
     // because the theme handles them locally once the question is revealed.
     if (!isTutorLike) return;
 
+    // Pin the question before the submit-triggered refetch can advance the
+    // backend resumeQuestionId to the next unanswered question.
+    setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
       [currentQuestion.id]: optionId,
@@ -184,6 +172,8 @@ export function useExamRunner(testIdParam: string | undefined) {
 
     // No selected option exists in Tutor/Mixed before first submit because an
     // option click submits immediately. SHOW ANSWER therefore means omission.
+    // Keep the omission reveal on the same question across the refetch.
+    setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
       [currentQuestion.id]: null,
