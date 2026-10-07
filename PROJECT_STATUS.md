@@ -180,7 +180,7 @@ Verification evidence:
 - production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed.
 
 Still open before Done:
-- imported image/media path validation for relative `offline_media/...` sources;
+- Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
 - clue behavior/browser isolation verification inside AMBOSS;
 - desktop/tablet/mobile browser acceptance;
 - final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
