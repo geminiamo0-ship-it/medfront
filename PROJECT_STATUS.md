@@ -3,8 +3,8 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #4 — Exam runner + results/review  
-**Active phase:** G2 — Exam Runner  
+**Active issue:** #32 — global media origin migration (user priority override); Issue #4 remains open for approved AMBOSS sidebar and results/review.  
+**Active phase:** Global media infrastructure migration (cross-cutting); G2 — Exam Runner remains active after this migration.  
 **Current status:** MERGED + VERIFIED — AMBOSS Exam Runner includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, configurable Timed duration, shared Tutor active-solving-time, Tutor/Timed lifecycle controls, annotation palettes, Calculator, review-only AI Summary, and completed-Omitted review. After End Block, Omitted remains Omitted but now exposes the correct answer and click-to-fetch explanations without creating a submission or changing score/filter state. Frontend latest feature merge: PR #30 (`662a7715...`). Backend review contract required no code change and was verified live on Railway. Issue #4 remains open for the final Test Analysis/Results page, My Notebook, detailed Flashcards UX, and later themes.
 
 ## 1. Repository ownership
@@ -496,3 +496,22 @@ Evidence:
 - frontend main Verify after merge ✅.
 
 Do not treat Omitted as a reason to hide answers after completion in future themes.
+
+## Global R2 media origin migration — 2026-10-08
+
+**Priority override / issue:** #32. User explicitly requested replacement for every media URL in the entire website, not just AMBOSS. The sidebar screenshot design is approved under Issue #4 but is a separate forthcoming visual slice.
+
+**New canonical public media origin:** `https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/`.
+
+**Implementation branch:** `feat/global-r2-public-media-origin` in both `medfront` and canonical backend `medhvgg`.
+- frontend `MEDIA_CDN` points to the new R2;
+- legacy absolute storage URLs in nested JSON are remapped centrally after API response decryption;
+- `safeRichHtml` remaps legacy origins before sanitizer without weakening sanitization;
+- library/offline-media/amboss illustration paths preserve original object keys;
+- backend `/media/proxy` now pins upstream to the new R2 while preserving legacy proxy URL compatibility and disallowing arbitrary hosts/HTTP/custom ports;
+- frontend Chromium regression covers question/option legacy links and unrelated host isolation;
+- backend Jest regression covers fixed origin, path/query preservation, allowed old hosts and malicious scheme-relative paths.
+
+**Verification state at checkpoint:** Code and tests committed to focused PRs; frontend Verify green. Browser Smoke and final backend Verify are in progress. **Do not mark actual R2 object availability verified** until a real object loads successfully from new bucket. This runtime validation remains a separate gate because content/private-public permissions are external to the repo.
+
+**Next step:** finish both Verify + Browser Smoke, merge backend before frontend, check Railway and Cloudflare deployments, run representative image load checks when accessible; update issue and this status with exact evidence and remaining unknowns. Then return to Issue #4 approved sidebar design (question stem preview/progress/status/difficulty/footer).
