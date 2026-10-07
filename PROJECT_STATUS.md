@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** IMPLEMENTING — AMBOSS is the first production theme; implementation is isolated on `feat/amboss-exam-runner`; QBank #11 runtime acceptance remains recorded verification debt
+**Current status:** MERGED — AMBOSS Exam Runner is on `main` via PR #12; main Verify #70 is green. Deferred follow-ups remain tracked under Issue #4.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **IMPLEMENTING** | Issue #4; approved multi-theme architecture; AMBOSS first production theme |
+| Test runner | **AMBOSS MERGED** | PR #12 merged to `main`; modular multi-theme architecture preserved |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -126,9 +126,9 @@ Page spec: `docs/page-specs/QBANK_WORKSPACE.md`.
 On 2026-10-07 the user explicitly authorized Exam Runner implementation after approving the AMBOSS design direction and modular architecture.
 
 Current priority:
-1. Issue #4 is now the primary implementation issue.
-2. Implement AMBOSS first on isolated branch `feat/amboss-exam-runner`.
-3. Shared Exam Core + registry remain theme-agnostic; each theme is independently replaceable.
+1. AMBOSS runner implementation is merged to `main` via PR #12.
+2. Shared Exam Core + registry remain theme-agnostic; each theme is independently replaceable.
+3. Issue #4 remains open for explicitly deferred Exam Runner follow-ups/results-review work.
 4. QBank Issue #11 runtime/browser acceptance remains open verification debt and is not falsely marked Done.
 5. Library responsive work remains deliberately deferred.
 
@@ -136,20 +136,18 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-Implement and verify the first AMBOSS Exam Runner slices on `feat/amboss-exam-runner`:
+AMBOSS Runner is merged and verified on `main`.
 
-1. typed runner API/contracts + theme registry/resolver;
-2. full-screen test route outside `AppLayout`;
-3. backend 5-tier `difficultyTier` retrieval contract;
-4. AMBOSS shell/sidebar/hammers;
-5. sanitized question/options + KEY INFO clue + ATTENDING TIP;
-6. Tutor/Mixed `SHOW ANSWER` flow with no visible Submit button;
-7. Timed selection buffer / End-Block-safe behavior;
-8. Labs, Question Notes and Mark persistence;
-9. typecheck/lint/build + GitHub Actions Verify;
-10. browser/API acceptance before merge.
+Next work under Issue #4 should begin only when explicitly selected by the user:
+1. post-merge visual/runtime refinements if any are noticed;
+2. final End Block UI;
+3. final theme/appearance switch placement;
+4. marker/pencil placement;
+5. detailed Flashcards/Anki UX;
+6. results/review design;
+7. next production theme (UWorld / NBME / MRCP) after its own UI approval.
 
-Do not implement final theme/appearance switch placement, marker/pencil placement, or detailed Flashcard UX until those exact UI details are approved.
+Media remains intentionally deferred until AMBOSS source media files are uploaded.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -238,7 +236,19 @@ Backend cleanup:
 - backend media issue #4 is explicitly DEFERRED until source media files are uploaded;
 - media is not a blocker for the current runner pass.
 
-Remaining gate before PR #12 can leave Draft:
-- **final human visual approval by the user**;
-- intentionally deferred UI decisions stay deferred: final theme/appearance switch placement, marker/pencil placement, detailed Flashcards UX, final End Block UI.
+Merge decision:
+- user explicitly authorized merging without a separate Cloudflare preview;
+- PR #12 merged to `main` as `d70d122631e52ec57989ac572186c4fc6a2c8565`;
+- main GitHub Actions `Verify #70`: typecheck ✅ lint ✅ build ✅;
+- intentionally deferred UI decisions remain deferred: final theme/appearance switch placement, marker/pencil placement, detailed Flashcards UX, final End Block UI.
 
+
+
+## AMBOSS merged checkpoint — 2026-10-07
+
+- PR #12 merged to `main`.
+- Merge commit: `d70d122631e52ec57989ac572186c4fc6a2c8565`.
+- Main GitHub Actions `Verify #70`: typecheck ✅ lint ✅ build ✅.
+- User explicitly chose to merge without a separate Cloudflare preview, noting that later refinements remain easy because the theme is isolated and structured.
+- AMBOSS media remains deferred until source media files are uploaded.
+- Issue #4 stays open only for deferred runner follow-ups and results/review scope; AMBOSS runner implementation itself is merged.
