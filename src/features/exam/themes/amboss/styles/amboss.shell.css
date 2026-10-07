@@ -114,6 +114,7 @@
 .amboss-tools-popover{
   display:grid;
   gap:3px;
+  min-width:252px;
 }
 
 .amboss-popover-action{
