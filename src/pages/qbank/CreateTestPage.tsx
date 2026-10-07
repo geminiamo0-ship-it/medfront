@@ -287,8 +287,8 @@ export default function CreateTestPage() {
         mode: isCustom ? 'all' : (single ?? 'mixed_modes'),
         step,
         totalQuestions: total,
-        // Timed tests require a time limit server-side (~90s per question).
-        ...(timed ? { timeLimitSeconds: Math.max(60, total * 90) } : {}),
+        // Product contract: Timed Standard tests use one minute per question.
+        ...(timed ? { timeLimitSeconds: Math.max(60, total * 60) } : {}),
         filters: isCustom ? { questionBankIds: [bankId] } : single ? filters : { ...filters, modes },
         ...(isCustom && customIds.length > 0 ? { customQuestionIds: customIds } : {}),
       });
