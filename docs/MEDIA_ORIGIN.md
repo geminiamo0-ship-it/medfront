@@ -30,3 +30,12 @@ This change does **not** replace the API origin, logos/site static assets, auth,
 
 ## Sidebar design
 Issue #4 separately records user approval of the AMBOSS sidebar screenshot reconstruction (question-stem snippets, progress bar, status/hammers/marks, session/question timers); do not confuse that approved UI task with this global media migration.
+
+
+## Release evidence — 2026-10-08
+
+Global media migration code merged and deployed:
+- Backend `medhvgg` PR #29 → `e3c8724b9710f452c29f6a2fad8c53b9bd00eb7d`, Verify #33 success, Railway deployment `b2ba2947-bcd3-479b-a7c4-f8686b9856f5` SUCCESS.
+- Frontend `medfront` PR #33 → `73f698399b268d09ad7bdacfe5b4911f93446210`, main Verify run `37697789982` success, AMBOSS Browser Smoke #36 `global_r2_media_origin=true`, Cloudflare Workers Version `e502ebae-4b16-4aea-bba8-1bc80b80a777` SUCCESS.
+
+**Not yet proven:** specific actual image objects are uploaded under the same keys and anonymously accessible via the new public R2 URL with proper MIME/CORS. A working frontend/CDN origin does not establish object existence. Verification requires checking the response of a known real media filename from this public R2 host.
