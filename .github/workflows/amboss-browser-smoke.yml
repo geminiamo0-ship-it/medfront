@@ -1,0 +1,67 @@
+name: AMBOSS Browser Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/features/exam/**"
+      - "src/pages/TestPage.tsx"
+      - "src/router.tsx"
+      - ".github/smoke/amboss-browser-smoke.mjs"
+      - ".github/workflows/amboss-browser-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Install Playwright for smoke only
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Start preview
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/amboss-preview.log 2>&1 &
+          echo $! > /tmp/amboss-preview.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/amboss-preview.log
+          exit 1
+
+      - name: Run AMBOSS browser smoke
+        run: node .github/smoke/amboss-browser-smoke.mjs
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: amboss-browser-smoke-${{ github.run_id }}
+          path: amboss-browser-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
