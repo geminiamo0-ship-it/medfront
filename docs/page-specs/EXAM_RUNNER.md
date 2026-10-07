@@ -76,6 +76,19 @@ Approved reference: the supplied AMBOSS screenshots and standalone prototype dis
 - Preserve supported rich markup/images.
 - AMBOSS-specific semantic markup is interpreted only inside the AMBOSS theme.
 
+### Sidebar screenshot refinement — approved 2026-10-08
+- Reference: user-supplied AMBOSS sidebar screenshot (custom session title, progress indicator, stem snippets, status dots, difficulty hammers, session/question clocks and Exit Session).
+- The sidebar shows **number + sanitized first text of the question stem**, for every question including inactive ones, with a single-line ellipsis. Hint/style/HTML noise is removed before extracting the plain-text preview.
+- Existing marks and 1–5 canonical backend difficulty hammers remain visible and functionally separate from answer status.
+- Answer status is represented distinctly for unanswered, draft-selected, correct, incorrect and omitted. Timed must not reveal correctness before End Block.
+- The active question row has a quiet highlighted background, clear number and readable text; row click preserves navigation.
+- Header contains title, answered-or-selected / total count, progress bar and sidebar collapse control.
+- Footer contains **SESSION** timer and **QUESTION** timer with an EXIT SESSION action; Timer Mode semantics remain authoritative in Exam Core: Tutor counts net pre-submit solving time, Timed counts down continuously. Question-local display is a view metric; it must not mutate or substitute the canonical persisted test solving duration.
+- Exit Session delegates to the existing Suspend→Previous Tests flow when in progress; completed tests navigate back to Previous Tests.
+- Desktop, tablet/iPad and mobile drawer all retain readable text, visible statuses and no horizontal overflow; dark mode uses the same semantic contrast.
+- Do not call additional API endpoints for stem previews; reuse the already loaded, sanitized question HTML.
+- Acceptance: screenshot-style hierarchy; each row has a real preview; status never leaks Timed correctness; two clocks move appropriately; Exit Session isn't an inert button; no answer/timing persistence regression.
+
 ## 4. AMBOSS-specific markup behavior
 
 ### KEY INFO = Clue toggle

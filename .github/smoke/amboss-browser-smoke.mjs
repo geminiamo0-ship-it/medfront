@@ -643,7 +643,7 @@ try {
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
 
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     // Global media migration: the same API adapter handles nested question
     // stems and option HTML; unrelated external URLs are untouched.
@@ -666,6 +666,13 @@ try {
     await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
     assert((await page.locator('input[placeholder="Find AMBOSS content"]').count()) === 0, 'Removed AMBOSS search field reappeared');
+    const questionRows = page.locator('.amboss-question-row');
+    assert((await questionRows.count()) === 5, 'Sidebar lost question navigation rows');
+    assert((await questionRows.nth(0).locator('.amboss-question-title').textContent() || '').startsWith('The occupational health department'), 'Sidebar is not displaying the real first question stem');
+    assert((await questionRows.nth(1).locator('.amboss-question-title').textContent() || '').includes('AMBOSS sample question 2'), 'Inactive question row has no stem preview');
+    assert((await page.locator('.amboss-sidebar-progress').getAttribute('aria-valuenow')) === '0', 'Initial sidebar question progress should be zero');
+    assert((await page.locator('.amboss-sidebar-timer-cell').count()) === 2, 'Sidebar does not expose SESSION and QUESTION clocks');
+    assert((await page.getByRole('button', { name: 'EXIT SESSION' }).count()) === 1, 'Sidebar Exit Session action is missing');
 
     const activeHammers = await page.locator('.amboss-question-row.is-active .amboss-hammer.is-active').count();
     assert(activeHammers === 4, `Expected 4 active hammers for hard difficulty, got ${activeHammers}`);
@@ -691,7 +698,7 @@ try {
     await page.getByRole('button', { name: /^MARK$/i }).click();
     await page.waitForTimeout(100);
     assert(marked === true, 'Mark PATCH did not update mock state');
-    assert((await page.getByRole('button', { name: /MARKED/i }).count()) === 1, 'Marked UI state did not update');
+    assert((await page.locator('.amboss-tools').getByRole('button', { name: /^MARKED$/i }).count()) === 1, 'Marked UI state did not update');
 
     const answerRows = page.locator('.amboss-option');
     const tutorTopTimer = page.locator('.amboss-primary-timer strong');
@@ -745,7 +752,7 @@ try {
 
     // Moving to a fresh unanswered question resumes active solving time.
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
     const secondQuestionStart = (await tutorTopTimer.textContent())?.trim();
     await page.waitForTimeout(1150);
     const secondQuestionRunning = (await tutorTopTimer.textContent())?.trim();
@@ -897,16 +904,20 @@ try {
 
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9003`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     const tutorTopTimer = page.locator('.amboss-primary-timer strong');
-    const tutorSideTimer = page.locator('.amboss-sidebar-time strong');
+    const tutorSideTimer = page.locator('.amboss-sidebar-timer-cell:first-child .amboss-sidebar-time strong');
+    const tutorQuestionTimer = page.locator('.amboss-sidebar-timer-cell:nth-child(2) strong');
+    const tutorQuestionBefore = (await tutorQuestionTimer.textContent())?.trim();
     const tutorFirst = (await tutorTopTimer.textContent())?.trim();
     assert((await page.getByRole('button', { name: /^End Block$/i }).count()) === 1, 'Tutor is missing End Block');
 
     await page.waitForTimeout(1150);
     const tutorSecond = (await tutorTopTimer.textContent())?.trim();
     const tutorSideSecond = (await tutorSideTimer.textContent())?.trim();
+    const tutorQuestionAfter = (await tutorQuestionTimer.textContent())?.trim();
+    assert(timerTextToSeconds(tutorQuestionAfter) > timerTextToSeconds(tutorQuestionBefore), 'Tutor QUESTION clock did not tick');
     assert(
       timerTextToSeconds(tutorSecond) > timerTextToSeconds(tutorFirst),
       `Tutor counter did not count up: ${tutorFirst} → ${tutorSecond}`,
@@ -950,6 +961,8 @@ try {
     );
 
     await page.screenshot({ path: `${outDir}/amboss-tutor-lifecycle.png`, fullPage: true });
+    await page.getByRole('button', { name: 'EXIT SESSION' }).click();
+    await page.waitForURL(/\/qbank\/1\/previous-tests\?step=1/);
     await context.close();
   }
 
@@ -966,12 +979,12 @@ try {
 
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9002`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     assert((await page.getByRole('button', { name: /AI Summary/i }).count()) === 0, 'AI Summary leaked into active Timed block');
 
     const topTimer = page.locator('.amboss-primary-timer strong');
-    const sideTimer = page.locator('.amboss-sidebar-time strong');
+    const sideTimer = page.locator('.amboss-sidebar-timer-cell:first-child .amboss-sidebar-time strong');
     const firstTopTimer = (await topTimer.textContent())?.trim();
     const firstSideTimer = (await sideTimer.textContent())?.trim();
     assert(/^0[45]:\d{2}$/.test(firstTopTimer || ''), `Timed top countdown did not start near 05:00: ${firstTopTimer}`);
@@ -996,13 +1009,13 @@ try {
     assert((await page.locator('.amboss-option-explanation').count()) === 0, 'Timed selection leaked an explanation');
 
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
     await page.getByRole('button', { name: /PREVIOUS/i }).click();
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed selection was lost across navigation');
 
     await page.reload({ waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     assert(await page.locator('.amboss-option').nth(0).evaluate((node) => node.classList.contains('is-selected')), 'Timed draft was not restored after reload');
 
     await page.getByRole('button', { name: /^Tools$/i }).click();
@@ -1077,7 +1090,7 @@ try {
     const savesBeforeOmittedReview = timedSelectionSaves;
     const batchBeforeOmittedReview = JSON.stringify(timedBatchBody);
     await page.getByRole('button', { name: /NEXT/i }).click();
-    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.locator('.amboss-stem').getByText(/AMBOSS sample question 2/i).waitFor();
 
     const omittedReviewRows = page.locator('.amboss-option');
     assert(
@@ -1113,7 +1126,7 @@ try {
     assert(timedStatus === 'completed', 'Omitted review changed completed test status');
 
     await page.getByRole('button', { name: /PREVIOUS/i }).click();
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     await page.getByRole('button', { name: /AI Summary/i }).click();
     await page.getByText('AI review summary for the completed timed question.').waitFor();
     assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
@@ -1133,7 +1146,7 @@ try {
     tutorPersistedTimeSpentSeconds = 0;
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
-    await page.getByText('70% ethanol').waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-baseline.png`, fullPage: true });
 
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 0, `${device.name}: drawer should start closed`);
@@ -1164,7 +1177,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }

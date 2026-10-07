@@ -46,6 +46,20 @@ interface TutorClockState {
   activeStartedAt: number | null;
 }
 
+interface QuestionViewTime {
+  testId: number | null;
+  questionId: number | null;
+  startedAtTotalSeconds: number;
+  spentByQuestion: Record<number, number>;
+}
+
+const EMPTY_QUESTION_VIEW_TIME: QuestionViewTime = {
+  testId: null,
+  questionId: null,
+  startedAtTotalSeconds: 0,
+  spentByQuestion: {},
+};
+
 const EMPTY_TUTOR_CLOCK: TutorClockState = {
   testId: null,
   baseSeconds: 0,
@@ -76,6 +90,7 @@ export function useExamRunner(testIdParam: string | undefined) {
   const [highlightOverrides, setHighlightOverrides] = useState<Record<number, ExamHighlight[]>>({});
   const [timedDraftError, setTimedDraftError] = useState<string | null>(null);
   const [tutorClock, setTutorClock] = useState<TutorClockState>(EMPTY_TUTOR_CLOCK);
+  const [questionViewTime, setQuestionViewTime] = useState<QuestionViewTime>(EMPTY_QUESTION_VIEW_TIME);
 
   const timedSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const autoEndTriggeredRef = useRef(false);
@@ -259,6 +274,44 @@ export function useExamRunner(testIdParam: string | undefined) {
     return Math.max(0, Number(test.timeLimitSeconds) - elapsedSeconds);
   }, [elapsedSeconds, test?.timeLimitSeconds]);
 
+  // Presentation-only per-question elapsed time, sourced from the same
+  // canonical total seconds as the session timer. This does not change
+  // backend solving-time accounting or timed answer submissions.
+  const effectiveQuestionViewTime: QuestionViewTime =
+    test && currentQuestion &&
+    (questionViewTime.testId !== test.id || questionViewTime.questionId == null)
+      ? {
+          testId: test.id,
+          questionId: currentQuestion.id,
+          startedAtTotalSeconds: elapsedSeconds,
+          spentByQuestion: {},
+        }
+      : questionViewTime;
+
+  const questionTimerSeconds = currentQuestion
+    ? isTutor
+      ? Math.max(
+          Number(currentQuestion.userAnswer?.timeSpentSeconds || 0),
+          Math.floor(
+            (
+              (effectiveTutorClock.questionAccumulatedMs[currentQuestion.id] || 0) +
+              (tutorClockRunning && effectiveTutorClock.activeStartedAt != null
+                ? Math.max(0, clockNow - effectiveTutorClock.activeStartedAt)
+                : 0)
+            ) / 1000,
+          ),
+        )
+      : Math.max(
+          Number(currentQuestion.userAnswer?.timeSpentSeconds || 0),
+          Math.floor(
+            (effectiveQuestionViewTime.spentByQuestion[currentQuestion.id] || 0) +
+            (effectiveQuestionViewTime.questionId === currentQuestion.id
+              ? Math.max(0, elapsedSeconds - effectiveQuestionViewTime.startedAtTotalSeconds)
+              : 0),
+          ),
+        )
+    : 0;
+
   useEffect(() => {
     if (test?.status !== 'in_progress') return;
     if (isTutor && !tutorClockRunning) return;
@@ -339,6 +392,24 @@ export function useExamRunner(testIdParam: string | undefined) {
     if (!test) return;
     const target = test.questions.find((question) => question.id === questionId);
     if (!target) return;
+
+    if (isTimed && currentQuestion && target.id !== currentQuestion.id) {
+      const previous = effectiveQuestionViewTime;
+      const visitSeconds =
+        previous.questionId === currentQuestion.id
+          ? Math.max(0, elapsedSeconds - previous.startedAtTotalSeconds)
+          : 0;
+      setQuestionViewTime({
+        testId: test.id,
+        questionId: target.id,
+        startedAtTotalSeconds: elapsedSeconds,
+        spentByQuestion: {
+          ...previous.spentByQuestion,
+          [currentQuestion.id]:
+            (previous.spentByQuestion[currentQuestion.id] || 0) + visitSeconds,
+        },
+      });
+    }
 
     if (isTutor) {
       const now = Date.now();
@@ -752,6 +823,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     timerSeconds: isTimed && remainingSeconds != null ? remainingSeconds : elapsedSeconds,
     timerCountsDown: isTimed && remainingSeconds != null,
     timerPaused,
+    questionTimerSeconds,
     answeredCount,
     unansweredCount,
     markedCount,
