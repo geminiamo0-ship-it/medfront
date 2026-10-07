@@ -1,18 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 import {
+  getExamAiSummary,
   getExamExplanation,
   getExamTest,
   getLabValues,
   getQuestionNote,
+  resumeExamTest,
   saveQuestionNote,
+  saveTimedSelection,
   setExamQuestionMark,
   submitExamAnswer,
   submitTimedExamBlock,
+  suspendExamTest,
+  updateExamHighlights,
 } from '../api';
 import type {
   ExamExplanationResponse,
+  ExamHighlight,
   ExamQuestion,
   TimedBatchAnswer,
 } from '../types';
@@ -42,10 +48,16 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const test = testQuery.data;
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   const [selectedByQuestion, setSelectedByQuestion] = useState<Record<number, number | null>>({});
   const [revealedByQuestion, setRevealedByQuestion] = useState<Record<number, RevealedQuestion>>({});
   const [markOverrides, setMarkOverrides] = useState<Record<number, boolean>>({});
+  const [highlightOverrides, setHighlightOverrides] = useState<Record<number, ExamHighlight[]>>({});
+  const [timedDraftError, setTimedDraftError] = useState<string | null>(null);
+
+  const timedSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const autoEndTriggeredRef = useRef(false);
 
   const resumeQuestion = useMemo(() => {
     if (!test?.questions.length) return null;
@@ -65,14 +77,22 @@ export function useExamRunner(testIdParam: string | undefined) {
     ? test.questions.findIndex((question) => question.id === currentQuestion.id)
     : -1;
 
-  const hasLocalSelection = currentQuestion
-    ? Object.prototype.hasOwnProperty.call(selectedByQuestion, currentQuestion.id)
-    : false;
-  const selectedOptionId = currentQuestion
-    ? hasLocalSelection
-      ? selectedByQuestion[currentQuestion.id] ?? null
-      : currentQuestion.userAnswer?.selectedOptionId ?? null
-    : null;
+  const isTutorLike = test?.type === 'tutor' || test?.type === 'mixed';
+  const isTimed = test?.type === 'timed';
+  const isSuspended = test?.status === 'suspended';
+  const isCompleted = test?.status === 'completed';
+
+  function getSelectedOptionId(question: ExamQuestion): number | null {
+    if (Object.prototype.hasOwnProperty.call(selectedByQuestion, question.id)) {
+      return selectedByQuestion[question.id] ?? null;
+    }
+    if (question.draftSelectedOptionId !== undefined) {
+      return question.draftSelectedOptionId ?? null;
+    }
+    return question.userAnswer?.selectedOptionId ?? null;
+  }
+
+  const selectedOptionId = currentQuestion ? getSelectedOptionId(currentQuestion) : null;
 
   const serverAlreadyRevealed =
     !!currentQuestion?.userAnswer &&
@@ -84,28 +104,75 @@ export function useExamRunner(testIdParam: string | undefined) {
     : null;
 
   const isRevealed = !!currentReveal || serverAlreadyRevealed;
-  const isTutorLike = test?.type === 'tutor' || test?.type === 'mixed';
-  const isTimed = test?.type === 'timed';
+
+  const elapsedSeconds = useMemo(() => {
+    if (!test) return 0;
+    const persisted = Math.max(0, Number(test.timeSpentSeconds || 0));
+    if (
+      test.status !== 'in_progress' ||
+      !test.startedAt ||
+      (test.type === 'mixed' && test.timeLimitSeconds)
+    ) {
+      return persisted;
+    }
+    const startedAt = new Date(test.startedAt).getTime();
+    if (!Number.isFinite(startedAt)) return persisted;
+    return persisted + Math.max(0, Math.floor((clockNow - startedAt) / 1000));
+  }, [clockNow, test]);
+
+  const remainingSeconds = useMemo(() => {
+    if (!test?.timeLimitSeconds) return null;
+    return Math.max(0, Number(test.timeLimitSeconds) - elapsedSeconds);
+  }, [elapsedSeconds, test?.timeLimitSeconds]);
+
+  useEffect(() => {
+    setClockNow(Date.now());
+    if (!isTimed || test?.status !== 'in_progress' || !test.timeLimitSeconds) return;
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [isTimed, test?.id, test?.startedAt, test?.status, test?.timeLimitSeconds, test?.timeSpentSeconds]);
+
+  function queueTimedSelection(questionId: number, optionId: number | null) {
+    setTimedDraftError(null);
+    const next = timedSaveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        await saveTimedSelection(testId, questionId, optionId);
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Could not save timed selection.';
+        setTimedDraftError(message);
+      });
+    timedSaveQueueRef.current = next;
+  }
+
+  async function flushTimedSelectionQueue() {
+    await timedSaveQueueRef.current;
+    if (!isTimed) return;
+
+    // Re-write only locally changed answers once before Suspend. This closes the
+    // small race where the user clicks Suspend immediately after a selection.
+    const changed = Object.entries(selectedByQuestion);
+    for (const [questionId, optionId] of changed) {
+      await saveTimedSelection(testId, Number(questionId), optionId);
+    }
+    setTimedDraftError(null);
+  }
 
   function selectOption(optionId: number) {
-    if (!currentQuestion || isRevealed || showAnswerMutation.isPending) return;
+    if (!currentQuestion || isRevealed || showAnswerMutation.isPending || isSuspended || isCompleted) return;
 
-    // Timed keeps local selections until the canonical End Block batch.
     if (isTimed) {
       setSelectedByQuestion((current) => ({
         ...current,
         [currentQuestion.id]: optionId,
       }));
+      queueTimedSelection(currentQuestion.id, optionId);
       return;
     }
 
-    // AMBOSS Tutor/Mixed semantics: the FIRST option click is the submit.
-    // Later option clicks are explanation-only and never reach this controller
-    // because the theme handles them locally once the question is revealed.
     if (!isTutorLike) return;
 
-    // Pin the question before the submit-triggered refetch can advance the
-    // backend resumeQuestionId to the next unanswered question.
     setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
@@ -136,7 +203,6 @@ export function useExamRunner(testIdParam: string | undefined) {
     mutationFn: async ({ question, selectedOptionId: submittedOptionId }: TutorSubmitInput) => {
       const answer = await submitExamAnswer(testId, {
         questionId: question.id,
-        // null is deliberate: SHOW ANSWER with no first choice = omitted.
         selectedOptionId: submittedOptionId,
         answerSequence: submittedOptionId != null ? [submittedOptionId] : [],
       });
@@ -169,14 +235,13 @@ export function useExamRunner(testIdParam: string | undefined) {
       !currentQuestion ||
       !isTutorLike ||
       isRevealed ||
-      showAnswerMutation.isPending
+      showAnswerMutation.isPending ||
+      isSuspended ||
+      isCompleted
     ) {
       return;
     }
 
-    // No selected option exists in Tutor/Mixed before first submit because an
-    // option click submits immediately. SHOW ANSWER therefore means omission.
-    // Keep the omission reveal on the same question across the refetch.
     setCurrentQuestionId(currentQuestion.id);
     setSelectedByQuestion((current) => ({
       ...current,
@@ -219,6 +284,22 @@ export function useExamRunner(testIdParam: string | undefined) {
     });
   }
 
+  function getQuestionHighlights(question: ExamQuestion): ExamHighlight[] {
+    return highlightOverrides[question.id] ?? question.highlightData?.highlights ?? [];
+  }
+
+  const highlightMutation = useMutation({
+    mutationFn: ({ questionId, highlights }: { questionId: number; highlights: ExamHighlight[] }) =>
+      updateExamHighlights(testId, questionId, highlights),
+    onMutate: ({ questionId, highlights }) => {
+      setHighlightOverrides((current) => ({ ...current, [questionId]: highlights }));
+    },
+  });
+
+  function saveQuestionHighlights(questionId: number, highlights: ExamHighlight[]) {
+    highlightMutation.mutate({ questionId, highlights });
+  }
+
   const noteQuery = useQuery({
     queryKey: ['question-note', currentQuestion?.id],
     queryFn: () => getQuestionNote(currentQuestion!.id),
@@ -251,31 +332,94 @@ export function useExamRunner(testIdParam: string | undefined) {
     }
   }
 
+  const suspendMutation = useMutation({
+    mutationFn: async () => {
+      if (isTimed) await flushTimedSelectionQueue();
+      await suspendExamTest(testId);
+      return getExamTest(testId);
+    },
+    onSuccess: (freshTest) => {
+      queryClient.setQueryData(['exam-test', testId], freshTest);
+      void invalidateQbankProgressQueries(queryClient);
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async () => {
+      await resumeExamTest(testId);
+      return getExamTest(testId);
+    },
+    onSuccess: (freshTest) => {
+      autoEndTriggeredRef.current = false;
+      setClockNow(Date.now());
+      queryClient.setQueryData(['exam-test', testId], freshTest);
+      void invalidateQbankProgressQueries(queryClient);
+    },
+  });
+
   const timedBlockMutation = useMutation({
-    mutationFn: (answers: TimedBatchAnswer[]) =>
-      submitTimedExamBlock(testId, answers, test?.timeSpentSeconds ?? undefined),
-    onSuccess: () => {
-      void Promise.all([
+    mutationFn: async () => {
+      if (!test || !isTimed) throw new Error('Timed test is not available.');
+      await timedSaveQueueRef.current;
+      const answers: TimedBatchAnswer[] = test.questions.map((question) => {
+        const selected = getSelectedOptionId(question);
+        return {
+          questionId: question.id,
+          selectedOptionId: selected ?? undefined,
+        };
+      });
+      return submitTimedExamBlock(testId, answers, elapsedSeconds);
+    },
+    onSuccess: async () => {
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['exam-test', testId] }),
         invalidateQbankProgressQueries(queryClient),
       ]);
+      await testQuery.refetch();
+    },
+    onError: () => {
+      autoEndTriggeredRef.current = false;
     },
   });
 
   function endTimedBlock() {
-    if (!test || !isTimed) return;
-    const answers = test.questions.map((question) => {
-      const selected =
-        selectedByQuestion[question.id] ??
-        question.userAnswer?.selectedOptionId ??
-        null;
-      return {
-        questionId: question.id,
-        selectedOptionId: selected ?? undefined,
-      };
-    });
-    timedBlockMutation.mutate(answers);
+    if (!test || !isTimed || isCompleted || timedBlockMutation.isPending) return;
+    autoEndTriggeredRef.current = true;
+    timedBlockMutation.mutate();
   }
+
+  useEffect(() => {
+    if (
+      !isTimed ||
+      test?.status !== 'in_progress' ||
+      remainingSeconds !== 0 ||
+      timedBlockMutation.isPending ||
+      autoEndTriggeredRef.current
+    ) {
+      return;
+    }
+    endTimedBlock();
+  }, [isTimed, remainingSeconds, test?.status, timedBlockMutation.isPending]);
+
+  const aiSummaryQuery = useQuery({
+    queryKey: ['exam-ai-summary', testId, currentQuestion?.id],
+    queryFn: () => getExamAiSummary(testId, currentQuestion!.id),
+    enabled: false,
+    retry: false,
+  });
+
+  function loadAiSummary() {
+    if (!isCompleted || !currentQuestion) return;
+    void aiSummaryQuery.refetch();
+  }
+
+  const timedAnsweredCount = test
+    ? test.questions.filter((question) => getSelectedOptionId(question) != null).length
+    : 0;
+  const timedUnansweredCount = test ? Math.max(0, test.totalQuestions - timedAnsweredCount) : 0;
+  const markedCount = test
+    ? test.questions.filter((question) => isQuestionMarked(question)).length
+    : 0;
 
   return {
     testId,
@@ -284,6 +428,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     currentQuestion,
     currentIndex,
     selectedOptionId,
+    getSelectedOptionId,
     currentReveal,
     isRevealed,
     isOmitted:
@@ -291,6 +436,16 @@ export function useExamRunner(testIdParam: string | undefined) {
       (!!currentReveal && currentReveal.submittedOptionId === null),
     isTutorLike,
     isTimed,
+    isSuspended,
+    isCompleted,
+    elapsedSeconds,
+    remainingSeconds,
+    timerSeconds: isTimed && remainingSeconds != null ? remainingSeconds : elapsedSeconds,
+    timerCountsDown: isTimed && remainingSeconds != null,
+    timedAnsweredCount,
+    timedUnansweredCount,
+    markedCount,
+    timedDraftError,
     selectOption,
     goToQuestion,
     goPrevious,
@@ -300,6 +455,9 @@ export function useExamRunner(testIdParam: string | undefined) {
     isQuestionMarked,
     toggleCurrentMark,
     markMutation,
+    getQuestionHighlights,
+    saveQuestionHighlights,
+    highlightMutation,
     note: noteQuery.data ?? null,
     noteQuery,
     saveCurrentNote,
@@ -307,8 +465,15 @@ export function useExamRunner(testIdParam: string | undefined) {
     labs: labsQuery.data,
     labsQuery,
     ensureLabsLoaded,
+    suspendTest: () => suspendMutation.mutate(),
+    resumeTest: () => resumeMutation.mutate(),
+    suspendMutation,
+    resumeMutation,
     endTimedBlock,
     timedBlockMutation,
+    aiSummary: aiSummaryQuery.data ?? null,
+    aiSummaryQuery,
+    loadAiSummary,
   };
 }
 
