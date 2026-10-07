@@ -49,6 +49,7 @@ import './library.css';
 
 export default function LibraryPage() {
   const [params, setParams] = useSearchParams();
+  const embedded = params.get('embedded') === '1';
 
   const [source, setSource] = useState(() => params.get('source') || 'usmle');
   const [sourceOpen, setSourceOpen] = useState(false);
@@ -60,7 +61,7 @@ export default function LibraryPage() {
   const [isRead, setIsRead] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !embedded);
   const [dark, setDark] = useState(() => localStorage.getItem(DARK_KEY) === '1');
 
   const [query, setQuery] = useState('');
@@ -609,6 +610,7 @@ export default function LibraryPage() {
     queryFn: () => getStructure(source),
     staleTime: 5 * 60_000,
     retry: false,
+    enabled: !embedded,
   });
 
   const categories = useMemo(
@@ -875,12 +877,13 @@ export default function LibraryPage() {
 
   return (
     <div
-      className={`library-root${dark ? ' dark-mode' : ''}${ambossMode ? ' amboss-mode' : ''}${
+      className={`library-root${embedded ? ' embedded-mode' : ''}${dark ? ' dark-mode' : ''}${ambossMode ? ' amboss-mode' : ''}${
         keyExam ? ' show-key-exam' : ''
       }${highYield ? ' show-high-yield' : ''}`}
     >
       {/* NAV */}
       <LibraryNavbar
+        embedded={embedded}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         sourceLabel={sourceLabel}
         sourceOpen={sourceOpen}
@@ -910,33 +913,37 @@ export default function LibraryPage() {
 
       {/* LAYOUT */}
       <div id="layout">
-        <LibrarySidebar
-          collapsed={!sidebarOpen}
-          query={query}
-          onQueryChange={setQuery}
-          searchMode={searchMode}
-          onSearchModeChange={(m) => setSearchMode(m)}
-          results={results}
-          searching={searching}
-          onOpenSearchResult={(id, title) => {
-            void openArticle(id, title);
-            setQuery('');
-            setResults(null);
-          }}
-          structureLoading={structureLoading}
-          structureError={structureError}
-          structureLocked={structureLocked}
-          onRetryStructure={() => void structureQuery.refetch()}
-          categories={categories}
-          activeId={articleId}
-          onOpenArticle={(id, title) => void openArticle(id, title)}
-        />
-
-        <button id="sbh" onClick={() => setSidebarOpen((v) => !v)} title="Toggle Sidebar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
+        {!embedded ? (
+          <>
+          <LibrarySidebar
+            collapsed={!sidebarOpen}
+            query={query}
+            onQueryChange={setQuery}
+            searchMode={searchMode}
+            onSearchModeChange={(m) => setSearchMode(m)}
+            results={results}
+            searching={searching}
+            onOpenSearchResult={(id, title) => {
+              void openArticle(id, title);
+              setQuery('');
+              setResults(null);
+            }}
+            structureLoading={structureLoading}
+            structureError={structureError}
+            structureLocked={structureLocked}
+            onRetryStructure={() => void structureQuery.refetch()}
+            categories={categories}
+            activeId={articleId}
+            onOpenArticle={(id, title) => void openArticle(id, title)}
+          />
+  
+          <button id="sbh" onClick={() => setSidebarOpen((v) => !v)} title="Toggle Sidebar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          </>
+        ) : null}
 
         <main
           id="main"
