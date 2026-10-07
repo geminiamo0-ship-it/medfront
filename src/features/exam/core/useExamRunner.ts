@@ -168,7 +168,7 @@ export function useExamRunner(testIdParam: string | undefined) {
       effectiveTutorClock.activeStartedAt != null
     );
 
-  function settleTutorClock(now = Date.now()): TutorClockState {
+  function settleTutorClock(now: number): TutorClockState {
     const state = effectiveTutorClock;
     if (
       state.activeQuestionId == null ||
@@ -191,7 +191,7 @@ export function useExamRunner(testIdParam: string | undefined) {
     };
   }
 
-  function getTutorNetElapsedSeconds(now = Date.now()) {
+  function getTutorNetElapsedSeconds(now: number) {
     if (!isTutor || !test) return 0;
     const activeMs =
       tutorClockRunning && effectiveTutorClock.activeStartedAt != null
