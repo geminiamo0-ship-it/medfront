@@ -514,4 +514,4 @@ Architecture rule:
 - Dark theme and responsive desktop/iPad/mobile treatment retained.
 - Verify #133 success.
 - Browser Smoke #40 success: `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`. All Tutor/Timed and Omitted-review regressions also green.
-- **Deployment distinction:** Code merged and browser-verified; Cloudflare production build outcome and final main Verify are tracked in Issue #4. Do not claim frontend production success unless Cloudflare reports SUCCESS.
+- **Production verification:** Initial Cloudflare build failed; subsequent identical code on main (docs-only merge) triggered Cloudflare Build `fc96eee6-1aa7-4483-a565-2649b0d8bce5` SUCCESS; Version `57145276-f70a-4515-88a1-ef4c782d7593`. Main Verify SUCCESS.
