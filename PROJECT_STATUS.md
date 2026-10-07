@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #32 — global media origin migration (user priority override); Issue #4 remains open for approved AMBOSS sidebar and results/review.  
-**Active phase:** Global media infrastructure migration (cross-cutting); G2 — Exam Runner remains active after this migration.  
-**Current status:** MERGED + VERIFIED — AMBOSS Exam Runner includes first-answer flow, explanation blobs, internal Library split links, Timed draft persistence, configurable Timed duration, shared Tutor active-solving-time, Tutor/Timed lifecycle controls, annotation palettes, Calculator, review-only AI Summary, and completed-Omitted review. After End Block, Omitted remains Omitted but now exposes the correct answer and click-to-fetch explanations without creating a submission or changing score/filter state. Frontend latest feature merge: PR #30 (`662a7715...`). Backend review contract required no code change and was verified live on Railway. Issue #4 remains open for the final Test Analysis/Results page, My Notebook, detailed Flashcards UX, and later themes.
+**Active issue:** #4 — AMBOSS Exam Runner + results/review; global media migration code closed out under #32, with external asset-availability validation still pending.  
+**Active phase:** G2 — Exam Runner; global media URL migration implemented and deployed.  
+**Current status:** MERGED + VERIFIED — global media origin migration is live across the website (frontend #33, backend #29); the screenshot-approved AMBOSS question sidebar refinement (real stem snippets, progress, statuses, hammers, marks, SESSION + QUESTION clocks and functional EXIT SESSION) is merged in frontend PR #34. Historical Tutor active-solving, Timed countdown, Omitted review, notes and marks regressions are preserved. **Public R2 object availability remains unverified** independently of successful code rollout. Issue #4 still includes final Test Analysis/Results, shared My Notebook, detailed Flashcards UX and later themes.
 
 ## 1. Repository ownership
 
@@ -30,7 +30,7 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed/filter correctness retained; Timed now supports 1:00 / 1:30 / 2:00 / 3:00 / Custom per-question duration with derived block-time preview |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | **AMBOSS MERGED + VERIFIED** | Shared Exam Core now also unlocks completed Omitted review: correct answer visible immediately; option explanations lazy-fetch on click; SHOW ALL works; review cannot mutate Omitted/score/submission state. PR #30 + Browser Smoke #34 + Production API Smoke #13 green. |
+| Test runner | **AMBOSS MERGED + VERIFIED** | PR #34 screenshot-approved sidebar: real sanitized question previews, selected/omitted/correct/incorrect indicator, progress bar, hammers/marks, SESSION + QUESTION clocks, working Exit; Browser Smoke #40 green. Previous Omitted-review and Tutor active-solving contracts preserved. |
 | Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
@@ -150,26 +150,19 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-The completed-Omitted review contract is merged, production-deployed, and verified.
+The user's site-wide new R2 media origin is now the canonical URL in frontend and backend. The screenshot-approved AMBOSS sidebar refinement is merged and verified.
 
-Latest completed review rule, shared by Exam Core:
-1. End Block may leave a question permanently **Omitted** for that attempt;
-2. Omitted remains an outcome/filter state — reviewing it does not convert it into Answered;
-3. completed Omitted review exposes the canonical correct answer immediately;
-4. clicking an option may lazy-fetch/show its explanation;
-5. `SHOW ALL EXPLANATIONS` works;
-6. review never creates a submission, changes selectedOptionId, score, answered count, or QBank Omitted/Correct/Incorrect state;
-7. backend block-results locking still controls whether correctness is exposed.
+**Only external media verification remains:** fetch representative *existing* image object keys directly from
+`https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/`
+and confirm real HTTP 200, correct MIME and no access/CORS issues. Object uploads and public bucket permissions cannot be proven by GitHub Actions alone; do not infer that images exist merely because URLs are rewritten.
 
-The previously approved Tutor active-solving-time rule remains canonical and unchanged.
-
-Next Issue #4 design work should be selected explicitly by the user:
-1. **Test Analysis / Results** design and final post-End-Block destination;
-2. **My Notebook** shared cross-theme drawer — approved future placement is the top-bar right helper zone beside Calculator;
+Continue Issue #4 by explicit user selection of:
+1. **Test Analysis / Results** page and post-End Block destination;
+2. **My Notebook** shared drawer in right helper zone beside Calculator;
 3. detailed Flashcards/Anki UX;
-4. next production theme (UWorld / NBME / MRCP) after its own design approval.
+4. next UWorld/NBME/MRCP theme with its own approved UI.
 
-AMBOSS source media remains intentionally deferred until the media files are uploaded.
+Existing Tutor net active-solving, Timed countdown, Omitted review status, correctness locking and QBank filters are non-negotiable engine contracts.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -512,6 +505,28 @@ Do not treat Omitted as a reason to hide answers after completion in future them
 - frontend Chromium regression covers question/option legacy links and unrelated host isolation;
 - backend Jest regression covers fixed origin, path/query preservation, allowed old hosts and malicious scheme-relative paths.
 
-**Verification state at checkpoint:** Code and tests committed to focused PRs; frontend Verify green. Browser Smoke and final backend Verify are in progress. **Do not mark actual R2 object availability verified** until a real object loads successfully from new bucket. This runtime validation remains a separate gate because content/private-public permissions are external to the repo.
+**Verified release:**
+- Backend PR #29 → `e3c8724b9710f452c29f6a2fad8c53b9bd00eb7d`, backend Verify #33 ✅, Railway deployment `b2ba2947-bcd3-479b-a7c4-f8686b9856f5` SUCCESS.
+- Frontend PR #33 → `73f698399b268d09ad7bdacfe5b4911f93446210`, main Verify run `37697789982` ✅, AMBOSS Browser Smoke #36 ✅ (`global_r2_media_origin=true`), Cloudflare production Version `e502ebae-4b16-4aea-bba8-1bc80b80a777` SUCCESS.
+- All source HTML and DB records remain unchanged; the remapping happens at the API/HTML rendering boundary.
+- Actual media-file availability remains **NOT VERIFIED** until fetching real objects from the newly supplied public R2 yields HTTP 200 and an image MIME type.
 
-**Next step:** finish both Verify + Browser Smoke, merge backend before frontend, check Railway and Cloudflare deployments, run representative image load checks when accessible; update issue and this status with exact evidence and remaining unknowns. Then return to Issue #4 approved sidebar design (question stem preview/progress/status/difficulty/footer).
+**Next step:** get a representative known-live image filename, verify the new public R2 endpoint response and embedded library/exam render. Keep external media availability separate from successful URL migration.
+
+
+## Screenshot-approved AMBOSS sidebar checkpoint — 2026-10-08
+
+**User reference:** left question navigator screenshot with session name, progress bar, first stem words, row status, difficulty hammers, per-session/per-question timing, EXIT SESSION.
+
+Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
+- All rows display the actual sanitized beginning of `textHtml`; hints and markup are excluded. No new API reads.
+- Session title, answered/selected fraction and visual progress bar.
+- Explicit `unanswered / selected / correct / incorrect / omitted` styles, with Timed correctness hidden pre-completion.
+- 1–5 hammers and marked state preserved.
+- Dual footer clocks: session/remaining time from canonical controller, question-local display time derived without mutating persisted exam totals.
+- Exit Session uses existing Suspend→Previous Tests flow and navigation on completed tests.
+- Responsive mobile/iPad drawer, dark styling and keyboard/focus affordances.
+
+**Automated evidence:** frontend Verify #133 ✅; AMBOSS Browser Smoke #40 ✅ including `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`, plus all prior AMBOSS/regression flags (Tutor timing/Timed correctness, notes, marks, Omitted review).
+
+**Final production deployment checkpoint:** see Issue #4 merge comment for Cloudflare Version and main Verify (do not mark until confirmed).
