@@ -107,6 +107,7 @@ let timedBatchBody = null;
 let timedSelectionSaves = 0;
 let timedHighlightSaves = 0;
 let timedAiSummaryCalls = 0;
+let timedReviewExplanationFetches = 0;
 
 let tutorLifecycleStatus = 'in_progress';
 let tutorLifecycleTimeSpentSeconds = 0;
@@ -229,16 +230,23 @@ function timedTestPayload() {
     const correctOptionId = correctOptionFor(question)?.id ?? null;
     const isCorrect = selectedOptionId != null && selectedOptionId === correctOptionId;
     question.draftSelectedOptionId = null;
-    question.userAnswer = {
-      selectedOptionId,
-      isCorrect,
-      timeSpentSeconds: 1,
-      answerChanges: 0,
-    };
+    question.userAnswer = selectedOptionId != null
+      ? {
+          selectedOptionId,
+          isCorrect,
+          timeSpentSeconds: 1,
+          answerChanges: 0,
+        }
+      : null;
     question.isAnswered = selectedOptionId != null;
     question.isOmitted = selectedOptionId == null;
     question.status = selectedOptionId == null ? 'omitted' : 'answered';
-    question.explanationHtml = ambossExplanationBlob(question);
+    // Keep one untouched Omitted question explanation-lazy so completed
+    // review must fetch on option inspection instead of relying on preload.
+    question.explanationHtml =
+      question.id === 3002 && selectedOptionId == null
+        ? ''
+        : ambossExplanationBlob(question);
     question.options = question.options.map((option) => ({
       ...option,
       isCorrect: option.id === correctOptionId,
@@ -485,6 +493,15 @@ async function installApiMocks(target) {
         content: 'AI review summary for the completed timed question.',
         language: 'en',
       });
+    }
+
+    const timedExplanationMatch = path.match(/^\/tests\/9002\/questions\/(\d+)\/explanation$/);
+    if (timedExplanationMatch && method === 'GET') {
+      const questionId = Number(timedExplanationMatch[1]);
+      const question = timedQuestions.find((item) => item.id === questionId);
+      if (!question) return json(route, { message: 'Unknown timed smoke question' }, 404);
+      timedReviewExplanationFetches += 1;
+      return json(route, explanationPayload(question));
     }
 
     if (path === '/tests/9001/mark' && method === 'PATCH') {
@@ -924,6 +941,7 @@ try {
     timedSelectionSaves = 0;
     timedHighlightSaves = 0;
     timedAiSummaryCalls = 0;
+    timedReviewExplanationFetches = 0;
 
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/test/9002`, { waitUntil: 'networkidle' });
@@ -1019,6 +1037,49 @@ try {
     assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
     assert(timedStatus === 'completed', 'End Block did not complete the timed test');
 
+    // Untouched Q2 is Omitted after End Block. Omitted remains a result state,
+    // but completed review must expose the correct answer and explanations
+    // without creating any new answer/draft mutation.
+    const savesBeforeOmittedReview = timedSelectionSaves;
+    const batchBeforeOmittedReview = JSON.stringify(timedBatchBody);
+    await page.getByRole('button', { name: /NEXT/i }).click();
+    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+
+    const omittedReviewRows = page.locator('.amboss-option');
+    assert(
+      await omittedReviewRows.nth(7).evaluate((node) => node.classList.contains('is-correct')),
+      'Completed Omitted review did not reveal the canonical correct answer',
+    );
+    assert(
+      (await page.locator('.amboss-option-explanation').count()) === 0,
+      'Untouched completed Omitted review auto-expanded explanations',
+    );
+
+    await omittedReviewRows.nth(1).click();
+    await omittedReviewRows.nth(1).getByText(/Blob explanation for option B on question 3002/i).waitFor();
+    assert(
+      timedReviewExplanationFetches === 1,
+      `Completed Omitted option click did not lazy-fetch explanation exactly once (got ${timedReviewExplanationFetches})`,
+    );
+    assert(
+      timedSelectionSaves === savesBeforeOmittedReview,
+      'Reviewing an Omitted question mutated Timed draft selection state',
+    );
+    assert(
+      JSON.stringify(timedBatchBody) === batchBeforeOmittedReview,
+      'Reviewing an Omitted question changed the completed batch result',
+    );
+
+    await page.getByRole('button', { name: /SHOW ALL EXPLANATIONS/i }).click();
+    await page.waitForTimeout(100);
+    assert(
+      (await page.locator('.amboss-option-explanation').count()) === 8,
+      'Completed Omitted SHOW ALL EXPLANATIONS did not expand every option',
+    );
+    assert(timedStatus === 'completed', 'Omitted review changed completed test status');
+
+    await page.getByRole('button', { name: /PREVIOUS/i }).click();
+    await page.getByText('70% ethanol').waitFor();
     await page.getByRole('button', { name: /AI Summary/i }).click();
     await page.getByText('AI review summary for the completed timed question.').waitFor();
     assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
@@ -1069,7 +1130,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
