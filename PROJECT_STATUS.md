@@ -529,4 +529,4 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 
 **Automated evidence:** frontend Verify #133 ✅; AMBOSS Browser Smoke #40 ✅ including `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`, plus all prior AMBOSS/regression flags (Tutor timing/Timed correctness, notes, marks, Omitted review).
 
-**Final production deployment checkpoint:** see Issue #4 merge comment for Cloudflare Version and main Verify (do not mark until confirmed).
+**Final production deployment checkpoint:** Code-merge Cloudflare first build failed, but subsequent identical product-code main docs merge `e86ce00e04c2b41a85aecd9a8a406f7b12be3f95` triggered production Build `fc96eee6-1aa7-4483-a565-2649b0d8bce5` → SUCCESS, Version `57145276-f70a-4515-88a1-ef4c782d7593`; main Verify SUCCESS. Sidebar now production-deployed.
