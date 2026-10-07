@@ -144,11 +144,7 @@
 
 @media(max-width:480px){
   .amboss-topbar-left{
-    max-width:72px;
-  }
-
-  .amboss-topbar-left .amboss-topbar-popover-wrap:first-of-type{
-    display:none;
+    max-width:108px;
   }
 
   .amboss-topbar-center .amboss-lifecycle-action{
