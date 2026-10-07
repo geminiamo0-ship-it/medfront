@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #4 — Exam runner + results/review  
 **Active phase:** G2 — Exam Runner  
-**Current status:** MERGED — AMBOSS Exam Runner + first-answer inline explanation flow are on `main` via PRs #12 and #14; main Verify #78 is green. Deferred follow-ups remain tracked under Issue #4.
+**Current status:** MERGED — AMBOSS Exam Runner + first-answer flow + imported explanation-blob support are on `main` via PRs #12, #14 and #15; main Verify #81 is green. Deferred follow-ups remain tracked under Issue #4.
 
 ## 1. Repository ownership
 
@@ -279,3 +279,27 @@ Merge evidence:
 - backend PR #6 `Verify #7`: ✅.
 
 No further first-answer-flow work is pending unless runtime feedback exposes a real issue.
+
+
+## AMBOSS imported explanation blob checkpoint — 2026-10-07
+
+Root cause verified from current AMBOSS data shape:
+- `questions.explanationHtml` contains one combined HTML blob with sections such as `a (Incorrect)`, `b (Incorrect)`, ... `e (Correct)`;
+- `question_options.explanationHtml` is nullable and may be empty for these imports;
+- the previous runner only rendered per-option explanation fields, so valid explanations in the question-level blob were invisible.
+
+Implemented:
+- theme-local `parseAmbossExplanationHtml()` in the AMBOSS markup adapter;
+- sanitized blob is split by option letter markers A/B/C/D/E;
+- structured option-level explanation remains preferred when present;
+- parsed blob explanation is the fallback only when the option-level field is empty;
+- `.amboss-learning-obj` is extracted separately so it is not appended to option E;
+- no shared Exam Core or backend contract change.
+
+Evidence:
+- frontend PR #15 merged to `main`;
+- merge commit: `55f61d1a607e4ab6203dbb18837da5ed31f2d780`;
+- `Verify #80` on PR head ✅;
+- `AMBOSS Browser Smoke #13` ✅ with `blob_explanations=true`;
+- smoke mocks the real import shape: all option `explanationHtml=null`, all A/B/C/D/E explanations in the question-level blob;
+- frontend `main` `Verify #81` ✅.
