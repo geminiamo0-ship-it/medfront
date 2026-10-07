@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
-export function AmbossSketchOverlay({ active }: { active: boolean }) {
+export function AmbossSketchOverlay({ active, color }: { active: boolean; color: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const [hasInk, setHasInk] = useState(false);
@@ -23,7 +23,7 @@ export function AmbossSketchOverlay({ active }: { active: boolean }) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#d44545';
+        ctx.strokeStyle = color;
       }
       setHasInk(false);
     };
@@ -32,7 +32,7 @@ export function AmbossSketchOverlay({ active }: { active: boolean }) {
     const observer = new ResizeObserver(resize);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, []);
+  }, [color]);
 
   function point(event: ReactPointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current!;
@@ -49,6 +49,7 @@ export function AmbossSketchOverlay({ active }: { active: boolean }) {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
     canvas.setPointerCapture(event.pointerId);
+    ctx.strokeStyle = color;
     drawingRef.current = true;
     const p = point(event);
     ctx.beginPath();
