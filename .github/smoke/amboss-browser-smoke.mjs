@@ -176,8 +176,8 @@ function json(route, body, status = 200) {
   });
 }
 
-async function installApiMocks(page) {
-  await page.route('https://medhvgg-production.up.railway.app/api/**', async (route) => {
+async function installApiMocks(target) {
+  await target.route('https://medhvgg-production.up.railway.app/api/**', async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace(/^\/api/, '');
     const method = route.request().method();
@@ -312,8 +312,8 @@ async function preparePage(browser, viewport) {
   await context.addInitScript(() => {
     localStorage.setItem('token', 'browser-smoke-token');
   });
+  await installApiMocks(context);
   const page = await context.newPage();
-  await installApiMocks(page);
   return { context, page };
 }
 
