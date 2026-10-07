@@ -85,7 +85,65 @@ const testState = {
 
 let marked = false;
 let savedNote = null;
-let submitted = false;
+const submittedByQuestion = new Map();
+const submitBodies = [];
+
+function correctOptionFor(question) {
+  return question.options.find((option) => option.displayOrder === 'E');
+}
+
+function decoratedTestState() {
+  const body = structuredClone(testState);
+  body.answeredQuestions = 0;
+  body.correctAnswers = 0;
+  body.omittedQuestionIds = [];
+
+  for (const question of body.questions) {
+    if (!submittedByQuestion.has(question.id)) continue;
+
+    const submission = submittedByQuestion.get(question.id);
+    const selectedOptionId = submission.selectedOptionId;
+    const omitted = selectedOptionId == null;
+
+    question.userAnswer = {
+      selectedOptionId,
+      isCorrect: submission.isCorrect,
+      timeSpentSeconds: 1,
+      answerChanges: 0,
+    };
+    question.isAnswered = !omitted;
+    question.isOmitted = omitted;
+    question.status = omitted ? 'omitted' : 'answered';
+    question.options = question.options.map((option) => ({
+      ...option,
+      isCorrect: option.displayOrder === 'E',
+      explanationHtml: `<p>Explanation for option ${option.displayOrder}</p>`,
+      uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
+    }));
+
+    if (omitted) body.omittedQuestionIds.push(question.id);
+    else body.answeredQuestions += 1;
+    if (submission.isCorrect) body.correctAnswers += 1;
+  }
+
+  const resume = body.questions.find((question) => question.status === 'unanswered');
+  body.resumeQuestionId = resume?.id ?? body.questions.at(-1)?.id ?? null;
+  body.resumeDisplayOrder = resume?.displayOrder ?? body.questions.at(-1)?.displayOrder ?? null;
+  return body;
+}
+
+function explanationPayload(question) {
+  return {
+    explanationHtml: '<p>AMBOSS question explanation.</p>',
+    updatedAt: new Date().toISOString(),
+    options: question.options.map((option) => ({
+      id: option.id,
+      isCorrect: option.displayOrder === 'E',
+      explanationHtml: `<p>Explanation for option ${option.displayOrder}</p>`,
+      uworldChosenBy: option.displayOrder === 'E' ? 61 : 10,
+    })),
+  };
+}
 
 function json(route, body, status = 200) {
   return route.fulfill({
@@ -117,27 +175,7 @@ async function installApiMocks(page) {
     }
 
     if (path === '/tests/9001' && method === 'GET') {
-      const body = structuredClone(testState);
-      body.questions[0].isMarked = marked;
-      if (submitted) {
-        body.answeredQuestions = 1;
-        body.correctAnswers = 1;
-        body.questions[0].userAnswer = {
-          selectedOptionId: 116,
-          isCorrect: true,
-          timeSpentSeconds: 1,
-          answerChanges: 0,
-        };
-        body.questions[0].isAnswered = true;
-        body.questions[0].status = 'answered';
-        body.questions[0].options = body.questions[0].options.map((o) => ({
-          ...o,
-          isCorrect: o.displayOrder === 'E',
-          explanationHtml: `<p>Explanation for option ${o.displayOrder}</p>`,
-          uworldChosenBy: o.displayOrder === 'E' ? 61 : 10,
-        }));
-      }
-      return json(route, body);
+      return json(route, decoratedTestState());
     }
 
     if (path === '/tests/9001/mark' && method === 'PATCH') {
@@ -174,35 +212,39 @@ async function installApiMocks(page) {
     }
 
     if (path === '/tests/9001/submit' && method === 'POST') {
-      submitted = true;
+      const data = JSON.parse(route.request().postData() || '{}');
+      const question = testState.questions.find((item) => item.id === Number(data.questionId));
+      if (!question) return json(route, { message: 'Unknown smoke question' }, 404);
+
+      const selectedOptionId = data.selectedOptionId ?? null;
+      const correctOptionId = correctOptionFor(question)?.id ?? null;
+      const isCorrect = selectedOptionId != null && selectedOptionId === correctOptionId;
+
+      submitBodies.push(data);
+      submittedByQuestion.set(question.id, { selectedOptionId, isCorrect });
+
       return json(route, {
         submission: {
-          selectedOptionId: 116,
-          isCorrect: true,
-          correctOptionId: 116,
+          selectedOptionId,
+          isCorrect,
+          correctOptionId,
           timeSpentSeconds: 1,
         },
         testStats: {
-          answeredQuestions: 1,
-          correctAnswers: 1,
+          answeredQuestions: selectedOptionId == null ? 0 : 1,
+          correctAnswers: isCorrect ? 1 : 0,
           timeSpentSeconds: 43,
-          percentageScore: 100,
+          percentageScore: isCorrect ? 100 : 0,
         },
       });
     }
 
-    if (path === '/tests/9001/questions/2001/explanation' && method === 'GET') {
-      return json(route, {
-        explanationHtml: '<p>Alcohol disrupts lipid membranes of enveloped viruses.</p>',
-        updatedAt: new Date().toISOString(),
-        options: [
-          { id: 111, isCorrect: false, explanationHtml: '<p>Hepatitis A is non-enveloped.</p>', uworldChosenBy: 8 },
-          { id: 113, isCorrect: false, explanationHtml: '<p>Parvovirus is non-enveloped.</p>', uworldChosenBy: 11 },
-          { id: 115, isCorrect: false, explanationHtml: '<p>Poliovirus is non-enveloped.</p>', uworldChosenBy: 12 },
-          { id: 117, isCorrect: false, explanationHtml: '<p>Polyomavirus is non-enveloped.</p>', uworldChosenBy: 8 },
-          { id: 119, isCorrect: true, explanationHtml: '<p><b>Herpes simplex virus is enveloped</b> and susceptible to ethanol.</p>', uworldChosenBy: 61 },
-        ],
-      });
+    const explanationMatch = path.match(/^\/tests\/9001\/questions\/(\d+)\/explanation$/);
+    if (explanationMatch && method === 'GET') {
+      const questionId = Number(explanationMatch[1]);
+      const question = testState.questions.find((item) => item.id === questionId);
+      if (!question) return json(route, { message: 'Unknown smoke question' }, 404);
+      return json(route, explanationPayload(question));
     }
 
     return json(route, { message: `Unhandled browser-smoke route: ${method} ${path}` }, 404);
@@ -262,10 +304,41 @@ try {
     assert((await page.getByRole('button', { name: /MARKED/i }).count()) === 1, 'Marked UI state did not update');
 
     const answerRows = page.locator('.amboss-option');
-    await answerRows.nth(4).click();
-    await page.getByRole('button', { name: /SHOW ANSWER/i }).click();
-    await page.locator('.amboss-option.is-correct').waitFor();
-    assert((await page.getByRole('button', { name: /SHOW ALL EXPLANATIONS/i }).count()) === 1, 'Answer reveal did not expose explanation control');
+
+    // First option click is the ONLY persisted Tutor answer.
+    await answerRows.nth(1).click(); // B = wrong
+    await answerRows.nth(1).locator('.amboss-option-explanation').waitFor();
+    assert(submitBodies.length === 1, `Expected exactly one submit after first click, got ${submitBodies.length}`);
+    assert(submitBodies[0].questionId === 2001, 'First submit used the wrong question');
+    assert(submitBodies[0].selectedOptionId === 113, 'First submit did not persist option B');
+    assert(await answerRows.nth(1).evaluate((node) => node.classList.contains('is-incorrect')), 'First wrong answer did not turn red');
+    assert((await page.locator('.amboss-option-explanation').count()) === 1, 'Only the first clicked explanation should open initially');
+
+    // Later clicks are explanation-only: no second submit, but correctness UI opens.
+    await answerRows.nth(4).click(); // E = correct
+    await answerRows.nth(4).locator('.amboss-option-explanation').waitFor();
+    assert(submitBodies.length === 1, 'Post-submit option click incorrectly called submit again');
+    assert(await answerRows.nth(4).evaluate((node) => node.classList.contains('is-correct')), 'Post-submit correct option did not turn green');
+    assert((await page.locator('.amboss-option-explanation').count()) === 2, 'Second inspected option did not open inline');
+
+    // Show All expands every explanation without changing the recorded first answer.
+    await page.getByRole('button', { name: /SHOW ALL EXPLANATIONS/i }).click();
+    await page.waitForTimeout(100);
+    assert((await page.locator('.amboss-option-explanation').count()) === 5, 'SHOW ALL EXPLANATIONS did not open every option');
+    assert(submitBodies.length === 1, 'SHOW ALL EXPLANATIONS performed an unexpected submit');
+
+    // On a fresh question, SHOW ANSWER with no selection is an explicit omission.
+    await page.getByRole('button', { name: /NEXT/i }).click();
+    await page.getByText(/AMBOSS sample question 2/i).waitFor();
+    await page.getByRole('button', { name: /^SHOW ANSWER$/i }).click();
+    await page.getByRole('button', { name: /HIDE ALL EXPLANATIONS/i }).waitFor();
+    assert(submitBodies.length === 2, 'Omission did not create exactly one submit');
+    assert(submitBodies[1].questionId === 2002, 'Omission submit used the wrong question');
+    assert(submitBodies[1].selectedOptionId === null, 'Omission submit must send selectedOptionId=null');
+    assert((await page.locator('.amboss-option-explanation').count()) === 5, 'Omission reveal did not open all explanations');
+    await page.waitForTimeout(100);
+    const secondState = await page.locator('.amboss-question-row').nth(1).locator('.amboss-question-state').textContent();
+    assert(secondState?.trim() === '○', `Omitted question navigator state should be ○, got ${secondState}`);
 
     const before = await page.locator('.amboss-sidebar.is-open').count();
     assert(before === 1, 'Sidebar missing before collapse');
@@ -288,8 +361,9 @@ try {
     { name: 'mobile', width: 390, height: 844 },
   ]) {
     marked = false;
-    submitted = false;
     savedNote = null;
+    submittedByQuestion.clear();
+    submitBodies.length = 0;
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.getByText('70% ethanol').waitFor();
@@ -323,7 +397,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true show_answer=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true');
 } finally {
   await browser.close();
 }
