@@ -1,5 +1,37 @@
 import { safeRichHtml } from '@/lib/sanitize';
 
+
+function rewriteAmbossLibraryLinks(root: ParentNode): void {
+  root.querySelectorAll<HTMLAnchorElement>('a').forEach((anchor) => {
+    const href = anchor.getAttribute('href') || '';
+    const hash = href.includes('#') ? href.slice(href.indexOf('#') + 1) : '';
+    const hashParams = new URLSearchParams(hash);
+
+    const externalId =
+      anchor.getAttribute('data-learningcard-id')?.trim() ||
+      hashParams.get('xid')?.trim() ||
+      '';
+
+    if (!externalId) return;
+
+    const sectionAnchor =
+      anchor.getAttribute('data-anker')?.trim() ||
+      hashParams.get('anker')?.trim() ||
+      '';
+
+    const params = new URLSearchParams({
+      source: 'amboss',
+      article: externalId,
+    });
+    if (sectionAnchor) params.set('anchor', sectionAnchor);
+
+    anchor.setAttribute('href', `/library?${params.toString()}`);
+    anchor.setAttribute('data-medpark-library-link', '1');
+    anchor.removeAttribute('target');
+    anchor.removeAttribute('rel');
+  });
+}
+
 export interface ParsedAmbossQuestion {
   stemHtml: string;
   hintHtml: string;
@@ -17,6 +49,7 @@ export function parseAmbossQuestionHtml(value: unknown): ParsedAmbossQuestion {
   if (!root) return { stemHtml: safe, hintHtml: '' };
 
   root.querySelectorAll('style').forEach((node) => node.remove());
+  rewriteAmbossLibraryLinks(root);
 
   const hints = Array.from(root.querySelectorAll('.amboss-hint'));
   const hintHtml = hints
@@ -69,6 +102,7 @@ export function parseAmbossExplanationHtml(value: unknown): ParsedAmbossExplanat
   if (!root) return empty;
 
   root.querySelectorAll('style').forEach((node) => node.remove());
+  rewriteAmbossLibraryLinks(root);
 
   const learningNodes = Array.from(root.querySelectorAll('.amboss-learning-obj'));
   const learningObjectiveHtml = learningNodes
