@@ -13,7 +13,6 @@ import {
 import type {
   ExamExplanationResponse,
   ExamQuestion,
-  ExamTest,
   TimedBatchAnswer,
 } from '../types';
 
