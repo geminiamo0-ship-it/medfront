@@ -149,11 +149,21 @@ export interface SubjectCount {
 }
 
 /** POST /tests/metadata/subjects — subjects with counts (Create Test page). */
-export function getSubjects(step: number, questionBankIds: number[], mode = 'all') {
+export function getSubjects(
+  step: number,
+  questionBankIds: number[],
+  options?: {
+    mode?: string;
+    modes?: string[];
+    difficulty?: DifficultyTier[];
+  },
+) {
   return api.post<SubjectCount[]>('/tests/metadata/subjects', {
     step,
     questionBankIds,
-    mode,
+    mode: options?.mode ?? 'all',
+    ...(options?.modes?.length ? { modes: options.modes } : {}),
+    ...(options?.difficulty?.length ? { difficulty: options.difficulty } : {}),
   });
 }
 
