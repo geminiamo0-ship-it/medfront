@@ -212,3 +212,33 @@ Explicit documented deferrals are allowed only when the user deliberately choose
 ## 9. Continuation command for a new AI/developer
 
 > Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, `docs/page-specs/CREATE_TEST.md`, and next-design Issue #4. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 runtime verification task. Step tabs are Step-root navigation and must clear provider drill-down state. Library mobile/tablet is deferred. After #11 acceptance, begin Issue #4 **DESIGN discussion only**; do not implement Exam Runner before approved specs and do not mark any checkpoint Done without evidence and green Verify.
+
+## AMBOSS final technical checkpoint — 2026-10-07
+
+Current frontend head: `c085f215410a79db303b81d52d1a49d432646444`
+
+Latest verification:
+- frontend GitHub Actions `Verify #68`: typecheck ✅ lint ✅ build ✅;
+- `AMBOSS Browser Smoke #5`: ✅ in real Chromium;
+- desktop 1440×1000 ✅;
+- iPad 834×1194 ✅;
+- mobile 390×844 ✅;
+- mobile/iPad Labs settled-position assertion ✅ (panel reaches viewport edge after animation);
+- clue, hint, Labs, Notes, Mark, SHOW ANSWER, sidebar/drawer and no-horizontal-overflow checks ✅;
+- final screenshot artifact: `amboss-browser-smoke-37636551709` (artifact id `11489692315`).
+
+Architecture sanity:
+- `src/features/exam`: 23 files, ~55KB total;
+- largest files are ~7–8KB;
+- AMBOSS styles split into tokens/shell/question/panels/responsive/appearance;
+- no giant theme file and no cross-theme UI coupling.
+
+Backend cleanup:
+- temporary deferred media diagnostic removed from backend `main` via PR #5;
+- backend media issue #4 is explicitly DEFERRED until source media files are uploaded;
+- media is not a blocker for the current runner pass.
+
+Remaining gate before PR #12 can leave Draft:
+- **final human visual approval by the user**;
+- intentionally deferred UI decisions stay deferred: final theme/appearance switch placement, marker/pencil placement, detailed Flashcards UX, final End Block UI.
+
