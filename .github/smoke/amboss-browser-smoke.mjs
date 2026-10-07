@@ -330,7 +330,7 @@ try {
     // On a fresh question, SHOW ANSWER with no selection is an explicit omission.
     await page.getByRole('button', { name: /NEXT/i }).click();
     await page.getByText(/AMBOSS sample question 2/i).waitFor();
-    await page.getByRole('button', { name: /^SHOW ANSWER$/i }).click();
+    await page.getByRole('button', { name: /SHOW ANSWER/i }).click();
     await page.getByRole('button', { name: /HIDE ALL EXPLANATIONS/i }).waitFor();
     assert(submitBodies.length === 2, 'Omission did not create exactly one submit');
     assert(submitBodies[1].questionId === 2002, 'Omission submit used the wrong question');
