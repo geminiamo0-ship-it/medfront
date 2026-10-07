@@ -12,49 +12,51 @@ interface AmbossOptionProps {
   option: AmbossResolvedOption;
   selected: boolean;
   revealed: boolean;
+  inspected: boolean;
   showExplanation: boolean;
-  onSelect: () => void;
+  onActivate: () => void;
 }
 
 export function AmbossOption({
   option,
   selected,
   revealed,
+  inspected,
   showExplanation,
-  onSelect,
+  onActivate,
 }: AmbossOptionProps) {
-  const correct = revealed && option.isCorrect === true;
-  const incorrectSelected = revealed && selected && option.isCorrect === false;
+  const correct = revealed && inspected && option.isCorrect === true;
+  const incorrect = revealed && inspected && option.isCorrect === false;
   const classes = [
     'amboss-option',
     selected ? 'is-selected' : '',
+    inspected ? 'is-inspected' : '',
     correct ? 'is-correct' : '',
-    incorrectSelected ? 'is-incorrect' : '',
+    incorrect ? 'is-incorrect' : '',
     revealed ? 'is-revealed' : '',
   ].filter(Boolean).join(' ');
 
-  function selectFromMouse(event: MouseEvent<HTMLDivElement>) {
-    if (revealed) return;
+  function activateFromMouse(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
     if (target.closest('a')) return;
-    onSelect();
+    onActivate();
   }
 
-  function selectFromKeyboard(event: KeyboardEvent<HTMLDivElement>) {
-    if (revealed || (event.key !== 'Enter' && event.key !== ' ')) return;
+  function activateFromKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    onSelect();
+    onActivate();
   }
 
   return (
     <div
       className={classes}
-      role="radio"
-      aria-checked={selected}
-      aria-disabled={revealed}
-      tabIndex={revealed ? -1 : 0}
-      onClick={selectFromMouse}
-      onKeyDown={selectFromKeyboard}
+      role={revealed ? 'button' : 'radio'}
+      aria-checked={revealed ? undefined : selected}
+      aria-expanded={revealed ? showExplanation : undefined}
+      tabIndex={0}
+      onClick={activateFromMouse}
+      onKeyDown={activateFromKeyboard}
     >
       <span className="amboss-option-letter">{option.displayOrder}</span>
       <div className="amboss-option-main">
@@ -65,7 +67,7 @@ export function AmbossOption({
       </div>
       <span className="amboss-option-stat">
         {revealed && option.uworldChosenBy != null ? `${option.uworldChosenBy}%` : ''}
-        {correct ? ' ✓' : incorrectSelected ? ' ×' : ''}
+        {correct ? ' ✓' : incorrect ? ' ×' : ''}
       </span>
     </div>
   );
