@@ -1,0 +1,18 @@
+.amboss-runner{
+  --amboss-top:#075a60;
+  --amboss-page:#edf2f5;
+  --amboss-surface:#fff;
+  --amboss-surface-soft:#f6f8f9;
+  --amboss-text:#14212a;
+  --amboss-muted:#687b88;
+  --amboss-line:#d8e0e6;
+  --amboss-success:#11836c;
+  --amboss-danger:#e4484f;
+  --amboss-warning:#f0a51f;
+  --amboss-sidebar:296px;
+  --amboss-top-h:50px;
+  min-height:100vh;
+  background:var(--amboss-page);
+  color:var(--amboss-text);
+  font-family:"Segoe UI",Arial,sans-serif;
+}

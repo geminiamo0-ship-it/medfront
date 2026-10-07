@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md — MedPark frontend reconstruction
 
-**Last updated:** 2026-10-06  
+**Last updated:** 2026-10-07  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #11 — QBank workspace shell + responsive Create Test  
-**Active phase:** G1 — Existing frontend stabilization  
-**Current status:** VERIFYING — QBank/Create Test source work is implemented; latest code Verify is green; runtime/browser acceptance remains
+**Active issue:** #4 — Exam runner + results/review  
+**Active phase:** G2 — Exam Runner  
+**Current status:** IMPLEMENTING — AMBOSS is the first production theme; implementation is isolated on `feat/amboss-exam-runner`; QBank #11 runtime acceptance remains recorded verification debt
 
 ## 1. Repository ownership
 
@@ -30,8 +30,8 @@ Cloudflare frontend runtime: `https://medfront.geminiamo0.workers.dev`
 | Create Test | **VERIFYING** | Mixed fix, stable metadata, Standard/Custom max 50, live availability, responsive pass; Step-safe navigation fixed |
 | Previous Tests | Implemented | Uses QBank workspace shell; empty-state Create Test link preserves Step |
 | Library | Advanced; follow-up parked | Library mobile/tablet explicitly deferred until separate user discussion; Library work is not the immediate next priority |
-| Test runner | Placeholder | **Next design discussion after #11 runtime checkpoint** — Issue #4 |
-| Results/review | Not implemented | Part of #4 |
+| Test runner | **IMPLEMENTING** | Issue #4; approved multi-theme architecture; AMBOSS first production theme |
+| Results/review | Not implemented | Part of #4; final review design still deferred |
 | Other parked surfaces | Not active | Follow master plan/issues |
 
 ## 3. Global delivery rule — responsive is part of Done
@@ -123,31 +123,74 @@ Page spec: `docs/page-specs/QBANK_WORKSPACE.md`.
 
 ## 6. Priority override approved by the user
 
-The previous roadmap expected Library work before Exam Runner. On 2026-10-06 the user explicitly reprioritized:
+On 2026-10-07 the user explicitly authorized Exam Runner implementation after approving the AMBOSS design direction and modular architecture.
 
-1. Finish the current QBank / Create Test checkpoint (#11).
-2. Then move directly to **Exam Page / Exam Runner detailed DESIGN discussion** (#4).
-3. Do not implement Exam Runner until the user-approved `EXAM_RUNNER` / results-review specs exist.
-4. Library responsive work remains deliberately deferred and will be discussed separately later.
+Current priority:
+1. Issue #4 is now the primary implementation issue.
+2. Implement AMBOSS first on isolated branch `feat/amboss-exam-runner`.
+3. Shared Exam Core + registry remain theme-agnostic; each theme is independently replaceable.
+4. QBank Issue #11 runtime/browser acceptance remains open verification debt and is not falsely marked Done.
+5. Library responsive work remains deliberately deferred.
 
-This means G1 is **not falsely marked complete** just because design discussion for #4 starts. Remaining Library/regression work stays recorded as parked debt while the user-approved priority shifts to Exam Runner design.
-
-Issue #4 has been updated to reflect that it is the **next design discussion** after #11 acceptance, not an implementation authorization.
+Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-First finish Issue #11 runtime acceptance on Cloudflare.
+Implement and verify the first AMBOSS Exam Runner slices on `feat/amboss-exam-runner`:
 
-Quick navigation check:
-1. Open `/qbank?step=1`.
-2. Enter any provider under Step 1.
-3. Click Step 2 — Step 2 must open at its top-level provider/bank selection.
-4. Click Step 1 again — Step 1 must also open at its top-level provider/bank selection, not the provider previously opened.
-5. Clicking the currently active Step while inside a provider should likewise return to that Step root.
+1. typed runner API/contracts + theme registry/resolver;
+2. full-screen test route outside `AppLayout`;
+3. backend 5-tier `difficultyTier` retrieval contract;
+4. AMBOSS shell/sidebar/hammers;
+5. sanitized question/options + KEY INFO clue + ATTENDING TIP;
+6. Tutor/Mixed `SHOW ANSWER` flow with no visible Submit button;
+7. Timed selection buffer / End-Block-safe behavior;
+8. Labs, Question Notes and Mark persistence;
+9. typecheck/lint/build + GitHub Actions Verify;
+10. browser/API acceptance before merge.
 
-Also verify the existing #11 checklist: selected-bank shell, responsive drawer, missing-Step recovery, Create Test responsive/correctness flows.
+Do not implement final theme/appearance switch placement, marker/pencil placement, or detailed Flashcard UX until those exact UI details are approved.
 
-**Once the user confirms this checkpoint, switch active work to Issue #4 in DESIGN and begin the detailed Exam Page discussion. Do not write Exam Runner product code before that discussion/spec approval.**
+## AMBOSS implementation checkpoint — 2026-10-07
+
+Implemented on `feat/amboss-exam-runner`:
+- shared typed Exam Runner API/core/registry;
+- full-screen `/test/:testId` outside global `AppLayout`;
+- isolated `themes/amboss` package;
+- collapsible desktop sidebar + mobile drawer foundation;
+- canonical 1–5 difficulty hammer rendering;
+- sanitized AMBOSS rich HTML;
+- `KEY INFO` clue toggle for imported `.Highlight`;
+- `ATTENDING TIP` extraction from `.amboss-hint`;
+- no visible Submit button;
+- Tutor/Mixed `SHOW ANSWER` wired through canonical submit + explanation endpoints;
+- Timed local selection/batch controller path without per-question reveal;
+- Lab Values panel, Question Notes read/save, Mark persistence;
+- Flashcards entry placeholder only;
+- adopted SVG icon pack now used through shared `ExamIcon`;
+- AMBOSS options isolated into their own component so rich HTML is not nested inside native buttons.
+
+Verification evidence:
+- latest implementation refactor head `03a55a58c9d863723f207f26e94fb2e0f52c4b00`;
+- frontend PR #12 remains draft;
+- frontend GitHub Actions `Verify #60`: typecheck ✅ lint ✅ build ✅;
+- AMBOSS styling is now split by responsibility under `themes/amboss/styles/` (tokens / shell / question / panels / responsive / appearance); `amboss.css` is import-only;
+- backend difficulty contract merged to `medhvgg/main` via PR #1 (`fbba279f6ee8d615644497dd63f4ee6ede8d4410`);
+- reusable authenticated production Exam Runner smoke merged via backend PR #2 (`876151a6120aa0da168708eac3be399d069b20fa`);
+- production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed;
+- reusable AMBOSS media diagnostic merged via backend PR #3 (`1be935e3de8ce1ac135651ac959ae0ebec47c170`).
+
+Automated browser verification:
+- `AMBOSS Browser Smoke #1` passed in real Chromium on Desktop 1440×1000, iPad 834×1194, and Mobile 390×844.
+- Verified sidebar/drawer behavior, 1–5 hammers, clue toggle, attending hint, Labs, Notes, Mark, SHOW ANSWER, and no page-level horizontal overflow.
+- Screenshot artifact: `amboss-browser-smoke-37634636170` (artifact id `11488260316`).
+- Final human visual approval remains open.
+
+Still open before Done:
+- Media deferral: AMBOSS `offline_media/...` files are not uploaded yet; user explicitly asked to skip this for the current runner pass.
+- Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
+- final human visual approval by the user;
+- final End Block UI, theme/appearance switch placement, marker/pencil placement and detailed Flashcard UX are still deferred pending explicit user approval.
 
 ## 8. Definition of Done
 
@@ -169,3 +212,33 @@ Explicit documented deferrals are allowed only when the user deliberately choose
 ## 9. Continuation command for a new AI/developer
 
 > Open `geminiamo0-ship-it/medfront`. Read `PROJECT_STATUS.md`, `AGENTS.md`, `docs/ENGINEERING_GUARDRAILS.md`, `docs/MASTER_PLAN.md`, `docs/PAGE_DELIVERY_WORKFLOW.md`, master Issue #1, parent Issue #3, active Issue #11, `docs/page-specs/QBANK_WORKSPACE.md`, `docs/page-specs/CREATE_TEST.md`, and next-design Issue #4. Treat `geminiamo0-ship-it/medhvgg/main` as canonical backend and `medfront/backend` as reference-only. Use `https://medfront.geminiamo0.workers.dev` as runtime. Continue from the first unchecked Issue #11 runtime verification task. Step tabs are Step-root navigation and must clear provider drill-down state. Library mobile/tablet is deferred. After #11 acceptance, begin Issue #4 **DESIGN discussion only**; do not implement Exam Runner before approved specs and do not mark any checkpoint Done without evidence and green Verify.
+
+## AMBOSS final technical checkpoint — 2026-10-07
+
+Current frontend head: `c085f215410a79db303b81d52d1a49d432646444`
+
+Latest verification:
+- frontend GitHub Actions `Verify #68`: typecheck ✅ lint ✅ build ✅;
+- `AMBOSS Browser Smoke #5`: ✅ in real Chromium;
+- desktop 1440×1000 ✅;
+- iPad 834×1194 ✅;
+- mobile 390×844 ✅;
+- mobile/iPad Labs settled-position assertion ✅ (panel reaches viewport edge after animation);
+- clue, hint, Labs, Notes, Mark, SHOW ANSWER, sidebar/drawer and no-horizontal-overflow checks ✅;
+- final screenshot artifact: `amboss-browser-smoke-37636551709` (artifact id `11489692315`).
+
+Architecture sanity:
+- `src/features/exam`: 23 files, ~55KB total;
+- largest files are ~7–8KB;
+- AMBOSS styles split into tokens/shell/question/panels/responsive/appearance;
+- no giant theme file and no cross-theme UI coupling.
+
+Backend cleanup:
+- temporary deferred media diagnostic removed from backend `main` via PR #5;
+- backend media issue #4 is explicitly DEFERRED until source media files are uploaded;
+- media is not a blocker for the current runner pass.
+
+Remaining gate before PR #12 can leave Draft:
+- **final human visual approval by the user**;
+- intentionally deferred UI decisions stay deferred: final theme/appearance switch placement, marker/pencil placement, detailed Flashcards UX, final End Block UI.
+
