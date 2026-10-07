@@ -98,7 +98,11 @@ function correctOptionFor(question) {
 function ambossExplanationBlob(question) {
   const parts = question.options.map((option) => {
     const state = option.displayOrder === 'H' ? 'Correct' : 'Incorrect';
-    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.</p></div>`;
+    const libraryLink =
+      option.displayOrder === 'H'
+        ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f">edema</a>'
+        : '';
+    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}</p></div>`;
   });
 
   parts.push(
@@ -228,6 +232,35 @@ async function installApiMocks(page) {
           { id: 'lab-3', category: 'Blood', name: 'Hemoglobin', referenceRange: '12–16 g/dL', siReferenceInterval: '120–160 g/L' },
         ],
       });
+    }
+
+
+    if (path === '/library/structure' && method === 'GET') {
+      return json(route, [
+        {
+          id: 'Amboss',
+          name: 'Amboss',
+          articles: [{ id: 2583, title: 'Edema' }],
+          children: [],
+        },
+      ]);
+    }
+
+    if (path === '/library/article/SM0yLg' && method === 'GET') {
+      return json(route, {
+        id: 2583,
+        name: 'Edema',
+        title: 'Edema',
+        source: 'amboss',
+        contentHtml:
+          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p></div>',
+        isRead: false,
+        isBookmarked: false,
+      });
+    }
+
+    if (path === '/library/article/2583/highlights' && method === 'GET') {
+      return json(route, []);
     }
 
     if (path === '/tests/9001/submit' && method === 'POST') {
@@ -374,6 +407,25 @@ try {
     assert(!overflow, 'Desktop page has unintended horizontal overflow');
 
     await page.screenshot({ path: `${outDir}/amboss-desktop-interactions.png`, fullPage: true });
+
+    // Imported AMBOSS links must stay inside MedPark and resolve by the
+    // original external article ID instead of opening amboss.com.
+    const internalLibraryLink = page
+      .locator('a[data-medpark-library-link="1"][data-learningcard-id="SM0yLg"]')
+      .first();
+    await internalLibraryLink.waitFor();
+    const internalHref = await internalLibraryLink.getAttribute('href');
+    assert(internalHref?.includes('/library?'), `AMBOSS link was not rewritten to Library: ${internalHref}`);
+    assert(internalHref?.includes('source=amboss'), `AMBOSS link lost source=amboss: ${internalHref}`);
+    assert(internalHref?.includes('article=SM0yLg'), `AMBOSS link lost external article ID: ${internalHref}`);
+    assert(internalHref?.includes('anchor=Zc00dca4994157e86d8e6e8ee9510443f'), `AMBOSS link lost section anchor: ${internalHref}`);
+    assert(!internalHref?.includes('amboss.com'), `AMBOSS link still points outside MedPark: ${internalHref}`);
+
+    await internalLibraryLink.click();
+    await page.waitForURL(/\/library\?.*article=SM0yLg/);
+    await page.getByText('Internal AMBOSS article smoke').waitFor();
+    await page.getByText('Edema', { exact: true }).first().waitFor();
+
     await context.close();
   }
 
@@ -418,7 +470,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true');
 } finally {
   await browser.close();
 }
