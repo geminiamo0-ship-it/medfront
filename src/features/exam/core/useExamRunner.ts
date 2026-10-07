@@ -99,12 +99,17 @@ export function useExamRunner(testIdParam: string | undefined) {
     : -1;
 
   const isTutorLike = test?.type === 'tutor' || test?.type === 'mixed';
+  const isTutor = test?.type === 'tutor';
   const isTimed = test?.type === 'timed';
   const isSuspended = test?.status === 'suspended';
   const isCompleted = test?.status === 'completed';
 
+  function hasLocalSubmissionIntent(questionId: number) {
+    return Object.prototype.hasOwnProperty.call(selectedByQuestion, questionId);
+  }
+
   function getSelectedOptionId(question: ExamQuestion): number | null {
-    if (Object.prototype.hasOwnProperty.call(selectedByQuestion, question.id)) {
+    if (hasLocalSubmissionIntent(question.id)) {
       return selectedByQuestion[question.id] ?? null;
     }
     if (question.draftSelectedOptionId !== undefined) {
@@ -126,8 +131,94 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   const isRevealed = !!currentReveal || serverAlreadyRevealed;
 
-  const elapsedSeconds = useMemo(() => {
-    if (!test) return 0;
+  const currentTutorQuestionShouldRun =
+    !!(
+      isTutor &&
+      test?.status === 'in_progress' &&
+      currentQuestion &&
+      !currentQuestion.userAnswer &&
+      !hasLocalSubmissionIntent(currentQuestion.id)
+    );
+
+  // Before the first local clock event, derive an initial clock from the
+  // loaded test snapshot. Once an interaction occurs, tutorClock owns the
+  // in-session active-time state and is intentionally not rebased by answer
+  // refetches (which would otherwise double-count submitted deltas).
+  const effectiveTutorClock: TutorClockState =
+    isTutor && test && tutorClock.testId !== test.id
+      ? {
+          testId: test.id,
+          baseSeconds: Math.max(0, Number(test.timeSpentSeconds || 0)),
+          localAccumulatedMs: 0,
+          questionAccumulatedMs: {},
+          activeQuestionId:
+            currentTutorQuestionShouldRun && currentQuestion ? currentQuestion.id : null,
+          activeStartedAt:
+            currentTutorQuestionShouldRun
+              ? Math.max(0, testQuery.dataUpdatedAt || clockNow)
+              : null,
+        }
+      : tutorClock;
+
+  const tutorClockRunning =
+    !!(
+      currentTutorQuestionShouldRun &&
+      currentQuestion &&
+      effectiveTutorClock.activeQuestionId === currentQuestion.id &&
+      effectiveTutorClock.activeStartedAt != null
+    );
+
+  function settleTutorClock(now = Date.now()): TutorClockState {
+    const state = effectiveTutorClock;
+    if (
+      state.activeQuestionId == null ||
+      state.activeStartedAt == null
+    ) {
+      return state;
+    }
+
+    const deltaMs = Math.max(0, now - state.activeStartedAt);
+    const questionId = state.activeQuestionId;
+    return {
+      ...state,
+      localAccumulatedMs: state.localAccumulatedMs + deltaMs,
+      questionAccumulatedMs: {
+        ...state.questionAccumulatedMs,
+        [questionId]: (state.questionAccumulatedMs[questionId] || 0) + deltaMs,
+      },
+      activeQuestionId: null,
+      activeStartedAt: null,
+    };
+  }
+
+  function getTutorNetElapsedSeconds(now = Date.now()) {
+    if (!isTutor || !test) return 0;
+    const activeMs =
+      tutorClockRunning && effectiveTutorClock.activeStartedAt != null
+        ? Math.max(0, now - effectiveTutorClock.activeStartedAt)
+        : 0;
+    return (
+      effectiveTutorClock.baseSeconds +
+      Math.floor((effectiveTutorClock.localAccumulatedMs + activeMs) / 1000)
+    );
+  }
+
+  function pauseTutorForSubmit(questionId: number) {
+    if (!isTutor) return undefined;
+    const now = Date.now();
+    const settled = settleTutorClock(now);
+    setTutorClock(settled);
+    setClockNow(now);
+    return Math.max(
+      0,
+      Math.floor((settled.questionAccumulatedMs[questionId] || 0) / 1000),
+    );
+  }
+
+  const tutorElapsedSeconds = isTutor ? getTutorNetElapsedSeconds(clockNow) : 0;
+
+  const nonTutorElapsedSeconds = useMemo(() => {
+    if (!test || test.type === 'tutor') return 0;
 
     const persisted = Math.max(0, Number(test.timeSpentSeconds || 0));
     const serverSnapshot = Number(test.timerElapsedSeconds);
@@ -155,6 +246,8 @@ export function useExamRunner(testIdParam: string | undefined) {
     return persisted + Math.max(0, Math.floor((clockNow - startedAt) / 1000));
   }, [clockNow, test, testQuery.dataUpdatedAt]);
 
+  const elapsedSeconds = isTutor ? tutorElapsedSeconds : nonTutorElapsedSeconds;
+
   const remainingSeconds = useMemo(() => {
     if (!test?.timeLimitSeconds) return null;
     return Math.max(0, Number(test.timeLimitSeconds) - elapsedSeconds);
@@ -162,6 +255,7 @@ export function useExamRunner(testIdParam: string | undefined) {
 
   useEffect(() => {
     if (test?.status !== 'in_progress') return;
+    if (isTutor && !tutorClockRunning) return;
 
     const tick = () => setClockNow(Date.now());
     tick();
@@ -176,7 +270,7 @@ export function useExamRunner(testIdParam: string | undefined) {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [test?.id, test?.status]);
+  }, [isTutor, test?.id, test?.status, tutorClockRunning]);
 
   function queueTimedSelection(questionId: number, optionId: number | null) {
     setTimedDraftError(null);
