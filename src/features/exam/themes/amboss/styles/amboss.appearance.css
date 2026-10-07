@@ -37,3 +37,26 @@
 .amboss-runner[data-appearance="dark"] .amboss-stem a{
   color:#9cd7dd;
 }
+
+
+.amboss-runner[data-appearance="dark"] .amboss-option.is-selected:not(.is-revealed){
+  background:#183244;
+  border-left-color:#58a5df;
+}
+
+.amboss-runner[data-appearance="dark"] .amboss-option.is-selected:not(.is-revealed) .amboss-option-letter{
+  border-color:#58a5df;
+  background:#58a5df;
+  color:#10222e;
+}
+
+.amboss-runner[data-appearance="dark"] .amboss-segmented button.is-active{
+  background:#214449;
+  color:#bde6e9;
+}
+
+.amboss-runner[data-appearance="dark"] .amboss-timed-save-warning{
+  background:#3b321d;
+  color:#f0cc78;
+  border-color:#6d5a2b;
+}
