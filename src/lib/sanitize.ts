@@ -1,5 +1,5 @@
 import DOMPurify, { type Config } from 'dompurify';
-import { rewriteLegacyMediaUrls } from './media';
+import { rewriteLegacyMediaUrls, rewriteRelativeOfflineMediaUrl, rewriteRelativeOfflineMediaSrcset } from './media';
 
 /**
  * Sanitizer for all server-provided HTML (library articles, question
@@ -41,6 +41,21 @@ DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
 });
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  // Images supplied by imports often carry bare offline_media/... keys.
+  // Resolve only those trusted relative media paths after DOMPurify has
+  // validated attributes; never change other links or weaken sanitization.
+  for (const attribute of ['src', 'data-src', 'data-original', 'poster', 'href']) {
+    const original = node.getAttribute(attribute);
+    if (original) {
+      const rewritten = rewriteRelativeOfflineMediaUrl(original);
+      if (rewritten !== original) node.setAttribute(attribute, rewritten);
+    }
+  }
+  const srcset = node.getAttribute('srcset');
+  if (srcset) {
+    const rewritten = rewriteRelativeOfflineMediaSrcset(srcset);
+    if (rewritten !== srcset) node.setAttribute('srcset', rewritten);
+  }
   if (node.nodeName === 'A' && (node.getAttribute('target') || '').toLowerCase() === '_blank') {
     node.setAttribute('rel', 'noopener noreferrer');
   }
