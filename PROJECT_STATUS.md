@@ -171,13 +171,14 @@ Implemented on `feat/amboss-exam-runner`:
 - AMBOSS options isolated into their own component so rich HTML is not nested inside native buttons.
 
 Verification evidence:
-- frontend current head `219c49923e3c3bdf8a7fcdd4b9660a7919606b6f`;
+- latest implementation refactor head `03a55a58c9d863723f207f26e94fb2e0f52c4b00`;
 - frontend PR #12 remains draft;
-- frontend GitHub Actions `Verify #56`: typecheck ✅ lint ✅ build ✅;
+- frontend GitHub Actions `Verify #60`: typecheck ✅ lint ✅ build ✅;
+- AMBOSS styling is now split by responsibility under `themes/amboss/styles/` (tokens / shell / question / panels / responsive / appearance); `amboss.css` is import-only;
 - backend difficulty contract merged to `medhvgg/main` via PR #1 (`fbba279f6ee8d615644497dd63f4ee6ede8d4410`);
 - reusable authenticated production Exam Runner smoke merged via backend PR #2 (`876151a6120aa0da168708eac3be399d069b20fa`);
-- backend Verify #2 build ✅;
-- production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed.
+- production Exam Runner API Smoke #1 ✅: AMBOSS bank id=1/mainBankId=1, 2785 questions; Labs 5 categories/169 rows; Tutor mark+note+answer reload passed; canonical difficultyTier present; Timed no-pre-reveal + End-Block batch + answer reload passed;
+- reusable AMBOSS media diagnostic merged via backend PR #3 (`1be935e3de8ce1ac135651ac959ae0ebec47c170`).
 
 Still open before Done:
 - Backend media blocker: `geminiamo0-ship-it/medhvgg#4` — production AMBOSS HTML contains relative `offline_media/...` sources but current import pipeline never uploads media; do not guess a frontend prefix;
