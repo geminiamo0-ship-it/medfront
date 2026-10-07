@@ -308,8 +308,10 @@ try {
 
     await page.getByRole('button', { name: /^LABS$/i }).click();
     await page.getByText('LAB VALUES').waitFor();
+    await page.waitForTimeout(350);
     const labBox = await page.locator('.amboss-labs.is-open').boundingBox();
     assert(labBox && Math.round(labBox.width) >= device.width - 2, `${device.name}: Labs panel is not viewport-wide`);
+    assert(labBox && Math.abs(labBox.x) <= 1, `${device.name}: Labs panel did not finish sliding to the viewport edge (x=${labBox?.x})`);
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-labs.png`, fullPage: true });
     await page.getByRole('button', { name: /Close lab values/i }).click();
     await page.waitForTimeout(350);
