@@ -1,4 +1,5 @@
 import type { ExamQuestion, ExamTest } from '../../types';
+import { ExamIcon } from '../../shared/ExamIcon';
 import { DifficultyHammers } from './DifficultyHammers';
 
 interface AmbossSidebarProps {
@@ -30,7 +31,7 @@ export function AmbossSidebar({
       <div className="amboss-sidebar-head">
         <strong>{test.title || 'Custom session'}</strong>
         <button type="button" className="amboss-sidebar-toggle" onClick={onToggle} aria-label="Toggle session sidebar">
-          ◧
+          <ExamIcon name="close" size={16} />
         </button>
         <span>{test.answeredQuestions}/{test.totalQuestions}</span>
       </div>
@@ -53,7 +54,9 @@ export function AmbossSidebar({
                 {active ? `Question ${question.displayOrder}` : ''}
               </span>
               <DifficultyHammers tier={question.difficultyTier} />
-              <span className={isMarked(question) ? 'amboss-mini-flag is-marked' : 'amboss-mini-flag'}>⚑</span>
+              <span className={isMarked(question) ? 'amboss-mini-flag is-marked' : 'amboss-mini-flag'}>
+                <ExamIcon name="mark" size={15} />
+              </span>
             </button>
           );
         })}
@@ -61,7 +64,10 @@ export function AmbossSidebar({
 
       <div className="amboss-sidebar-footer">
         <div>
-          <strong>{Math.floor(test.timeSpentSeconds / 3600)}h {String(Math.floor((test.timeSpentSeconds % 3600) / 60)).padStart(2, '0')}m</strong>
+          <span className="amboss-sidebar-time">
+            <ExamIcon name="timer" size={16} />
+            <strong>{Math.floor(test.timeSpentSeconds / 3600)}h {String(Math.floor((test.timeSpentSeconds % 3600) / 60)).padStart(2, '0')}m</strong>
+          </span>
           <small>SESSION</small>
         </div>
         <div>

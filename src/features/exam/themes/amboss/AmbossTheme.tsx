@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ExamRunnerController } from '../../core/useExamRunner';
+import { ExamIcon } from '../../shared/ExamIcon';
 import { AmbossSidebar } from './AmbossSidebar';
 import { AmbossQuestionWorkspace } from './AmbossQuestionWorkspace';
 import './amboss.css';
@@ -20,7 +21,7 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
           onClick={() => setSidebarOpen((value) => !value)}
           aria-label="Toggle session navigation"
         >
-          ☰
+          <ExamIcon name="menu" size={23} />
         </button>
         <div className="amboss-topbar-space" />
       </header>

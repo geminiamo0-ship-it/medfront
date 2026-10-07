@@ -1,17 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
+import { ExamIcon } from '../../shared/ExamIcon';
 import { SafeHtml } from '../../shared/SafeHtml';
 import { parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
 import { AmbossNotesEditor } from './AmbossNotesEditor';
+import { AmbossOption, type AmbossResolvedOption } from './AmbossOption';
 import { AmbossToolbar } from './AmbossToolbar';
-
-interface ResolvedOption extends ExamOption {
-  isCorrect?: boolean;
-  explanationHtml?: string | null;
-  uworldChosenBy?: number | null;
-}
 
 export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunnerController }) {
   const question = controller.currentQuestion;
@@ -30,7 +26,7 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
   if (!question || !controller.test) return null;
 
   const revealOptions = controller.currentReveal?.explanation.options ?? [];
-  const resolvedOptions: ResolvedOption[] = question.options.map((option) => {
+  const resolvedOptions: AmbossResolvedOption[] = question.options.map((option: ExamOption) => {
     const reveal = revealOptions.find((item) => item.id === option.id);
     return {
       ...option,
@@ -96,44 +92,25 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
             </div>
           ) : null}
 
-          <div className="amboss-options">
+          <div className="amboss-options" role="radiogroup" aria-label="Answer choices">
             {resolvedOptions.map((option) => {
               const selected = controller.selectedOptionId === option.id;
               const revealed = controller.isRevealed;
               const correct = revealed && option.isCorrect === true;
-              const incorrectSelected = revealed && selected && option.isCorrect === false;
               const showExplanation =
                 revealed &&
                 !!option.explanationHtml &&
                 (showAllExplanations || selected || correct);
 
-              const classes = [
-                'amboss-option',
-                selected ? 'is-selected' : '',
-                correct ? 'is-correct' : '',
-                incorrectSelected ? 'is-incorrect' : '',
-              ].filter(Boolean).join(' ');
-
               return (
-                <button
-                  type="button"
+                <AmbossOption
                   key={option.id}
-                  className={classes}
-                  onClick={() => controller.selectOption(option.id)}
-                  disabled={revealed}
-                >
-                  <span className="amboss-option-letter">{option.displayOrder}</span>
-                  <span className="amboss-option-main">
-                    <SafeHtml html={option.textHtml} className="amboss-option-text" />
-                    {showExplanation ? (
-                      <SafeHtml html={option.explanationHtml} className="amboss-option-explanation" />
-                    ) : null}
-                  </span>
-                  <span className="amboss-option-stat">
-                    {revealed && option.uworldChosenBy != null ? `${option.uworldChosenBy}%` : ''}
-                    {correct ? ' ✓' : incorrectSelected ? ' ×' : ''}
-                  </span>
-                </button>
+                  option={option}
+                  selected={selected}
+                  revealed={revealed}
+                  showExplanation={showExplanation}
+                  onSelect={() => controller.selectOption(option.id)}
+                />
               );
             })}
           </div>
@@ -157,9 +134,7 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
                 ↕ {showAllExplanations ? 'HIDE ALL EXPLANATIONS' : 'SHOW ALL EXPLANATIONS'}
               </button>
             ) : (
-              <span className="amboss-timed-message">
-                {controller.isTimed ? 'Answers are reviewed when the timed block ends.' : ''}
-              </span>
+              <span />
             )}
             <div className="amboss-answer-secondary">
               <span>↶ RESET QUESTION</span>
@@ -169,13 +144,15 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
         </div>
 
         <footer className="amboss-bottom-nav">
-          <button type="button" onClick={controller.goPrevious} disabled={controller.currentIndex <= 0}>‹ PREVIOUS</button>
+          <button type="button" onClick={controller.goPrevious} disabled={controller.currentIndex <= 0}>
+            <ExamIcon name="previous" size={14} /> PREVIOUS
+          </button>
           <button
             type="button"
             onClick={controller.goNext}
             disabled={controller.currentIndex >= controller.test.questions.length - 1}
           >
-            {controller.selectedOptionId == null && !controller.isRevealed ? 'SKIP' : 'NEXT'} ›
+            {controller.selectedOptionId == null && !controller.isRevealed ? 'SKIP' : 'NEXT'} <ExamIcon name="next" size={14} />
           </button>
         </footer>
       </section>
@@ -190,7 +167,9 @@ export function AmbossQuestionWorkspace({ controller }: { controller: ExamRunner
       {flashcardsOpen ? (
         <div className="amboss-dialog-backdrop" role="presentation" onMouseDown={() => setFlashcardsOpen(false)}>
           <div className="amboss-dialog" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
-            <button type="button" className="amboss-dialog-close" onClick={() => setFlashcardsOpen(false)}>×</button>
+            <button type="button" className="amboss-dialog-close" onClick={() => setFlashcardsOpen(false)} aria-label="Close flashcards">
+              <ExamIcon name="close" size={20} />
+            </button>
             <h2>Flashcards</h2>
             <p>The AMBOSS theme will use MedPark question-linked Flashcards. Detailed card creation UX is intentionally deferred to the next approved pass.</p>
           </div>
