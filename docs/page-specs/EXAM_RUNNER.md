@@ -281,7 +281,7 @@ User approved this refinement after reviewing the merged Timed toolbar.
 - My Notebook is distinct from per-question Notes and from Flashcards/Anki.
 - The eventual Notebook opens as a shared right-side drawer; do not build a theme-local placeholder now.
 
-## 11C. Approved Tutor active-solving-time contract — 2026-10-08
+## 11C. Tutor active-solving-time contract — APPROVED + IMPLEMENTED + VERIFIED — 2026-10-08
 
 User explicitly approved this timing rule as a shared Exam Core behavior for Tutor mode across every theme.
 
@@ -367,6 +367,11 @@ User explicitly approved this timing rule as a shared Exam Core behavior for Tut
 - [x] mobile browser acceptance
 - [x] browser proves Timed timer decrements and Tutor timer increments
 - [x] browser proves marker dark-mode contrast and Marker/Pencil palettes
+- [x] browser proves Tutor timer pauses on first submit/SHOW ANSWER
+- [x] browser proves Tutor timer stays frozen during explanation/review
+- [x] browser proves Tutor timer resumes on unanswered navigation
+- [x] browser proves Tutor submit sends per-question `timeSpentSeconds`
+- [x] production API proves Tutor server snapshot does not wall-clock creep before submit or during review
 
 ## 13. Explicitly deferred
 - global cross-theme appearance URL strategy;
@@ -396,3 +401,34 @@ Still deliberately deferred:
 - final Test Analysis / Results design and post-End-Block destination;
 - UWorld/NBME/MRCP production themes;
 - AMBOSS source media upload/path completion.
+
+
+## 15. Tutor active-solving-time closeout — 2026-10-08
+
+Merged implementation:
+- backend PR #26 → `f027476dc08b2639376e7c4016baa4ef36a9edc1`;
+- frontend PR #28 → `f8b754257c2eafd067cdb0aadb1328f1e747c739`;
+- Railway production deployment `5743176d-e76f-45af-879e-299978403937` → SUCCESS;
+- Cloudflare Workers production Version `dfaacb5e-3f18-493a-a0c3-f93a746c5d27` → SUCCESS.
+
+Verified behavior:
+- Tutor unanswered question increments the shared timer;
+- first option selection pauses before API/explanation latency;
+- SHOW ANSWER/omission pauses the same way;
+- waiting in explanation/review does not change the timer;
+- moving to a fresh unanswered question resumes from the accumulated total;
+- answered/omitted questions remain paused;
+- Tutor submit carries the current question's active-solving delta;
+- backend stores per-question and aggregate active-solving time;
+- Tutor GET snapshots are persisted active time only, never wall-clock `now-startedAt`;
+- Timed continuous countdown behavior is unchanged.
+
+Evidence:
+- backend Verify #29 ✅;
+- production Exam Runner API Smoke #12 ✅: `pre_submit_static=0 submitted_delta=3 persisted=3 review_static=3`;
+- frontend Verify #117 ✅;
+- AMBOSS Browser Smoke #31 ✅ with `tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true`;
+- frontend main Verify after merge ✅.
+
+Architecture rule:
+**Do not implement Tutor timing separately inside future themes.** UWorld, NBME, MRCP, and later themes consume this shared Exam Core contract.
