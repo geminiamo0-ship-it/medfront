@@ -244,8 +244,8 @@ export default function CreateTestPage() {
         ? withoutAll.filter((mode) => mode !== key)
         : [...withoutAll, key];
 
-      // Never leave the status group empty; fall back to All.
-      return next.length > 0 ? next : ['all'];
+      // Never leave the status group empty; preserve the last selected mode.
+      return next.length > 0 ? next : prev;
     });
   }
 
