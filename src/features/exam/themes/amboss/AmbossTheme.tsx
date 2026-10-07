@@ -48,22 +48,32 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
     }
   }
 
+  function leaveToPreviousTests() {
+    const bankId =
+      controller.test?.filters?.questionBankIds?.[0] ??
+      controller.currentQuestion?.questionBank?.id ??
+      null;
+    const step = controller.test?.step ?? 1;
+    navigate(bankId
+      ? `/qbank/${bankId}/previous-tests?step=${step}`
+      : `/qbank?step=${step}`);
+  }
+
   async function suspendAndLeave() {
+    if (controller.suspendMutation.isPending) return;
     try {
       await controller.suspendTestAsync();
-      const bankId =
-        controller.test?.filters?.questionBankIds?.[0] ??
-        controller.currentQuestion?.questionBank?.id ??
-        null;
-      const step = controller.test?.step ?? 1;
-
-      if (bankId) {
-        navigate(`/qbank/${bankId}/previous-tests?step=${step}`);
-      } else {
-        navigate(`/qbank?step=${step}`);
-      }
+      leaveToPreviousTests();
     } catch {
       // Mutation state retains the error and the learner remains in the runner.
+    }
+  }
+
+  function exitSession() {
+    if (controller.isCompleted || controller.isSuspended) {
+      leaveToPreviousTests();
+    } else {
+      void suspendAndLeave();
     }
   }
 
@@ -105,9 +115,11 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
           controller.goToQuestion(questionId);
           if (typeof window !== 'undefined' && window.innerWidth < 900) setSidebarOpen(false);
         }}
+        onExit={exitSession}
         isMarked={controller.isQuestionMarked}
         getSelectedOptionId={controller.getSelectedOptionId}
         timerSeconds={controller.timerSeconds}
+        questionTimerSeconds={controller.questionTimerSeconds}
         timerCountsDown={controller.timerCountsDown}
         paused={controller.timerPaused}
       />
