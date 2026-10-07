@@ -137,6 +137,10 @@ function ambossExplanationBlob(question) {
 
 function decoratedTestState() {
   const body = structuredClone(testState);
+  const startedAtMs = new Date(testState.startedAt).getTime();
+  body.timerElapsedSeconds =
+    Number(testState.timeSpentSeconds || 0) +
+    Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
   body.answeredQuestions = 0;
   body.correctAnswers = 0;
   body.omittedQuestionIds = [];
@@ -194,7 +198,14 @@ function timedTestPayload() {
       : 0,
     timeSpentSeconds: timedTimeSpentSeconds,
     timeLimitSeconds: timedQuestions.length * 60,
-    startedAt: timedStartedAt,
+    // Intentionally omit a usable startedAt in browser smoke. The live
+    // display must advance from the server timer snapshot, not client date parsing.
+    startedAt: null,
+    timerElapsedSeconds:
+      timedTimeSpentSeconds +
+      (timedStatus === 'in_progress'
+        ? Math.max(0, Math.floor((Date.now() - new Date(timedStartedAt).getTime()) / 1000))
+        : 0),
     completedAt: completed ? new Date().toISOString() : null,
     viewerThemeProfileSnapshot: null,
     filters: { questionBankIds: [1] },
@@ -247,7 +258,12 @@ function tutorLifecyclePayload() {
   body.title = 'AMBOSS tutor lifecycle smoke';
   body.status = tutorLifecycleStatus;
   body.timeSpentSeconds = tutorLifecycleTimeSpentSeconds;
-  body.startedAt = tutorLifecycleStartedAt;
+  body.startedAt = null;
+  body.timerElapsedSeconds =
+    tutorLifecycleTimeSpentSeconds +
+    (tutorLifecycleStatus === 'in_progress'
+      ? Math.max(0, Math.floor((Date.now() - new Date(tutorLifecycleStartedAt).getTime()) / 1000))
+      : 0);
   body.completedAt = tutorLifecycleStatus === 'completed' ? new Date().toISOString() : null;
   body.questions = body.questions.map((question) => ({
     ...question,
