@@ -1,4 +1,5 @@
 import DOMPurify, { type Config } from 'dompurify';
+import { rewriteLegacyMediaUrls } from './media';
 
 /**
  * Sanitizer for all server-provided HTML (library articles, question
@@ -47,7 +48,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 
 export function safeRichHtml(value: unknown): string {
   return DOMPurify.sanitize(
-    String(value ?? ''),
+    rewriteLegacyMediaUrls(String(value ?? '')),
     RICH_HTML_POLICY as unknown as Config,
   ) as string;
 }
