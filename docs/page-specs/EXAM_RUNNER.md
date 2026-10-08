@@ -616,10 +616,21 @@ Architecture rule:
 - Respect screenshot styling and responsive desktop, iPad, mobile. Do not redesign Library responsive layout or other themes. No scoring, DB or backend changes.
 
 ### Regression and acceptance gates
-- [ ] Heading IDs (including wrapped/adjacent anchor IDs) survive transform; collapsed target expands and scrolls.
-- [ ] Same article different-anchor URL transitions work, without unnecessary refetch; wrong-article IDs cannot scroll local content.
-- [ ] Main Article button only with explicit AMBOSS question relation, correct displayed explanation, Tutor or completed Timed.
-- [ ] Related terms preserve existing learning-card IDs and anchors; safe preview/actions; no inadvertent answer submit.
-- [ ] Missing reference fails safely; not invented.
-- [ ] Desktop/iPad/mobile Chromium and existing exam/library regressions.
+- [x] Heading IDs (including wrapped/adjacent anchor IDs) survive transform; collapsed target expands and scrolls.
+- [x] Same article different-anchor URL transitions work, without unnecessary refetch; wrong-article IDs cannot scroll local content.
+- [x] Main Article button only with explicit AMBOSS question relation, correct displayed explanation, Tutor or completed Timed.
+- [x] Related terms preserve existing learning-card IDs and anchors; safe preview/actions; no inadvertent answer submit.
+- [x] Missing reference fails safely; not invented.
+- [x] Desktop/iPad/mobile Chromium and existing exam/library regressions.
 - [ ] Typecheck/lint/build + GitHub Actions Verify and AMBOSS Browser Smoke; merge/main Verify; record production runtime status separately.
+
+### Implementation closeout for §19 — 2026-10-08
+
+- Approved Issue #41, frontend PR #42 merged into `main` as `e7c5043762e6e5e9d9ae762756135f2c39f353c5`.
+- Source contract verified on canonical medhvgg/main: Question retrieval includes optional `articleId` and `libraryName`. These fields are now typed in frontend. The backend does not provide a canonical article title in the exam question payload, so the Main Article button honestly uses the neutral label 'Main article' rather than inventing 'Chemotherapeutic agents'.
+- AMBOSS Library Cards preserve real heading IDs moved from section wrappers/adjacent markers; explicit missing anchors do not silently jump to an unrelated heading; scroll expands collapsed cards, targets header and briefly outlines it.
+- Library page processes changed `article`+`anchor` URLs without duplicate refetches; its local jump checks the current article identity before scrolling. Existing Split/New Tab paths preserved.
+- Main Article only shows after the correct explanation is visible and only if the question's canonical library relation is valid. Dotted term decoration is restricted to explicit AMBOSS learning-card references; optional imported previews are decoded/sanitized. No relation is guessed from text.
+- PR Verify #162 PASS (Typecheck, lint, build); AMBOSS Browser Smoke #54 PASS including `precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true` and prior image, Tutor, Timed, responsive regressions.
+- Main merge Verify #163 PASS (`37829277158`).
+- Actual Cloudflare Workers deployed version and real production Library records were **not independently verified**; Issue #41 remains VERIFYING for runtime acceptance, not DONE. Related #32/#38 external checks still open.
