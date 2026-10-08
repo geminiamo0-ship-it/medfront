@@ -45,7 +45,9 @@ export function scrollToAnchor(container: HTMLElement | null, anchor: string, te
     }
   }
 
-  if (!el && term) {
+  // An explicit but absent anchor must not silently jump to an unrelated
+  // heading with a similar label. Text fallback is only for anchorless refs.
+  if (!el && !anchor && term) {
     const t = term.trim().toLowerCase();
     if (t) {
       const heads = container.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
@@ -60,7 +62,13 @@ export function scrollToAnchor(container: HTMLElement | null, anchor: string, te
   }
 
   if (!el) return false;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // AMBOSS sections can be collapsed when opened via a deep link.
+  const card = el.closest<HTMLElement>('.amboss-card');
+  if (card?.classList.contains('collapsed')) card.classList.remove('collapsed');
+  const target = card?.querySelector<HTMLElement>('.amboss-card-header') ?? el;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('amboss-reference-target');
+  window.setTimeout(() => target.classList.remove('amboss-reference-target'), 1800);
   const prev = el.style.backgroundColor;
   el.style.transition = 'background-color .3s';
   el.style.backgroundColor = 'rgba(255,69,0,.25)';
