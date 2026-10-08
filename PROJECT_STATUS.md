@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #38 — user-approved AMBOSS exam image viewer reuse (VERIFYING; PR #39). Global R2 object availability remains separately open under #32, and G2 parent is #4.  
-**Active phase:** G2 — AMBOSS Exam Runner image presentation verification; global R2 migration previously merged, real file availability still pending #32.  
-**Current status:** AMBOSS image viewer is merged to main: PR #39 (`dedcfad...`) shared Library Viewer; screenshot-reported **pre-answer diagnosis/title leak** fixed in PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`). Before answer, visible Viewer title now reads `Medical Illustration` even if source alt/title contains a diagnosis; Tutor after answer or Timed after End Block restores source title+Description. Library keeps its original behavior. PR #40 Verify #157 ✅ / Browser Smoke #53 ✅, including actual mocked overlay image bitmap decode. **Issue #38 remains OPEN / VERIFYING** for independent Cloudflare production version/runtime; **Issue #32 stays OPEN / VERIFYING** for actual public R2 objects and missing overlay diagnosis if reported. Other G2 Results/Review/My Notebook/Flashcards/theme design remains deferred.
+**Active issue:** #41 — approved AMBOSS Library references and precise section links (code merged/CI verified; external Cloudflare production acceptance VERIFYING). G2 parent #4. #38 and #32 remain separate external runtime/media verification.  
+**Active phase:** G2 — AMBOSS Exam Runner integrated Library references; all new code implemented and tested, live Cloudflare deployment not independently confirmed.  
+**Current status:** User-approved AMBOSS Library navigation and references PR #42 merged as `e7c5043762e6e5e9d9ae762756135f2c39f353c5`. PR Verify #162 ✅, AMBOSS Browser Smoke #54 ✅ (exact section scroll after AMBOSS card render, same-article new anchor no refetch, correct answer Main Article via real question.articleId, dotted real linked terms, preview, Split/New Tab, prior Tutor/Timed/Library/responsive regressions), main Verify #163 ✅. **Issue #41 remains OPEN/VERIFYING** until confirmed Cloudflare production version and live cross-reference behavior. No invented article relation/title: backend question payload provides articleId/libraryName but not display article title; neutral 'Main article' label. #38 image viewer runtime and #32 R2 object availability also OPEN/VERIFYING. G2 Results/Review, My Notebook, Flashcards and later themes still deferred.
 
 ## 1. Repository ownership
 
@@ -150,13 +150,13 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Issue #38 — VERIFYING external production:** AMBOSS image Viewer PR #39 (`dedcfad...`) plus user-screenshot follow-up PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`) merged. PR #40 Verify #157 ✅ / AMBOSS Browser Smoke #53 ✅ (diagnostic title neutral pre-answer, visible post-answer, optional overlay actually decodes from mocked response, Library regression). Main docs-handoff Verify #160 / run `37825666908` ✅ (typecheck, lint, build) after PR #40 merge. Cloudflare production version/runtime is still independently unverified. All smoke media responses are mocked. Shared viewer still powers Library.
+**Issue #41 — VERIFYING Cloudflare live deployment and real Library records:** user-approved AMBOSS source-button/dotted-related-terms/deep-anchor slice completed and merged PR #42 (`e7c5043762e6e5e9d9ae762756135f2c39f353c5`). PR Verify #162 ✅, AMBOSS Browser Smoke #54 ✅, main Verify #163 / run `37829277158` ✅. Spec `docs/page-specs/EXAM_RUNNER.md` §19 approved before coding and code + CI evidence recorded.
 
-**Exact unchecked work:** verify live Cloudflare Workers deployed version includes PR #39 merge (or newer), then visually test one real AMBOSS stem image and option explanation image with overlay and description after solving. Direct Cloudflare deployment inspection was unavailable; **do not claim deployed/Done** until actual runtime evidence exists. Document the verified version and close Issue #38 only after that gate.
+**Exact unchecked work:** independently verify Cloudflare deployed revision contains PR #42, then test live AMBOSS article links from a correct explanation: source Main Article exists when question.articleId is present, actual linked term dotted preview, linked section opens correctly in Split and New Tab, repeated link to a different section of same loaded article navigates without new data fetch. Real production article metadata/data may vary. Without deployed-version/runtime evidence, do not close #41.
 
-**Separate Issue #32:** check actual uploaded R2 image objects return HTTP 200 with image MIME and render in real browser. Old public R2 sample object formerly returned HTTP 404; retest after uploads instead of assuming it still fails. Mocked Chrome successes do not prove bucket content, access or MIME.
+**Other independent VERIFYING gates:** #38 — shared image viewer deployed version/live interaction; #32 — real uploaded R2 objects HTTP 200 image MIME and rendering. Browser smoke media mocks and PR merges cannot prove real assets or Cloudflare release state.
 
-**After this checkpoint:** report completion and next work item to user **before moving on**. Recommended next user discussion: Test Analysis/Results design under Issue #4. My Notebook, Flashcards/Anki and additional themes still require their own style/spec approval. Library responsive and QBank Issue #11 browser acceptance remain parked/open.
+**Scope boundaries:** No backend/DB migration; backend `medhvgg/main` remains authority. Exam question payload has optional `articleId` + `libraryName`, but lacks authoritative article title; button labeled 'Main article' when relationship exists, never fabricate an article name or relation. Do not start Results/Review or another theme until explicitly approved style/spec. #11 selected QBank/runtime and Library mobile/tablet redesign parked.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -553,3 +553,12 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - Fixed in frontend PR #40, squash merge `1104b88527f5fac57ea3d4682b85ae9ebfb97883`: generic `Medical Illustration` until `showDescription` becomes true. Post-reveal diagnosis/description and Library behavior preserved. No backend/DB mutation, imported alt/title metadata stays.
 - Verify #157 ✅; AMBOSS Browser Smoke #53 ✅ on branch: `diagnostic_title_hidden_before_answer=true overlay_bitmap_decodes=true`, Tutor/Timed/Library regressions desktop/iPad/mobile ✅.
 - Still needs independent Cloudflare production deploy/version and real object check if SHOW OVERLAY yields no actual layer for the user's screenshot. The screenshot button reads SHOW OVERLAY, meaning layer is intentionally off until clicked; don't imply a broken overlay solely from that screenshot. Issue #38 VERIFYING; Issue #32 separately handles R2 availability.
+
+## AMBOSS Library-reference navigation checkpoint — 2026-10-08
+
+- Approved user screenshot: correct answer has subtle independent Main Article button; genuine linked terms get dotted underline; click goes to exact section, not beginning.
+- Focused Issue #41, approved spec `docs/page-specs/EXAM_RUNNER.md` §19 created before code; PR #42 `feat/amboss-library-deep-links-source` squash merged to main as `e7c5043762e6e5e9d9ae762756135f2c39f353c5`.
+- Frontend changes: AMBOSS article H2 anchor preservation, expand/highlight exact section; same-article changed query anchor and wrong-article guard; metadata-only correct-answer Main Article button; AMBOSS-linked term underline and sanitized source preview + existing Split/New Tab menu.
+- No guessed source, no backend changes, no new external requests per answer merely to fetch a Main Article title; label 'Main article' when metadata lacks the name.
+- PR Verify #162 success; AMBOSS Browser Smoke #54 success including `precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true` and prior Tutor/Timed/Library/image/mobile regressions; main Verify #163 success.
+- **Production not independently confirmed.** Remain VERIFYING in #41 until deployed-version and live acceptance. R2 #32 and Image Viewer #38 remain separately VERIFYING.
