@@ -3,7 +3,7 @@ import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
 import { SafeHtml } from '../../shared/SafeHtml';
-import { parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
+import { importedReferencePreview, parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
 import { AmbossLibraryLinkMenu } from './AmbossLibraryLinkMenu';
 import { AmbossLibrarySplitPane } from './AmbossLibrarySplitPane';
@@ -37,6 +37,7 @@ export function AmbossQuestionWorkspace({
   const [libraryLinkMenu, setLibraryLinkMenu] = useState<{
     href: string;
     title: string;
+    previewHtml: string;
     left: number;
     top: number;
   } | null>(null);
@@ -152,6 +153,7 @@ export function AmbossQuestionWorkspace({
     setLibraryLinkMenu({
       href,
       title: link.textContent?.trim() || 'AMBOSS article',
+      previewHtml: importedReferencePreview(link.getAttribute('data-description') || link.getAttribute('data-content') || ''),
       left,
       top,
     });
@@ -411,6 +413,7 @@ export function AmbossQuestionWorkspace({
           left={libraryLinkMenu.left}
           top={libraryLinkMenu.top}
           title={libraryLinkMenu.title}
+          previewHtml={libraryLinkMenu.previewHtml}
           onSplit={openLibrarySplit}
           onNewTab={openLibraryNewTab}
           onClose={() => setLibraryLinkMenu(null)}
