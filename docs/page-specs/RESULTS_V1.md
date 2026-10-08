@@ -34,3 +34,15 @@ TanStack Query loading/error states; invalid ID; 401/403/404 generic unavailable
 - [ ] Browser: phone no horizontal scroll
 - [ ] Browser: completed Previous Tests points to Results; in-progress/Suspended retains runner
 - [ ] Live signed-in Railway + Cloudflare real test results proof; no DONE label before live acceptance
+
+## 2026-10-09 Visual polish checkpoint (user approved from side-by-side screenshots)
+
+**Focused issue:** #undefined, SPEC APPROVED. The current light page is readable but the seven equal metric cards, oversized donut whitespace and tall empty recommendations card waste screen space. The second concept is the **density and hierarchy reference only**, not its black background, RTL, tiny fonts or Community Comparison panel.
+
+- **Desktop:** compact heading with previous-tests link and subtle completion count; four priority metrics in one even row: Accuracy, Correct/Total, Avg per Answered Q, Total Time. A balanced results card with readable 150–170px donut + visible correct/incorrect/omitted legend, with a separate recommendation card that can be short when empty. Compact five-tier difficulty tracks below; no ranking or derived score.
+- **Tablet:** 2-column summary metrics, two content panels where room permits; avoid a fixed giant panel height.
+- **Mobile:** two-column summary metrics, vertically stacked donut/legend/recommendations and difficulty rows, minimum readable 12–14px body text, overflow-free and tappable Previous Tests/Review Questions.
+- **Color/theme:** scoped CSS custom properties for page surfaces, text, tracks and meaning (success/error/omitted). Light default matches current site; opt-in dark class/data-theme uses dark values. No site-wide shell/theming refactor or branding-orange dependence. Don't use color alone for success/wrong counts.
+- **Accuracy:** exactly one decimal (e.g. **2.5%**) in both headline and donut, even if circle is visually rounded; maintain Correct/Incorrect/Omitted and Completed counts with no rounding of question counts.
+- **Empty state:** compact message when there are no wrong answers; do NOT claim excellent mastery if most questions are omitted. Topic list uses only real backend primary names and correct/total. All data remain server-authoritative; no backend changes.
+- **Acceptance gates:** the browser smoke captures desktop/tablet/mobile Results screenshots, asserts both accuracy displays have 2.5% for a 1/40 fixture, checks conditional Recommendations empty state, no horizontal overflow, charts/labels and existing Tutor/Timed completion + review navigation. Verify TypeScript, ESLint and build; run CI before merge. Cloudflare authenticated live result is an independent gate.
