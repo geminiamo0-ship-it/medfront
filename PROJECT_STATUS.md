@@ -5,7 +5,7 @@
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #38 — user-approved AMBOSS exam image viewer reuse (VERIFYING; PR #39). Global R2 object availability remains separately open under #32, and G2 parent is #4.  
 **Active phase:** G2 — AMBOSS Exam Runner image presentation verification; global R2 migration previously merged, real file availability still pending #32.  
-**Current status:** User-approved AMBOSS exam image viewer reuse **MERGED TO MAIN** via PR #39 (`dedcfad064b95660236fb9e4250eeeabef2b50f3`), final PR Verify #153 ✅, AMBOSS Browser Smoke #52 ✅, main Verify #154 ✅. Features include the same shared Library Viewer, right-rail thumbnails, explanation thumbnails, opt-in overlay, Tutor/Timed Description display gating, keyboard/ESC, missing-image fallback and no accidental answer submissions. **Issue #38 remains OPEN / VERIFYING** solely for Cloudflare production version/live acceptance, not because code tests failed. **Issue #32 remains OPEN / VERIFYING** for actual public R2 objects. Issue #4 retains deferred Results/Review, shared My Notebook, detailed Flashcards and later themes.
+**Current status:** AMBOSS image viewer is merged to main: PR #39 (`dedcfad...`) shared Library Viewer; screenshot-reported **pre-answer diagnosis/title leak** fixed in PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`). Before answer, visible Viewer title now reads `Medical Illustration` even if source alt/title contains a diagnosis; Tutor after answer or Timed after End Block restores source title+Description. Library keeps its original behavior. PR #40 Verify #157 ✅ / Browser Smoke #53 ✅, including actual mocked overlay image bitmap decode. **Issue #38 remains OPEN / VERIFYING** for independent Cloudflare production version/runtime; **Issue #32 stays OPEN / VERIFYING** for actual public R2 objects and missing overlay diagnosis if reported. Other G2 Results/Review/My Notebook/Flashcards/theme design remains deferred.
 
 ## 1. Repository ownership
 
@@ -150,7 +150,7 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Issue #38 — VERIFYING external production:** User-approved AMBOSS exam-image slice was merged to `main` through PR #39 (`dedcfad064b95660236fb9e4250eeeabef2b50f3`). Final PR Verify #153 ✅, AMBOSS Browser Smoke #52 ✅, and main Verify #154 / run `37823707167` ✅. All UI behavior tested in real Chromium (desktop/iPad/mobile) against mocked API/R2 data. Shared viewer still powers Library.
+**Issue #38 — VERIFYING external production:** AMBOSS image Viewer PR #39 (`dedcfad...`) plus user-screenshot follow-up PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`) merged. PR #40 Verify #157 ✅ / AMBOSS Browser Smoke #53 ✅ (diagnostic title neutral pre-answer, visible post-answer, optional overlay actually decodes from mocked response, Library regression). Prior main Verify #154 ✅; main verification for PR #40 pending. All smoke media responses are mocked. Shared viewer still powers Library.
 
 **Exact unchecked work:** verify live Cloudflare Workers deployed version includes PR #39 merge (or newer), then visually test one real AMBOSS stem image and option explanation image with overlay and description after solving. Direct Cloudflare deployment inspection was unavailable; **do not claim deployed/Done** until actual runtime evidence exists. Document the verified version and close Issue #38 only after that gate.
 
@@ -546,3 +546,10 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - PR Verify #151 PASS; AMBOSS Browser Smoke #50 PASS incl. actual image attribute clicks, overlay toggling and synchronized zoom, Tutor/Timed reveal checks, DOM thumbnail rail/size, mocked image-404 placeholder, Library Viewer regression, desktop/iPad/mobile.
 - Merged: PR #39 → `dedcfad064b95660236fb9e4250eeeabef2b50f3`; PR Verify #153 ✅, Browser Smoke #52 ✅, main Verify #154 ✅.
 - Still pending: independently confirm Cloudflare production build/version and real-image rendering. #38 stays OPEN / VERIFYING. #32 independently tracks R2 object response checks. No Done claim yet.
+
+## Live AMBOSS image-heading follow-up — 2026-10-08
+
+- User-provided screenshot showed diagnosis `Osgood-Schlatter disease` in the Viewer heading before any answer, while Description was correctly visually hidden. Root cause: `#aiv-title` rendered imported `data.title` unconditionally.
+- Fixed in frontend PR #40, squash merge `1104b88527f5fac57ea3d4682b85ae9ebfb97883`: generic `Medical Illustration` until `showDescription` becomes true. Post-reveal diagnosis/description and Library behavior preserved. No backend/DB mutation, imported alt/title metadata stays.
+- Verify #157 ✅; AMBOSS Browser Smoke #53 ✅ on branch: `diagnostic_title_hidden_before_answer=true overlay_bitmap_decodes=true`, Tutor/Timed/Library regressions desktop/iPad/mobile ✅.
+- Still needs independent Cloudflare production deploy/version and real object check if SHOW OVERLAY yields no actual layer for the user's screenshot. The screenshot button reads SHOW OVERLAY, meaning layer is intentionally off until clicked; don't imply a broken overlay solely from that screenshot. Issue #38 VERIFYING; Issue #32 separately handles R2 availability.
