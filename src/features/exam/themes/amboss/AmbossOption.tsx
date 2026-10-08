@@ -1,6 +1,6 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
 import type { ExamOption } from '../../types';
-import { SafeHtml } from '../../shared/SafeHtml';
+import { AmbossRichHtml } from './AmbossRichHtml';
 
 export interface AmbossResolvedOption extends ExamOption {
   isCorrect?: boolean;
@@ -68,10 +68,10 @@ export function AmbossOption({
     >
       <span className="amboss-option-letter">{option.displayOrder}</span>
       <div className="amboss-option-main">
-        <SafeHtml html={option.textHtml} className="amboss-option-text" />
+        <AmbossRichHtml html={option.textHtml} className="amboss-option-text" />
         {showExplanation ? (
           <>
-            <SafeHtml html={option.explanationHtml} className="amboss-option-explanation" />
+            <AmbossRichHtml html={option.explanationHtml} className="amboss-option-explanation" />
             {option.isCorrect === true && mainArticleHref ? (
               <div className="amboss-main-article">
                 <a
