@@ -1439,7 +1439,7 @@ try {
     // drag the outer viewport or light up an enclosing card/header.
     await page.goto(`${baseUrl}/library?source=amboss&article=SM0yLg&anchor=Ztreatment`, { waitUntil:'networkidle' });
     await page.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
-    await page.waitForTimeout(1100);
+    await page.waitForTimeout(1450);
     const anchorPosition = await page.evaluate(() => {
       const element = document.getElementById('Ztreatment');
       const scrollport = document.getElementById('ascroll');
