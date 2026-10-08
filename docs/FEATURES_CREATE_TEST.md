@@ -101,3 +101,6 @@ Tracked in [ROADMAP.md](ROADMAP.md):
 2. Custom ID parsing truncates with `.slice(0, 50)`, so extra IDs are dropped silently and the ">50" warning can never appear.
 3. The systems query reuses the creation `filters` (including `systemIds` / `topicIds`), so picking a system or topic can shrink the systems matrix and the topic search.
 4. Minor polish: duplicate `Link` imports in `WelcomePage`, a `null as unknown as number` cast in the availability query, bank cards respond to Enter but not Space.
+## Results V1 shared endpoint (2026-10-09)
+
+The approved `/test/:testId/results` reports **only persisted** accuracy, correct/incorrect/omitted, time, five-tier difficulty and actual primary topic names from the authenticated backend `/tests/:id/results`. Tutor/Timed completion transition goes to the report after successful save; historical completed tests in Previous Tests link to the report, while Review Questions reopens the exam. No rank, percentile, 3-digit prediction or article-list suggestions. See `docs/page-specs/RESULTS_V1.md` and frontend #51 / backend #34.
