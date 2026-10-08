@@ -50,13 +50,16 @@ unlinked articles. Response: existing created test id.
 
 ## Deployment / dependencies
 
-Backend PR #31 and migration 1803000000027 are prerequisites. Railway
-`preDeployCommand` is currently empty, so deployment alone is not proof
-of a database backfill. Legacy importers must not be run in production until
-their raw SQLite article-ID handling has been upgraded.
+Backend PR #31 and one-off runner PR #32 merged. Railway pre-deploy logs
+confirmed 2,783/2,785 AMBOSS questions linked, 2 unmatched, and the
+command was removed after deployment. Live browser acceptance is still
+unverified; keep the feature issue open. Legacy importers must not be
+used in production until their raw SQLite article-ID handling is upgraded.
 
 ## Approval / verification log
 
 2026-10-08: user explicitly approved implementation and existing toolbar
 design. Issue opened. Production runtime verification pending; do not mark
 the issue DONE on CI alone.
+
+2026-10-08: Railway verified transaction (2783 linked / 2 intentionally unmatched); predeploy reset. Frontend/browser gates remain open.

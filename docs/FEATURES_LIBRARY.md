@@ -89,7 +89,5 @@ and test-runner navigation. An unmatched article yields the backend's
 Passmedicine/Pastest retain their existing name-to-topic matching.
 No Library responsive redesign or existing reading tools are changed.
 
-**Deployment:** backend PR #31 must be merged and migration
-`1803000000027` run separately on Railway Postgres before production
-AMBOSS tests can return correctly linked questions. See
+**Deployment evidence (2026-10-08):** backend PR #31 and one-off runner PR #32 merged. Railway reported `[AMBOSS BACKFILL VERIFIED] 2783 linked, 2 intentionally unmatched; committed.`; temporary pre-deploy config restored. Frontend PR #48 merge and live browser/API test still pending. See
 `docs/page-specs/LIBRARY_CREATE_TEST.md`.
