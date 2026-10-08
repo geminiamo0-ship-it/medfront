@@ -11,6 +11,7 @@ import { AmbossNotesEditor } from './AmbossNotesEditor';
 import { AmbossOption, type AmbossResolvedOption } from './AmbossOption';
 import { AmbossToolbar } from './AmbossToolbar';
 import { AmbossSketchOverlay } from './AmbossSketchOverlay';
+import { useAmbossExamImages } from './AmbossExamImages';
 import { applyQuestionHighlights, selectionToQuestionHighlight } from './ambossMarkers';
 import type { AmbossToolMode } from './AmbossTopbar';
 
@@ -68,6 +69,16 @@ export function AmbossQuestionWorkspace({
   const parsedExplanation = useMemo(
     () => parseAmbossExplanationHtml(explanationBlob),
     [explanationBlob],
+  );
+
+  const {
+    mediaRootRef,
+    handleImageClickCapture,
+    handleImageKeyDownCapture,
+    imageViewer,
+  } = useAmbossExamImages(
+    question?.id ?? null,
+    controller.isCompleted || (controller.isTutorLike && controller.isRevealed),
   );
 
   const questionHighlights = controller.currentQuestionHighlights;
@@ -237,7 +248,11 @@ export function AmbossQuestionWorkspace({
             ? ({ '--amboss-library-split-width': `${librarySplitWidth}px` } as CSSProperties)
             : undefined
         }
-        onClickCapture={handleLibraryLinkClick}
+        ref={mediaRootRef}
+        onClickCapture={(event) => {
+          if (!handleImageClickCapture(event)) handleLibraryLinkClick(event);
+        }}
+        onKeyDownCapture={handleImageKeyDownCapture}
         onPointerMove={trackLaser}
         onPointerLeave={() => setLaserPoint(null)}
         data-active-tool={activeTool ?? 'none'}
@@ -390,6 +405,8 @@ export function AmbossQuestionWorkspace({
           onClose={() => setLibraryLinkMenu(null)}
         />
       ) : null}
+
+      {imageViewer}
 
       <AmbossLabsPanel
         open={labsOpen}
