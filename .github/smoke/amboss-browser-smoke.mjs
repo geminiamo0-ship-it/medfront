@@ -1033,6 +1033,20 @@ try {
     });
     await popup.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
 
+    await popup.emulateMedia({ reducedMotion:'reduce' });
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor','Zword');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.locator('#Zword.amboss-reference-spotlight').waitFor();
+    const reduced = await popup.locator('#Zword').evaluate(node =>
+      ({ animation:getComputedStyle(node).animationName,
+         outline:getComputedStyle(node).outlineStyle }));
+    assert(reduced.animation === 'none' && reduced.outline !== 'none',
+      'Reduced-motion anchor should show static outline without pulsing: ' + JSON.stringify(reduced));
+    await popup.emulateMedia({ reducedMotion:'no-preference' });
     assert(!popup.url().includes('embedded=1'), 'New-tab Library unexpectedly opened in embedded mode');
     // The extracted Viewer must still work unchanged from the original Library.
     await popup.locator('img.pm-img').click();
