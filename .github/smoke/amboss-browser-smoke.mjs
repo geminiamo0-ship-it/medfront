@@ -1490,9 +1490,8 @@ try {
     assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
     assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
     assert(timedStatus === 'completed', 'End Block did not complete the timed test');
-    // The calculator popover remains open from the prior tools test and covers
-    // the image; close it as a learner would before clicking the thumbnail.
-    await page.getByRole('button', { name: /^Calculator$/i }).click();
+    // Returning from Results remounts the completed AMBOSS exam with
+    // calculator closed; do NOT toggle it open over the image.
     await page.locator('img[data-exam-image="stem"]').click();
     assert((await page.getByRole('dialog').locator('#aiv-title').innerText()).includes('Subarachnoid hemorrhage'),
       'Timed completed review did not restore the diagnostic title');
