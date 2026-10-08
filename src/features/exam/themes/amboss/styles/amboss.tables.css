@@ -16,6 +16,8 @@
   background:var(--amboss-surface);
 }
 
+.amboss-runner .amboss-stem > .amboss-table-scroll { clear:both; }
+
 .amboss-runner .amboss-table-scroll:focus-visible {
   outline:2px solid #1b8fa3;
   outline-offset:2px;
