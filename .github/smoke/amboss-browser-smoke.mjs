@@ -732,6 +732,9 @@ try {
     assert((await serumGrid.locator('thead th').allTextContents()).join('|') ===
       '|α-Fetoprotein (AFP)|Estriol|β-Human chorionic gonadotropin (HCG)|Inhibin A',
       'Prenatal marker column labels changed');
+    assert((await serumGrid.locator('thead th[scope="col"]').count()) === 5 &&
+      (await serumGrid.locator('tbody th[scope="row"]').count()) === 5,
+      'Imported table lost accessible header scopes');
     assert((await serumGrid.locator('tbody tr').nth(1).locator('td').allTextContents()).join('|') === '↓|↓|↑|↑',
       'Prenatal marker choice B values / arrows were changed');
     const serumMetrics = await serumGrid.evaluate((table) => {
@@ -1332,6 +1335,16 @@ try {
     await page.getByRole('button', { name: /^Settings$/i }).click();
     await page.getByRole('button', { name: /^Dark$/i }).click();
     assert(await page.locator('.amboss-runner').getAttribute('data-appearance') === 'dark', 'Settings did not switch AMBOSS appearance');
+    const darkHeader = await page.locator('.amboss-stem .amboss-table-scroll thead th').nth(1)
+      .evaluate((cell) => {
+        const style = getComputedStyle(cell);
+        return { background:style.backgroundColor, color:style.color, border:style.borderRightColor };
+      });
+    const rgb = (value) => [...value.matchAll(/\d+(?:\.\d+)?/g)].slice(0,3).map(x => Number(x[0]));
+    assert(rgb(darkHeader.background).every(value => value < 100) &&
+      rgb(darkHeader.color).every(value => value > 180),
+      'Dark AMBOSS table headers do not retain readable contrast: ' + JSON.stringify(darkHeader));
+
     const darkMarkerBackground = await userMarker.evaluate((node) => getComputedStyle(node).backgroundColor);
     assert(
       darkMarkerBackground !== lightMarkerBackground,
@@ -1551,7 +1564,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true responsive_table_scroll=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
