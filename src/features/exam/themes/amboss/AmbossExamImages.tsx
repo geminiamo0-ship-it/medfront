@@ -37,7 +37,7 @@ export function useAmbossExamImages(questionId: number | null, showDescription: 
         img.setAttribute('role', 'button');
         img.setAttribute('aria-label', 'Open image: ' + (img.alt || img.title || 'Medical illustration'));
         img.loading = 'lazy';
-        img.addEventListener('error', () => {
+        const showMissing = () => {
           if (img.dataset.examImageFailed) return;
           img.dataset.examImageFailed = 'true';
           img.setAttribute('aria-hidden', 'true');
@@ -47,7 +47,10 @@ export function useAmbossExamImages(questionId: number | null, showDescription: 
           fallback.setAttribute('role', 'status');
           fallback.textContent = 'Image unavailable';
           img.insertAdjacentElement('afterend', fallback);
-        }, { once:true });
+        };
+        img.addEventListener('error', showMissing, { once:true });
+        // A cached HTTP 404 can finish before the effect attaches onError.
+        if (img.complete && img.naturalWidth === 0) showMissing();
       });
     };
     decorate();
