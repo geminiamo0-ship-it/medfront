@@ -439,6 +439,12 @@ async function installApiMocks(target) {
       return json(route, decoratedTestState());
     }
 
+    // Successful article Create Test must LOAD the real AMBOSS Exam Runner.
+    // A URL-only assertion would miss the catch-all route redirect to /hub.
+    if (path === '/tests/9004' && method === 'GET') {
+      return json(route, { ...decoratedTestState(), id: 9004, title: 'Edema Practice' });
+    }
+
     if (path === '/tests/9002' && method === 'GET') {
       return json(route, timedTestPayload());
     }
@@ -1181,7 +1187,12 @@ try {
     await createFromArticle.waitFor({ state: 'visible' });
     assert(await createFromArticle.isEnabled(), 'AMBOSS article Create Test button was disabled');
     await createFromArticle.click();
-    await page.waitForURL(/\/dashboard\/test\/9004/, { waitUntil: 'commit' });
+    await page.waitForURL(/\/test\/9004(?:[?#]|$)/, { waitUntil: 'load' });
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    assert(page.url().endsWith('/test/9004'),
+      'Create Test must navigate to the registered /test/:testId route, not /hub');
+    assert((await page.locator('.amboss-stem').count()) === 1,
+      'Create Test must render the AMBOSS Exam Engine, not the Hub or fallback');
     assert(createdArticleTestBody?.filters?.articleId === 2583,
       'AMBOSS article test did not use canonical internal library article ID');
     assert(createdArticleTestBody?.filters?.questionBankIds?.join(',') === '1',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import {
@@ -48,6 +48,7 @@ import {
 import './library.css';
 
 export default function LibraryPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const embedded = params.get('embedded') === '1';
 
@@ -345,7 +346,7 @@ export default function LibraryPage() {
           bankId: ambossBank.id,
           title,
         });
-        window.location.href = `/dashboard/test/${test.id}`;
+        navigate(`/test/${test.id}`;
         return;
       }
       const banks = await getQuestionBanks();
@@ -394,13 +395,13 @@ export default function LibraryPage() {
       };
 
       const testData = await createTest(payload);
-      window.location.href = `/dashboard/test/${testData.id}`;
+      navigate(`/test/${testData.id}`;
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : (err as Error).message || 'Test Creation Failed', true);
     } finally {
       setCreatingTest(false);
     }
-  }, [articleId, articleTitle, article?.id, source, showToast]);
+  }, [articleId, articleTitle, article?.id, source, showToast, navigate]);
 
   const ambossMode = source === 'amboss';
   const qbankSource = ['passmedicine', 'pm_library_part_2', 'pastest', 'pastest_2'].includes(
