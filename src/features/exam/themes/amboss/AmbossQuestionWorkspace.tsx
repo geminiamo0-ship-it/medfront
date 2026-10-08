@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEve
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
-import { SafeHtml } from '../../shared/SafeHtml';
+import { AmbossRichHtml } from './AmbossRichHtml';
 import { importedReferencePreview, parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
 import { AmbossLibraryLinkMenu } from './AmbossLibraryLinkMenu';
@@ -273,7 +273,7 @@ export function AmbossQuestionWorkspace({
           <AmbossSketchOverlay active={activeTool === 'pencil'} color={pencilColor} />
           <div className="amboss-question-content" onMouseUp={saveMarkerSelection}>
             <div className="amboss-aa">AA</div>
-            <SafeHtml
+            <AmbossRichHtml
               ref={stemRef}
               html={parsed.stemHtml}
               className={cluesOn ? 'amboss-stem amboss-clues-on' : 'amboss-stem'}
@@ -310,7 +310,7 @@ export function AmbossQuestionWorkspace({
               <div className="amboss-hint-badge">✓ HINT USED</div>
               <div className="amboss-hint-row">
                 <div className="amboss-doctor-avatar" aria-hidden="true">🩺</div>
-                <SafeHtml html={parsed.hintHtml} className="amboss-hint-copy" />
+                <AmbossRichHtml html={parsed.hintHtml} className="amboss-hint-copy" />
               </div>
             </div>
           ) : null}

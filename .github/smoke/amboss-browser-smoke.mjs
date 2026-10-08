@@ -5,6 +5,17 @@ const baseUrl = 'http://127.0.0.1:4173';
 const outDir = 'amboss-browser-artifacts';
 await fs.mkdir(outDir, { recursive: true });
 
+const serumMarkerTable = `
+<div class="modal-overflow-scroll" data-medical-fixture="prenatal"><table>
+<thead><tr><th scope="col"></th><th scope="col">α-Fetoprotein (AFP)</th><th scope="col">Estriol</th><th scope="col">β-Human chorionic gonadotropin (HCG)</th><th scope="col">Inhibin A</th></tr></thead>
+<tbody>
+<tr><th scope="row">A</th><td>↓</td><td>↓</td><td>↓</td><td>normal</td></tr>
+<tr><th scope="row">B</th><td>↓</td><td>↓</td><td>↑</td><td>↑</td></tr>
+<tr><th scope="row">C</th><td>Normal</td><td>normal</td><td>normal</td><td>normal</td></tr>
+<tr><th scope="row">D</th><td>↓</td><td>↓</td><td>↓</td><td>↓</td></tr>
+<tr><th scope="row">E</th><td>↑</td><td>normal</td><td>normal</td><td>normal</td></tr>
+</tbody></table></div>`;
+const hemoglobinTable = '<table data-medical-fixture="hemoglobin"><thead><tr><th scope="col">Measurement</th><th scope="col">Value</th><th scope="col">Reference range</th></tr></thead><tbody><tr><th scope="row">Hemoglobin</th><td>8.4 g/dL</td><td>12–16 g/dL</td></tr><tr><th scope="row">Platelets</th><td>125 × 10³/µL</td><td>150–400 × 10³/µL</td></tr></tbody></table>';
 const baseQuestionHtml = `
 <style>
 .nowrap { white-space: nowrap; }
@@ -30,11 +41,12 @@ const baseQuestionHtml = `
 <span data-global-media-src="https://storage.blablabl234a.online/offline_media/legacy-image.jpg"
       data-unrelated-url="https://example.com/outside.png">media origin test</span>
 <img data-relative-media-test="stem" src="offline_media/ihg_681237c83e6287_31701899.jpg" width="1" height="1" alt="Imported stem illustration">
-<img data-missing-image="true" src="offline_media/browser-missing-media.jpg" width="100" height="60" alt="Missing image">`;
+<img data-missing-image="true" src="offline_media/browser-missing-media.jpg" width="100" height="60" alt="Missing image">
+${serumMarkerTable}`;
 
 const options = [
   { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span><img data-relative-media-test="option" src="./offline_media/option-relative.png" width="36" height="25" alt="Imported option illustration"></p>' },
-  { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' },
+  { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' + hemoglobinTable },
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
   { id: 105, displayOrder: 'E', textHtml: '<p>Herpes simplex virus</p>' },
@@ -140,7 +152,8 @@ function ambossExplanationBlob(question) {
         ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f" data-description="&lt;p&gt;Reference about edema&lt;/p&gt;">edema</a> <span class="api" data-learningcard-id="SM0yLg" data-anker="Ztreatment" data-description="&lt;p&gt;Treatment of edema&lt;/p&gt;">treatment</span>'
         : '';
     const illustration = option.displayOrder === "B" ? '<img data-exam-image="explanation" src="offline_media/answer-image.jpg" width="155" height="115" alt="Explanation illustration" data-description="&lt;p&gt;Detailed option explanation image.&lt;/p&gt;">' : '';
-    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p></div>`;
+    const explanationTable = option.displayOrder === 'B' ? hemoglobinTable : '';
+    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p>${explanationTable}</div>`;
   });
 
   parts.push(
@@ -706,6 +719,47 @@ try {
       );
     }
 
+    // Reproduce the user's real prenatal AFP/Estriol/HCG/Inhibin table.
+    // Preserve native rows/scoped columns and prove table cells do not overlap.
+    const serumFrame = page.locator('.amboss-stem [data-medical-fixture="prenatal"]');
+    const serumGrid = serumFrame.locator('table');
+    assert((await serumFrame.locator('.amboss-table-scroll').count()) === 0,
+      'Existing imported table scroll wrapper was nested by the rendering adapter');
+    assert((await serumFrame.getAttribute('class')).includes('amboss-table-scroll'),
+      'Imported modal-overflow-scroll was not reused as medical table frame');
+    assert((await serumGrid.locator('thead th').count()) === 5 && (await serumGrid.locator('tbody tr').count()) === 5,
+      'Prenatal marker table lost semantic headers or row count');
+    assert((await serumGrid.locator('thead th').allTextContents()).join('|') ===
+      '|α-Fetoprotein (AFP)|Estriol|β-Human chorionic gonadotropin (HCG)|Inhibin A',
+      'Prenatal marker column labels changed');
+    assert((await serumGrid.locator('thead th[scope="col"]').count()) === 5 &&
+      (await serumGrid.locator('tbody th[scope="row"]').count()) === 5,
+      'Imported table lost accessible header scopes');
+    assert((await serumGrid.locator('tbody tr').nth(1).locator('td').allTextContents()).join('|') === '↓|↓|↑|↑',
+      'Prenatal marker choice B values / arrows were changed');
+    const serumMetrics = await serumGrid.evaluate((table) => {
+      const cells = [...table.querySelectorAll('thead th')];
+      return {
+        tableDisplay:getComputedStyle(table).display,
+        borderRight:getComputedStyle(cells[1]).borderRightWidth,
+        padding:getComputedStyle(cells[1]).paddingLeft,
+        positions:cells.map((cell) => ({ left:cell.getBoundingClientRect().left, right:cell.getBoundingClientRect().right })),
+        headerBackground:getComputedStyle(cells[1]).backgroundColor,
+        tbodyBackground:getComputedStyle(table.querySelector('tbody tr:nth-child(2) td')).backgroundColor,
+      };
+    });
+    assert(serumMetrics.tableDisplay === 'table', 'Imported source table still has display:block');
+    assert(parseFloat(serumMetrics.borderRight) >= 1 && parseFloat(serumMetrics.padding) >= 8,
+      'Semantic table lacks visible grid or legible padding: ' + JSON.stringify(serumMetrics));
+    assert(serumMetrics.positions.every((rect, index) =>
+      index === 0 || rect.left >= serumMetrics.positions[index - 1].right - 1),
+      'Prenatal marker header cells overlap: ' + JSON.stringify(serumMetrics.positions));
+    const hemoglobinFrame = page.locator('.amboss-option-text .amboss-table-scroll');
+    assert((await hemoglobinFrame.count()) === 1 && (await hemoglobinFrame.locator('> table').count()) === 1,
+      'Bare numeric/lab table did not get exactly one scroll wrapper');
+    await hemoglobinFrame.getByText('8.4 g/dL').waitFor();
+    assert((await hemoglobinFrame.locator('th[scope="row"]').count()) === 2,
+      'Numeric lab row headers were lost');
     // Images appended after the source paragraph must still occupy the
     // approved right-side thumbnail rail alongside the stem text.
     const rightRail = page.locator('.amboss-stem-image-rail');
@@ -813,6 +867,12 @@ try {
     // pauses the solving clock before explanation/review time begins.
     await answerRows.nth(1).click(); // B = wrong
     await answerRows.nth(1).locator('.amboss-option-explanation').waitFor();
+    const explanationTable = answerRows.nth(1).locator('.amboss-option-explanation .amboss-table-scroll > table');
+    await explanationTable.waitFor();
+    assert((await explanationTable.locator('tbody tr').count()) === 2 &&
+      (await explanationTable.getByText('8.4 g/dL').count()) === 1,
+      'Revealed explanation numeric table lost rows or original values');
+
     await answerRows.nth(1).getByText(/Blob explanation for option B/i).waitFor();
     assert(submitBodies.length === 1, `Expected exactly one submit after first click, got ${submitBodies.length}`);
     assert(submitBodies[0].questionId === 2001, 'First submit used the wrong question');
@@ -1275,6 +1335,16 @@ try {
     await page.getByRole('button', { name: /^Settings$/i }).click();
     await page.getByRole('button', { name: /^Dark$/i }).click();
     assert(await page.locator('.amboss-runner').getAttribute('data-appearance') === 'dark', 'Settings did not switch AMBOSS appearance');
+    const darkHeader = await page.locator('.amboss-stem .amboss-table-scroll thead th').nth(1)
+      .evaluate((cell) => {
+        const style = getComputedStyle(cell);
+        return { background:style.backgroundColor, color:style.color, border:style.borderRightColor };
+      });
+    const rgb = (value) => [...value.matchAll(/\d+(?:\.\d+)?/g)].slice(0,3).map(x => Number(x[0]));
+    assert(rgb(darkHeader.background).every(value => value < 100) &&
+      rgb(darkHeader.color).every(value => value > 180),
+      'Dark AMBOSS table headers do not retain readable contrast: ' + JSON.stringify(darkHeader));
+
     const darkMarkerBackground = await userMarker.evaluate((node) => getComputedStyle(node).backgroundColor);
     assert(
       darkMarkerBackground !== lightMarkerBackground,
@@ -1395,6 +1465,33 @@ try {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    const mobileSerum = page.locator('.amboss-stem [data-medical-fixture="prenatal"]');
+    const mobileTable = mobileSerum.locator('table');
+    const tableScroll = await mobileSerum.evaluate((frame) => {
+      const table = frame.querySelector('table');
+      const rect = frame.getBoundingClientRect();
+      return { overflow:getComputedStyle(frame).overflowX, left:rect.left, right:rect.right,
+        scrollable:frame.scrollWidth > frame.clientWidth + 10,
+        tableWidth:table.getBoundingClientRect().width, frameWidth:rect.width,
+        display:getComputedStyle(table).display };
+    });
+    assert(tableScroll.display === 'table' && tableScroll.overflow === 'auto',
+      device.name + ': AMBOSS table must keep native layout inside an overflow-capable frame: ' + JSON.stringify(tableScroll));
+    assert(tableScroll.left >= -1 && tableScroll.right <= device.width + 1,
+      device.name + ': imported medical table spills beyond card/screen: ' + JSON.stringify(tableScroll));
+    assert(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
+      device.name + ': medical table caused page-wide sideways overflow');
+    if (tableScroll.scrollable) {
+      await mobileSerum.evaluate(frame => { frame.scrollLeft = frame.scrollWidth; });
+      assert((await mobileSerum.evaluate(frame => frame.scrollLeft)) > 0,
+        device.name + ': rightmost HCG/Inhibin columns cannot be reached by local scrolling');
+    } else {
+      assert(device.name === 'ipad' && tableScroll.tableWidth <= tableScroll.frameWidth + 2,
+        device.name + ': table columns are clipped without local scroll: ' + JSON.stringify(tableScroll));
+    }
+    if (device.name === 'mobile') {
+      assert(tableScroll.scrollable, 'Phone must support horizontal panning for wide five-column markers');
+    }
     const thumbBox = await page.locator('.amboss-stem-image-rail').boundingBox();
     assert(thumbBox && thumbBox.width <= device.width - 20, device.name + ': stem thumbnails overflow screen');
     await page.locator('img[data-exam-image="stem"]').click();
@@ -1467,7 +1564,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }

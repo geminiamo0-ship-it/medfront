@@ -48,14 +48,6 @@
   height:auto;
 }
 
-.amboss-stem table,
-.amboss-option-text table,
-.amboss-option-explanation table{
-  display:block;
-  max-width:100%;
-  overflow-x:auto;
-}
-
 .amboss-tools{
   margin-top:28px;
   min-height:42px;
