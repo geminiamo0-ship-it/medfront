@@ -32,6 +32,23 @@ function rewriteAmbossLibraryLinks(root: ParentNode): void {
   });
 }
 
+/** Imported popover descriptions may be UTF-8 Base64 or ordinary HTML. */
+export function importedReferencePreview(value: string): string {
+  if (!value || value.length > 16000) return '';
+  let html = value;
+  if (value.length > 16 && /^[A-Za-z0-9+/=\\s]+$/.test(value.trim())) {
+    try {
+      const decoded = atob(value.trim());
+      const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      html = new TextDecoder().decode(bytes);
+    } catch {
+      html = value;
+    }
+  }
+  return safeRichHtml(html);
+}
+
+
 /** Reuse the existing AMBOSS article deep-link conversion inside image descriptions. */
 export function prepareAmbossImageDescription(value: string): string {
   const safe = safeRichHtml(value);
