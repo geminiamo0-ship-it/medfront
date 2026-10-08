@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "src/features/exam/**"
+      - "src/features/results/**"
       - "src/components/media/**"
       - "src/pages/library/AmbossImageViewer.tsx"
       - "src/pages/library/LibraryPage.tsx"
