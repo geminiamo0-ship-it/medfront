@@ -92,7 +92,7 @@ export function scrollToAnchor(container: HTMLElement | null, anchor: string, te
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let cancelled = false;
   let interrupted = false;
-  let correctionTimer: number | null = null;
+  const correctionTimers: number[] = [];
   let cleanupTimer: number | null = null;
   let firstFrame = 0;
   let secondFrame = 0;
@@ -101,7 +101,7 @@ export function scrollToAnchor(container: HTMLElement | null, anchor: string, te
     cancelled = true;
     window.cancelAnimationFrame(firstFrame);
     window.cancelAnimationFrame(secondFrame);
-    if (correctionTimer !== null) window.clearTimeout(correctionTimer);
+    correctionTimers.forEach((timer) => window.clearTimeout(timer));
     if (cleanupTimer !== null) window.clearTimeout(cleanupTimer);
     window.removeEventListener('wheel', onUserScrollIntent);
     window.removeEventListener('touchstart', onUserScrollIntent);
@@ -147,9 +147,15 @@ export function scrollToAnchor(container: HTMLElement | null, anchor: string, te
       window.addEventListener('touchstart', onUserScrollIntent, { passive:true });
       window.addEventListener('pointerdown', onUserScrollIntent, { passive:true });
       window.addEventListener('keydown', onUserScrollIntent);
-      correctionTimer = window.setTimeout(() => {
-        if (!interrupted) center('instant');
-      }, 650);
+      // Long native smooth scrolls and late layout changes can take longer
+      // on phone viewports. Re-check the exact reader center a few times, not
+      // just once; stop immediately if the user starts controlling the page.
+      // Bounded corrections avoid permanent scroll observers or loops.
+      for (const delay of [300, 700, 1150]) {
+        correctionTimers.push(window.setTimeout(() => {
+          if (!interrupted) center('instant');
+        }, delay));
+      }
     });
   });
   cleanupTimer = window.setTimeout(cancel, reduceMotion ? 1200 : 2100);
