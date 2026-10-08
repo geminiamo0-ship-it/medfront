@@ -71,3 +71,25 @@ Tailwind Preflight removes list markers, so `library.css` re-declares them expli
 ## Loading
 
 The sidebar structure loader and the article pane both use the shared heartbeat loader — see [UI_LOADING_SYSTEM.md](UI_LOADING_SYSTEM.md).
+
+## AMBOSS article Create Test (issue #47, approved 2026-10-08)
+
+The existing toolbar button is visible for loaded AMBOSS articles as well as
+Passmedicine/Pastest sources. AMBOSS uses the **canonical internal** article
+ID returned by `GET /library/article/:id`, calls `createAmbossArticleTest`
+in `src/api/tests.ts`, and sends a filtered `POST /tests` with
+`filters.articleId` + the actual AMBOSS Step 1 bank ID. The backend validates
+entitlements, source and quota before creating any test; no article text/name
+is used to select AMBOSS questions at test-creation time.
+
+Tutor + Unused (40 requested, fewer returned when available) matches the
+existing toolbar shortcut. The toolbar keeps its existing loading/error toast
+and test-runner navigation. An unmatched article yields the backend's
+"No questions found" error — **never** an unrelated QBank fallback.
+Passmedicine/Pastest retain their existing name-to-topic matching.
+No Library responsive redesign or existing reading tools are changed.
+
+**Deployment:** backend PR #31 must be merged and migration
+`1803000000027` run separately on Railway Postgres before production
+AMBOSS tests can return correctly linked questions. See
+`docs/page-specs/LIBRARY_CREATE_TEST.md`.

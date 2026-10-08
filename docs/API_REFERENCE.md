@@ -21,6 +21,7 @@ All authenticated requests carry `Authorization: Bearer <token>`. Responses may 
 | `getSystemsWithTopics(step, filters)` | `POST /tests/metadata/systems-with-topics` | body | `SystemWithTopics[]` |
 | `getPreviousTests(step?, qBankId?)` | `GET /tests` | query `step`, `qBankId` | `TestListItem[]` |
 | `createTest(payload)` | `POST /tests` | `CreateTestDto`-shaped body | created test id/current server response |
+| `createAmbossArticleTest({ articleId, bankId, title })` | `POST /tests` | `filters: { articleId: internal library_articles.id, questionBankIds: [AMBOSS bank] }`; Tutor + Unused, Step 1 | `{ id }`; backend validates source/entitlement/quota |
 | `retrieveTestQuestions(testId)` | `POST /tests/retrieve-questions` | body `{ testId }` | imported/UW question IDs |
 
 ### Exported frontend types

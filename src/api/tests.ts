@@ -198,3 +198,22 @@ export function getSystemsWithTopics(step: number, filters: Record<string, unkno
 export function createTest(payload: Record<string, unknown>) {
   return api.post<{ id: number }>('/tests', payload);
 }
+
+/** AMBOSS Library toolbar — the backend validates this internal article ID,
+ * selected bank, subscription and the user's creation quota. */
+export interface AmbossArticleTestInput {
+  articleId: number;
+  bankId: number;
+  title: string;
+}
+
+export function createAmbossArticleTest({ articleId, bankId, title }: AmbossArticleTestInput) {
+  return api.post<{ id: number }>('/tests', {
+    title: `${title} Practice`,
+    type: 'tutor',
+    mode: 'unused',
+    step: 1,
+    totalQuestions: 40,
+    filters: { articleId, questionBankIds: [bankId] },
+  });
+}

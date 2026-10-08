@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #45 — AMBOSS semantic medical exam tables (PR #46 merged and Chromium verified; Cloudflare runtime VERIFYING). Previous #43/#41/#38/#32 external gates remain independently open.  
-**Active phase:** G2 — AMBOSS Exam Runner visual correctness, table rows/columns and numeric/lab readability.  
-**Current status:** User-supplied Inspect showed a valid prenatal serum-marker `<table>` but old AMBOSS CSS forced `display:block`, collapsing the visible column layout. Focused Issue #45 and approved EXAM_RUNNER §21 resolved with a theme-only sanitized `AmbossRichHtml` table scroll adapter and native grid styles. [PR #46](https://github.com/geminiamo0-ship-it/medfront/pull/46) merged to main at `ec5bf7715ba02029bd97203a852680d90a5d02c7`, Verify #178 ✅, Chromium Browser Smoke #64 ✅: exact 5-column AFP/Estriol/HCG/Inhibin A table with rows A–E, numeric hemoglobin/platelet tables, header scope/grid, explanation reveal, desktop/iPad/mobile local overflow, dark mode and prior Tutor/Timed/Library/Image regressions. **Issue #45 remains OPEN / VERIFYING for Cloudflare deployed-version and live real table inspection**; GitHub Actions success is not production proof. No backend/DB changes or other-page work.
+**Active issue:** #47 — AMBOSS Library Create Test button with backend #30 (user reprioritized 2026-10-08). Previously active #45 Cloudflare runtime VERIFYING remains independently open, as do #43/#41/#38/#32.  
+**Active phase:** User-approved Library AMBOSS article → question test shortcut (G1 follow-up), without Library redesign.  
+**Current status:** AMBOSS Article Create Test feature branch IMPLEMENTING / VERIFYING. Backend PR #31 adds validated article-scoped creation and one-time migration; frontend #47 adds AMBOSS to existing toolbar using internal article ID. Railway has no pre-deploy migration; Production remains unverified/unmapped until separately applied and checked. Existing Issue #45: User-supplied Inspect showed a valid prenatal serum-marker `<table>` but old AMBOSS CSS forced `display:block`, collapsing the visible column layout. Focused Issue #45 and approved EXAM_RUNNER §21 resolved with a theme-only sanitized `AmbossRichHtml` table scroll adapter and native grid styles. [PR #46](https://github.com/geminiamo0-ship-it/medfront/pull/46) merged to main at `ec5bf7715ba02029bd97203a852680d90a5d02c7`, Verify #178 ✅, Chromium Browser Smoke #64 ✅: exact 5-column AFP/Estriol/HCG/Inhibin A table with rows A–E, numeric hemoglobin/platelet tables, header scope/grid, explanation reveal, desktop/iPad/mobile local overflow, dark mode and prior Tutor/Timed/Library/Image regressions. **Issue #45 remains OPEN / VERIFYING for Cloudflare deployed-version and live real table inspection**; GitHub Actions success is not production proof. No backend/DB changes or other-page work.
 
 ## 1. Repository ownership
 
@@ -149,6 +149,8 @@ Current priority:
 Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
+
+**Current priority #47 / backend #30:** Confirm backend PR #31 GitHub Actions Verify and merge after green; separately run migration 1803000000027 on Railway production database (no pre-deploy migration hook) and verify actual AMBOSS linkage counts. Confirm frontend PR #48 Verify, then verify live Create Test for a linked AMBOSS article, a no-question article, an unauthorized user, and unchanged Passmedicine/Pastest path. Do not mark DONE or claim production backfill until these gates pass. The prior #45 Cloudflare runtime check below remains open after this user-approved priority override.
 
 **Issue #45 — VERIFYING Cloudflare live tables:** user-approved AMBOSS semantic medical tables slice merged via PR #46 (`ec5bf7715ba02029bd97203a852680d90a5d02c7`), [PR Verify #178](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715597) PASS, [Chromium Browser Smoke #64](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715568) PASS on desktop/iPad/mobile including literal user-supplied prenatal AFP/Estriol/β-HCG/Inhibin A table and numerical lab tables. §21 spec committed before code. Main/docs Verify must be completed before signoff.
 

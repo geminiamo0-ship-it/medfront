@@ -14,7 +14,7 @@ import {
   type LibraryCategory,
 } from '@/api/library';
 import { createNote, getNotes, updateNote, type NotebookNote } from '@/api/notebook';
-import { createTest, getQuestionBanks, getSystemsWithTopics } from '@/api/tests';
+import { createAmbossArticleTest, createTest, getQuestionBanks, getSystemsWithTopics } from '@/api/tests';
 import { MEDIA_CDN } from '@/lib/env';
 import { safeRichHtml } from '@/lib/sanitize';
 import { LIBRARY_SOURCES } from '@/lib/nav';
@@ -328,6 +328,26 @@ export default function LibraryPage() {
     if (!articleId || !title) return;
     setCreatingTest(true);
     try {
+      if (source.toLowerCase() === 'amboss') {
+        // Article content returns the canonical PostgreSQL library_articles.id;
+        // the route may also contain an external ID, which must not be sent.
+        const internalArticleId = Number(article?.id);
+        if (!Number.isSafeInteger(internalArticleId) || internalArticleId <= 0) {
+          throw new Error('Article is still loading. Please try again.');
+        }
+        const banks = await getQuestionBanks(1);
+        const ambossBank = Array.isArray(banks)
+          ? banks.find((bank) => bank.code.toLowerCase() === 'amboss_s1' && bank.step === 1)
+          : undefined;
+        if (!ambossBank) throw new Error('AMBOSS Step 1 question bank is unavailable.');
+        const test = await createAmbossArticleTest({
+          articleId: internalArticleId,
+          bankId: ambossBank.id,
+          title,
+        });
+        window.location.href = `/dashboard/test/${test.id}`;
+        return;
+      }
       const banks = await getQuestionBanks();
       if (!Array.isArray(banks)) throw new Error('Failed to load question banks.');
 
@@ -380,7 +400,7 @@ export default function LibraryPage() {
     } finally {
       setCreatingTest(false);
     }
-  }, [articleId, articleTitle, source, showToast]);
+  }, [articleId, articleTitle, article?.id, source, showToast]);
 
   const ambossMode = source === 'amboss';
   const qbankSource = ['passmedicine', 'pm_library_part_2', 'pastest', 'pastest_2'].includes(
@@ -1039,12 +1059,13 @@ export default function LibraryPage() {
                   id="btnct"
                   onClick={() => void createTopicTest()}
                   style={{
-                    display: articleId && qbankSource ? 'flex' : 'none',
+                    display: articleId && (qbankSource || ambossMode) ? 'flex' : 'none',
                     background: 'var(--mp)',
                     color: '#fff',
                     borderColor: 'var(--mps)',
                   }}
-                  disabled={creatingTest}
+                  disabled={creatingTest || articleLoading || !article}
+                  aria-label={creatingTest ? 'Creating article practice test' : 'Create practice test from article'}
                 >
                   <svg style={{ width: 13, height: 13 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
