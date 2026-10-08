@@ -150,7 +150,7 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Issue #38 — VERIFYING external production:** AMBOSS image Viewer PR #39 (`dedcfad...`) plus user-screenshot follow-up PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`) merged. PR #40 Verify #157 ✅ / AMBOSS Browser Smoke #53 ✅ (diagnostic title neutral pre-answer, visible post-answer, optional overlay actually decodes from mocked response, Library regression). Prior main Verify #154 ✅; main verification for PR #40 pending. All smoke media responses are mocked. Shared viewer still powers Library.
+**Issue #38 — VERIFYING external production:** AMBOSS image Viewer PR #39 (`dedcfad...`) plus user-screenshot follow-up PR #40 (`1104b88527f5fac57ea3d4682b85ae9ebfb97883`) merged. PR #40 Verify #157 ✅ / AMBOSS Browser Smoke #53 ✅ (diagnostic title neutral pre-answer, visible post-answer, optional overlay actually decodes from mocked response, Library regression). Main docs-handoff Verify #160 / run `37825666908` ✅ (typecheck, lint, build) after PR #40 merge. Cloudflare production version/runtime is still independently unverified. All smoke media responses are mocked. Shared viewer still powers Library.
 
 **Exact unchecked work:** verify live Cloudflare Workers deployed version includes PR #39 merge (or newer), then visually test one real AMBOSS stem image and option explanation image with overlay and description after solving. Direct Cloudflare deployment inspection was unavailable; **do not claim deployed/Done** until actual runtime evidence exists. Document the verified version and close Issue #38 only after that gate.
 
