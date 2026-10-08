@@ -37,6 +37,9 @@ export interface ExamUserAnswer {
 export interface ExamQuestion {
   id: number;
   externalId: string | null;
+  /** Authoritative optional LibraryArticle PK supplied by the backend. */
+  articleId?: number | null;
+  libraryName?: string | null;
   displayOrder: number;
   textHtml: string;
   explanationHtml?: string;
