@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #41 — approved AMBOSS Library references and precise section links (code merged/CI verified; external Cloudflare production acceptance VERIFYING). G2 parent #4. #38 and #32 remain separate external runtime/media verification.  
-**Active phase:** G2 — AMBOSS Exam Runner integrated Library references; all new code implemented and tested, live Cloudflare deployment not independently confirmed.  
-**Current status:** User-approved AMBOSS Library navigation and references PR #42 merged as `e7c5043762e6e5e9d9ae762756135f2c39f353c5`. PR Verify #162 ✅, AMBOSS Browser Smoke #54 ✅ (exact section scroll after AMBOSS card render, same-article new anchor no refetch, correct answer Main Article via real question.articleId, dotted real linked terms, preview, Split/New Tab, prior Tutor/Timed/Library/responsive regressions), main Verify #163 ✅. **Issue #41 remains OPEN/VERIFYING** until confirmed Cloudflare production version and live cross-reference behavior. No invented article relation/title: backend question payload provides articleId/libraryName but not display article title; neutral 'Main article' label. #38 image viewer runtime and #32 R2 object availability also OPEN/VERIFYING. G2 Results/Review, My Notebook, Flashcards and later themes still deferred.
+**Active issue:** #43 — AMBOSS exact reference centering + spotlight (frontend PR #44 merged, Browser Smoke green; verifying Cloudflare runtime). Related #41 original article references, #38 Image Viewer, #32 R2 upload remain open external VERIFYING.  
+**Active phase:** G2 — AMBOSS article navigation polished, exact inline-word and heading Spotlight implemented.  
+**Current status:** User-approved Smart Scroll + Spotlight in shared AMBOSS Library navigation merged as PR #44 (`c6ed90699467de7baea1b6abafee1dcd8bb0a912`). PR Verify #172 ✅, AMBOSS Browser Smoke #61 ✅ including centered exact word/heading in article reader, collapsed section, same-article anchor, Split/New Tab regressions, reduced-motion, Desktop/iPad/Mobile. A phone-only ~45px drift was caught by browser regression and fixed using limited corrections that respect user scroll intent; final Browser Smoke passed. **#43 remains OPEN/VERIFYING** for independent Cloudflare deployed build and live anchored-article UX, not code CI. Other G2 Results/Review, My Notebook, Flashcards and themes stay deferred.
 
 ## 1. Repository ownership
 
@@ -150,13 +150,13 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Issue #41 — VERIFYING Cloudflare live deployment and real Library records:** user-approved AMBOSS source-button/dotted-related-terms/deep-anchor slice completed and merged PR #42 (`e7c5043762e6e5e9d9ae762756135f2c39f353c5`). PR Verify #162 ✅, AMBOSS Browser Smoke #54 ✅, main Verify #163 / run `37829277158` ✅. Spec `docs/page-specs/EXAM_RUNNER.md` §19 approved before coding and code + CI evidence recorded.
+**Primary #43 — VERIFYING Cloudflare runtime:** PR #44 (`c6ed90699467de7baea1b6abafee1dcd8bb0a912`) merged user-approved exact anchor-centering / Spotlight. Spec `docs/page-specs/EXAM_RUNNER.md` §20 approved before code. [PR Verify #172](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448646) PASS; [Browser Smoke #61](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448723) PASS. One shared utility used by full Library, New Tab, and embedded Split View; no backend/API or scoring changes.
 
-**Exact unchecked work:** independently verify Cloudflare deployed revision contains PR #42, then test live AMBOSS article links from a correct explanation: source Main Article exists when question.articleId is present, actual linked term dotted preview, linked section opens correctly in Split and New Tab, repeated link to a different section of same loaded article navigates without new data fetch. Real production article metadata/data may vary. Without deployed-version/runtime evidence, do not close #41.
+**First unchecked task:** confirm main Verify and latest docs-handoff Verify green; independently verify Cloudflare production deployed revision contains PR #44 or newer. Test a real sourced AMBOSS link to an H2 and inline term, and check centering and two subtle pulses in real Library and Exam Runner Split View. Without Cloudflare version/runtime evidence, leave #43 OPEN / VERIFYING; do not falsely mark Done.
 
-**Other independent VERIFYING gates:** #38 — shared image viewer deployed version/live interaction; #32 — real uploaded R2 objects HTTP 200 image MIME and rendering. Browser smoke media mocks and PR merges cannot prove real assets or Cloudflare release state.
+**Other independent VERIFYING items:** #41 — main-source/related-term reference live Cloudflare article acceptance; #38 — media Viewer deployment and real interaction; #32 — public R2 uploaded objects HTTP 200 and image MIME. Browser smoke mocks are not proof of production asset availability.
 
-**Scope boundaries:** No backend/DB migration; backend `medhvgg/main` remains authority. Exam question payload has optional `articleId` + `libraryName`, but lacks authoritative article title; button labeled 'Main article' when relationship exists, never fabricate an article name or relation. Do not start Results/Review or another theme until explicitly approved style/spec. #11 selected QBank/runtime and Library mobile/tablet redesign parked.
+**Boundaries:** G2 Results/Review, My Notebook, Flashcards and other themes need separate user-approved design/spec; Library mobile/tablet redesign is deliberately parked beyond focused navigation fix. Canonical backend medhvgg/main unchanged. QBank #11 runtime acceptance parked.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -562,3 +562,11 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - No guessed source, no backend changes, no new external requests per answer merely to fetch a Main Article title; label 'Main article' when metadata lacks the name.
 - PR Verify #162 success; AMBOSS Browser Smoke #54 success including `precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true` and prior Tutor/Timed/Library/image/mobile regressions; main Verify #163 success.
 - **Production not independently confirmed.** Remain VERIFYING in #41 until deployed-version and live acceptance. R2 #32 and Image Viewer #38 remain separately VERIFYING.
+
+## AMBOSS exact anchor centering / spotlight checkpoint — 2026-10-08
+
+- User explicitly authorized subtle Smart Scroll + two-pulse Spotlight. Focused Issue #43; approved page spec §20 saved before code; PR #44 merged to main as `c6ed90699467de7baea1b6abafee1dcd8bb0a912`.
+- One shared scrollToAnchor() utility handles exact heading/inline term IDs, collapsed cards, real nested article scrollport, bounded centering correction, cancellation when newer link/user interaction occurs; original data content unchanged.
+- CSS two soft turquoise pulses ~1.75s without layout or typography shift; prefers-reduced-motion static outline.
+- Final PR Verify #172 PASS, Browser Smoke #61 PASS (desktop/iPad/mobile exact center, inline word, reduced motion, existing Tutor/Timed/Library/image regression). Earlier mobile test caught real ~45px center drift; corrected and retested, not waived.
+- Main documentation/CI and independent Cloudflare deployed version/runtime remain the last gates; Issue #43 OPEN / VERIFYING. Existing #41/#38/#32 external acceptance gates remain separate.
