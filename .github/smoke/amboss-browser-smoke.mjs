@@ -1181,7 +1181,7 @@ try {
     await createFromArticle.waitFor({ state: 'visible' });
     assert(await createFromArticle.isEnabled(), 'AMBOSS article Create Test button was disabled');
     await createFromArticle.click();
-    await page.waitForURL(/\\/dashboard\\/test\\/9004/, { waitUntil: 'commit' });
+    await page.waitForURL(/\/dashboard\/test\/9004/, { waitUntil: 'commit' });
     assert(createdArticleTestBody?.filters?.articleId === 2583,
       'AMBOSS article test did not use canonical internal library article ID');
     assert(createdArticleTestBody?.filters?.questionBankIds?.join(',') === '1',
