@@ -1,7 +1,7 @@
 # Library article → Create Test shortcut — implementation specification
 
 **Issues:** medfront #47; medhvgg #30
-**Status:** IMPLEMENTING / VERIFYING
+**Status:** VERIFYING — route bugfix merged/CI passed; Cloudflare/live authenticated testing pending
 **Route:** `/library?source=amboss` (existing Library article reader)
 **User approval:** 2026-10-08 — enable and configure existing Create Test toolbar button without page redesign.
 
@@ -65,3 +65,5 @@ the issue DONE on CI alone.
 2026-10-08: Railway verified transaction (2783 linked / 2 intentionally unmatched); predeploy reset. Frontend/browser gates remain open.
 
 2026-10-09: Reported bug: Create Test used non-existent `/dashboard/test/:id` and the router catch-all silently sent learners to `/hub`. Correct route is `/test/:testId`, which selects AMBOSS exam theme by bank metadata. Regression requires a loaded AMBOSS stem after navigation, not URL-only assertion. Existing Passmedicine/Pastest shortcuts also use the registered test route; separate theme designs remain future scope.
+
+2026-10-09: Fix PR #50 merged after Verify #37846546499 PASS and AMBOSS Browser Smoke #37846546510 PASS; browser test explicitly proves AmbossTheme stem on `/test/9004`. Earlier smoke mocked an already-started test and wrongly expected a first-question clue; fresh article-test fixture fixed this test-only error. Real Cloudflare deployed commit and signed-in test creation are still unverified.
