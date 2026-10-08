@@ -666,3 +666,22 @@ Architecture rule:
 - `src/pages/library/library.css` applies ~1.75s two restrained turquoise pulses without line-height/layout mutation; prefers-reduced-motion uses a brief static outline.
 - [Verify #172](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448646) PASS (typecheck, lint, build). [AMBOSS Browser Smoke #61](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448723) PASS (`exact_anchor_center=true`, `responsive_anchor_center=true`, `inline_anchor_spotlight=true`, `reduced_motion_anchor=true` plus all previous exam/library/image/Tutor/Timed tests). Direct mobile anchor regression originally caught a repeatable ~45px drift; bounded correction implemented and retested PASS instead of relaxing assertion.
 - Pending: independently confirm Cloudflare Worker deployed version and real article anchors; latest merge/main/docs CI independently tracked. Issue #43 remains **OPEN / VERIFYING**, no unverified production Done claim; independent #41/#38/#32 gates unchanged.
+
+## 21. AMBOSS semantic medical tables — USER REFERENCE APPROVED 2026-10-08
+
+**Focused Issue #45, G2 parent #4. Workflow: SPEC APPROVED → IMPLEMENTING.** User submitted prenatal question DOM showing 5-column serum-marker table (AFP, Estriol, β-HCG, Inhibin A, rows A–E), with proper native thead/tbody/scoped th/td inside `.modal-overflow-scroll`. Screenshot displays merged-looking columns. Root cause: AMBOSS CSS forcibly changes table to `display:block` with no native grid styling. User explicitly requested clear real tables including numeric/lab values. No backend or data repair required.
+
+### Approved UI
+- Preserve source semantic rows, headers, spans, values, ↑/↓ and sanitization. Restore native CSS `display:table` inside a theme-local scrolling table frame.
+- Header visually distinct; thin column and row dividers, subtle zebra body background, readable padding, compact medical exam density. Row labels A–E easy to scan; numbers/↑/↓ aligned with tabular figures. Long headings may wrap without overlapping neighbors.
+- Existing `.modal-overflow-scroll` and bare source `<table>` both get exactly one table scroll frame. On iPad/phone the table itself pans horizontally without introducing document-level horizontal overflow.
+- Style applies consistently to AMBOSS question stem, options, correct/incorrect explanation tables, and hint content. Light/dark themes must remain legible. Do not affect Library or other exam themes.
+- No inferred/rebuilt columns, backend/schema changes, scoring changes, DOM mutation outside AMBOSS, or loss of media/source links.
+
+### Acceptance gates
+- [ ] Browser test uses user's real prenatal example: 5 headers, rows A–E, exact arrows, normal values, semantic scopes, borders and no adjacent cell overlap.
+- [ ] Bare numerical/lab table with units is wrapped exactly once and styled consistently.
+- [ ] Wide table local horizontal scroll and no page overflow, on desktop (1440), iPad (834) and mobile (390).
+- [ ] Tables in option text, revealed explanation and hints render with proper columns, no unintentional answer selection; Timed description/reveal remains gated.
+- [ ] Contrast in AMBOSS dark mode and keyboard/pointer usable; prior Tutor/Timed/Image/Library browser regressions pass.
+- [ ] Verify, Chrome browser smoke, merge/main Verify, spec/issue/PROJECT_STATUS; production Cloudflare runtime verified separately or remain VERIFYING.
