@@ -79,10 +79,10 @@ export default function PreviousTestsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <Link
-                      to={`/test/${t.id}`}
+                      to={t.status === "completed" ? "/test/" + t.id + "/results" : "/test/" + t.id}
                       className="font-semibold text-link transition-colors hover:text-mp"
                     >
-                      Open
+                      {t.status === 'completed' ? 'Results' : 'Open'}
                     </Link>
                   </td>
                 </tr>
