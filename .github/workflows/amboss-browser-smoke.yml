@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "src/features/exam/**"
+      - "src/components/media/**"
+      - "src/pages/library/AmbossImageViewer.tsx"
+      - "src/pages/library/library.css"
       - "src/pages/TestPage.tsx"
       - "src/router.tsx"
       - ".github/smoke/amboss-browser-smoke.mjs"

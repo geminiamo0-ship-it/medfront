@@ -1,0 +1,86 @@
+/* Imported AMBOSS images remain alongside their original question text. */
+.amboss-stem::after { content:'';display:block;clear:both; }
+/* Place even trailing imported images beside the beginning of the stem. */
+.amboss-stem-image-rail {
+  float:right;
+  width:min(38%,240px);
+  max-width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:3px 0 14px 20px;
+}
+.amboss-stem-image-rail img {
+  float:none;
+  width:100%;
+  max-width:100%;
+  margin:0;
+}
+
+.amboss-stem img {
+  float:right;
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:min(38%,240px);
+  max-height:190px;
+  margin:3px 0 14px 20px;
+  padding:5px;
+  object-fit:contain;
+  border-radius:9px;
+  border:1px solid var(--amboss-line);
+  background:#fff;
+  cursor:zoom-in;
+}
+.amboss-option-text img, .amboss-option-explanation img, .amboss-hint-copy img {
+  display:inline-block;
+  float:none;
+  width:auto;
+  height:auto;
+  max-width:min(100%,170px);
+  max-height:130px;
+  object-fit:contain;
+  vertical-align:middle;
+  padding:3px;
+  margin:5px 6px 5px 0;
+  border:1px solid var(--amboss-line);
+  border-radius:8px;
+  background:#fff;
+  cursor:zoom-in;
+}
+.amboss-option-explanation img { max-width:min(100%,150px);max-height:112px; }
+.amboss-stem img:focus-visible, .amboss-option-text img:focus-visible,
+.amboss-option-explanation img:focus-visible, .amboss-hint-copy img:focus-visible {
+  outline:3px solid #38bdf8;outline-offset:3px;
+}
+.amboss-exam-image-fallback {
+  display:inline-flex;
+  align-items:center;
+  padding:10px 12px;
+  margin:6px;
+  color:var(--amboss-muted);
+  background:var(--amboss-surface-soft);
+  border:1px dashed var(--amboss-line);
+  border-radius:7px;
+  font-size:12px;
+}
+.amboss-workspace img[data-exam-image-failed="true"] { display:none; }
+@media(max-width:640px){
+  .amboss-stem-image-rail {
+    float:none;
+    width:100%;
+    max-width:100%;
+    flex-flow:row wrap;
+    align-items:center;
+    justify-content:center;
+    margin:12px 0;
+  }
+  .amboss-stem-image-rail img { width:auto;max-width:min(100%,260px); }
+  .amboss-stem img {
+    float:none;
+    max-width:min(100%,260px);
+    max-height:190px;
+    margin:12px auto;
+  }
+  .amboss-option-explanation img { max-width:min(100%,145px); }
+}

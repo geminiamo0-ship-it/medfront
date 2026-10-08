@@ -32,6 +32,16 @@ function rewriteAmbossLibraryLinks(root: ParentNode): void {
   });
 }
 
+
+/** Reuse the existing AMBOSS article deep-link conversion inside image descriptions. */
+export function prepareAmbossImageDescription(value: string): string {
+  const safe = safeRichHtml(value);
+  if (typeof DOMParser === 'undefined') return safe;
+  const document = new DOMParser().parseFromString(safe, 'text/html');
+  rewriteAmbossLibraryLinks(document.body);
+  return safeRichHtml(document.body.innerHTML);
+}
+
 export interface ParsedAmbossQuestion {
   stemHtml: string;
   hintHtml: string;
@@ -62,6 +72,19 @@ export function parseAmbossQuestionHtml(value: unknown): ParsedAmbossQuestion {
     .join('<br>');
 
   hints.forEach((node) => node.remove());
+
+  // Imported images are sometimes appended after the final paragraph, making
+  // a plain CSS float appear *below* the stem. Group freestanding images at the
+  // start so the approved AMBOSS thumbnail rail sits beside the question text.
+  // Leave tables, figures and linked images in their original context.
+  const stemImages = Array.from(root.querySelectorAll('img'))
+    .filter((image) => !image.closest('table, figure, a'));
+  if (stemImages.length) {
+    const rail = document.createElement('div');
+    rail.className = 'amboss-stem-image-rail';
+    for (const image of stemImages) rail.appendChild(image);
+    root.insertBefore(rail, root.firstChild);
+  }
 
   return {
     stemHtml: safeRichHtml(root.innerHTML),

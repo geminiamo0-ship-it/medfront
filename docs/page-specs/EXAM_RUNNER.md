@@ -515,3 +515,56 @@ Architecture rule:
 - Verify #133 success.
 - Browser Smoke #40 success: `sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true`. All Tutor/Timed and Omitted-review regressions also green.
 - **Production verification:** Initial Cloudflare build failed; subsequent identical code on main (docs-only merge) triggered Cloudflare Build `fc96eee6-1aa7-4483-a565-2649b0d8bce5` SUCCESS; Version `57145276-f70a-4515-88a1-ef4c782d7593`. Main Verify SUCCESS.
+
+## 18. AMBOSS exam inline images / Library Viewer reuse — USER APPROVED 2026-10-08
+
+**Scope:** AMBOSS Exam Runner only; existing Library Image Viewer experience is the authoritative visual/interaction reference. Explicit user approval was given in chat: reuse the existing AMBOSS Library Image Viewer, image previews beside the stem, optional overlay via button, description shown in review, and proceed with implementation. This is a focused user-priority override while Issue #32 separately verifies public R2 uploads. No Results/Review page redesign or new theme.
+
+### Example media contract (existing imported HTML)
+- `<img src="https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/big_5b2d50b498902.jpg" alt="Subarachnoid hemorrhage in the basal cisterns" data-overlay-src="offline_media/5b2d50b498902.jpg" data-description="&lt;p&gt;CT head ...&lt;/p&gt;">`
+- Use existing `src`, `alt`, `data-overlay-src`/ `data-overlay`, `data-description`, `title`; preserve imported safe markup and library deep links.
+- Resolve relative `offline_media/...` overlay keys against the global R2 origin; do not assume a different extension/key or reupload.
+- Normalize/sanitize description HTML before rendering, without executing untrusted content.
+
+### Layout and interactions
+- Desktop: small contained question-image thumbnails floated beside the question stem (image visual at right); image text continues with natural wrapping. Several images remain readable; the main text does not jump or expand into giant images.
+- iPad/mobile: thumbnails scale/stack gracefully, don't cause horizontal scroll or overlap with answers/other tools; viewer occupies viewport safely.
+- Option explanation images are contained thumbnails, never huge inline pictures.
+- Click/tap/keyboard activation opens the **same shared AMBOSS Library Image Viewer component**, not a separate exam-only modal. Preserve viewer zoom in/out, reset, matched image/overlay sizing and accessibility; ESC/Close exits.
+- Viewer opens with original image and overlay **off** by default. If overlay exists show `SHOW OVERLAY`; pressing toggles to `HIDE OVERLAY`, synchronized with zoom. If absent, omit button.
+- Before Tutor first answer/SHOW ANSWER: original and optional overlay as an intentional Hint; viewer Description panel is **not shown in UI**. After Tutor canonical reveal, it becomes available. In Timed solving, Description stays hidden through selections until End Block; completed review unlocks it.
+- Image `alt` and `data-description` may remain in the original API/DOM. User explicitly decided against backend filtering/anti-cheat measures; **do not change medhvgg** just to hide these attributes from DevTools.
+- Explanation images are only clickable after their explanation is actually revealed (existing backend-authoritative per-option conditions), and their Description then appears.
+- Interactive images inside answer options must not trigger an answer selection or a second submit, including keyboard.
+- A missing/broken media object shows a small fallback without breaking question text; do not claim R2 object upload success from mocks.
+- Links within visible descriptions use safe browser navigation/MedPark Library existing deep links where the source provides them.
+
+### Engineering ownership
+- Extract current `src/pages/library/AmbossImageViewer.tsx` to a shared presentation component so Library and AMBOSS Runner use the same viewer; preserve Library public import compatibility.
+- Share only the media viewer. Imported AMBOSS stem/option layout, controller reveal gating and metadata activation remain theme-local. Do not add exam lifecycle/API requests to the Viewer.
+- Keep `safeRichHtml` sanitization and existing global R2 media URL normalization. Backend is unchanged.
+
+### Verification and acceptance
+- [x] stem thumbnail layout desktop/iPad/mobile; multiple images; no unintended horizontal overflow
+- [x] Tutor before-answer open/close/zoom/overlay toggling; Description visually hidden
+- [x] Tutor after-answer shows sanitized rich Description
+- [x] Timed selection does not reveal description; post End Block does
+- [x] explanation thumbnail opens shared Viewer after reveal and is not huge inline
+- [x] no-overlay images show zoom only; overlay alignment remains correct on zoom
+- [x] clicking image in answer content doesn't submit another answer
+- [x] Library original image viewer still works without regressions
+- [x] real unknown/missing image has graceful fallback
+- [ ] typecheck, lint, build, Chromium browser smoke, GitHub Actions Verify; then merge, deploy confirmation and handoff — CI complete; merge, production confirmation, docs closeout still pending.
+
+**Approval record:** user: "ق الـImage Viewer الموجود في AMBOSS Library اتفق", "أنا أميل للزر طبعا", anti-cheat filtering explicitly rejected, then "نفذ" on 2026-10-08. Workflow moves SPEC APPROVED → IMPLEMENTING; no additional UX discussion required for this approved slice.
+
+
+### Implementation verification checkpoint — 2026-10-08
+
+- Branch: `feat/amboss-image-viewer-reuse`, PR #39, focused Issue #38. User UX approval recorded in §18 **before** implementation.
+- Shared viewer: `src/components/media/AmbossImageViewer.tsx`, `amboss-image-viewer.css`. Existing Library file re-exports same implementation and retains the same viewer identity/interactions.
+- AMBOSS-only bridge: `src/features/exam/themes/amboss/AmbossExamImages.tsx`, `ambossMarkup.ts`, `AmbossQuestionWorkspace.tsx`, `AmbossOption.tsx`, `styles/amboss.images.css`. No backend/API contract change.
+- A trailing standalone source image is moved into a right-aligned image rail beside first stem text; images inside tables/figures/links remain in place. Explanation images are reduced to thumbnails.
+- Case coverage: true `<img>` stem/option/answer description; before/after Tutor submit, Timed until/end block; optional overlay and aligned zoom; no-overlay; keyboard/ESC; Library reuse; mock missing-image fallback; desktop/iPad/mobile and no overflow.
+- **PR Verify #151:** typecheck ✅ lint ✅ build ✅. **AMBOSS Browser Smoke #50:** ✅ `shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true` plus existing Tutor/Timed/sidebar regressions.
+- Browser checks use mocked R2 responses, not proof of public object upload/permissions. Live assets remain independently tracked by #32. No new Result/Review page or theme started.

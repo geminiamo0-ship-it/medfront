@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #32 — reopened for global relative `offline_media/` URL rendering correction; Issue #4 remains active for G2 Results/Review DESIGN after media verification.  
-**Active phase:** G2 — Exam Runner; priority global media contract fix merged, currently VERIFYING real R2 media and production deploy.  
-**Current status:** Merged global origin migration (#33) + shared relative offline media fix (#37), CI/browser verified. Earlier AMBOSS sidebar (#34), Tutor active-solving, Timed countdown, Omitted review, notes and marks remain verified. **Live media problem remains:** screenshot sample key on new public R2 returned HTTP **404 text/html** in GitHub Actions; the source image does not yet load, independently of URL fix. Cloudflare production deployment for PR #37 not yet verified. Issue #32 remains open in VERIFYING; Issue #4 has Test Analysis/Results, shared My Notebook, detailed Flashcards UX and later themes awaiting UX selection.
+**Active issue:** #38 — user-approved AMBOSS exam image viewer reuse (VERIFYING; PR #39). Global R2 object availability remains separately open under #32, and G2 parent is #4.  
+**Active phase:** G2 — AMBOSS Exam Runner image presentation verification; global R2 migration previously merged, real file availability still pending #32.  
+**Current status:** User explicitly approved reusing the existing AMBOSS Library Image Viewer in Exam Runner; focused PR #39 implements same shared viewer with right-rail question thumbnails, compact explanation thumbnails, optional overlay, Tutor/Timed Description gating (visual only), keyboard/modal controls, fallback and no accidental answer submissions. PR Verify #151 ✅ and AMBOSS Browser Smoke #50 ✅ including Library regression, desktop/iPad/mobile. **NOT YET MERGED**: verify final docs head, merge PR #39, main Verify and production Cloudflare deployment. Parent Issue #4 still has deferred Results/Review, My Notebook, Flashcards and later themes. **#32 remains VERIFYING** for public R2 image upload HTTP 200; no unsupported availability claim.
 
 ## 1. Repository ownership
 
@@ -150,13 +150,15 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Priority Issue #32 — VERIFYING:** The user-requested site-wide R2 absolute origin migration (#33) and shared relative `offline_media/` mapping fix (**PR #37 → `daeb1b1d0`**) are merged. PR Verify #140 ✅, AMBOSS Browser Smoke #42 ✅ (`relative_r2_images=true`), main merge Verify #141 / run `37700603674` ✅.
+**Focused Issue #38 — VERIFYING:** The approved AMBOSS-only image Viewer slice is implemented on `feat/amboss-image-viewer-reuse` in frontend PR #39, with user approval recorded in `docs/page-specs/EXAM_RUNNER.md` §18 **before code**. Shared Image Viewer comes from existing AMBOSS Library and is re-exported for Library compatibility. Backend `medhvgg/main` was not changed.
 
-**Exact unchecked work:** (1) confirm Cloudflare production build/version includes merge `daeb1b1d0`; (2) ensure real `offline_media/ihg_681237c83e6287_31701899.jpg` exists and is publicly readable from the new R2 (or correct its true key); (3) retest GET 200 + `image/*` and live image rendering. GitHub Actions live object probe #1 (run `37700441479`) returned **404 `text/html`** for that path. Do not mark the image available or close #32. Other bucket objects are not proven missing.
+**Proven:** Verify #151 ✅, AMBOSS Browser Smoke #50 ✅ (real Chromium desktop/iPad/mobile with mocked media). Assertions: `shared_image_viewer=true`, `stem_image_rail=true`, `missing_image_fallback=true`, `library_image_regression=true`, `tutor_image_reveal=true`, `timed_image_reveal=true`, `image_overlay_zoom=true`, `image_option_no_submit=true`. Preexisting Tutor/Timed/sidebar/Library regressions remain green.
 
-Browser Smoke deliberately **mocks** public R2 image bytes; green `relative_r2_images` proves correct frontend DOM src rewrite, not the new bucket upload or permissions.
+**First unchecked task:** verify final docs-handoff branch head, **merge PR #39 only after green gates**, run/confirm `main` Verify, then confirm actual Cloudflare production deployment/version or state explicitly that it cannot be verified. Update Issue #38 and this file with merge/verification details. Do not mark DONE based only on PR tests.
 
-After #32's external availability gate is resolved or explicitly deferred by the user, return to **Issue #4 (DESIGN)**. Discuss and approve which remaining work item comes next (Test Analysis / Results, shared My Notebook drawer, detailed Flashcards, or a new theme) *before* implementing any new page. Library tablet/mobile and Issue #11 browser acceptance remain deferred/open.
+**Separate external gate #32:** actual public R2 object availability must be checked after the user's upload (`GET 200`, `Content-Type image/*` and browser rendering). Prior sample `offline_media/ihg_681237c83e6287_31701899.jpg` returned HTTP 404 text/html at the earlier check; that is historical, not a new current assessment. Browser Smoke supplies mocked image bytes and does not verify real R2 objects.
+
+After reporting completion of this explicitly approved image slice, **do not silently move to another page**. The next logical page is Test Analysis / Results under #4, which requires a separate UX/style discussion and approved spec before code. QBank #11 browser acceptance and Library tablet/mobile design remain open/parked.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -536,3 +538,12 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - **Verified:** fix PR #37 merged `daeb1b1d0`; Verify #140 ✅; AMBOSS Browser Smoke #42 ✅; main merge Verify run `37700603674` ✅.
 - **Live R2 failure:** public object probe [run #1](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37700441479) → sample screenshot key `offline_media/ihg_681237c83e6287_31701899.jpg` responds HTTP 404 / text/html. No real image availability claim.
 - **Still pending:** Cloudflare deployment confirmation for fix merge, correct object upload/key matching, GET HTTP 200 image MIME + real browser render. Issue #32 stays OPEN / VERIFYING.
+
+
+## AMBOSS shared image viewer implementation checkpoint — 2026-10-08
+
+- User-approved decisions: reuse AMBOSS Library Image Viewer; side-by-side stem thumbnails, compact option explanation thumbnails, explicit SHOW/HIDE OVERLAY as optional hint; Description hidden in UI before Tutor answer or Timed End Block, shown afterward; alt/metadata remain in DOM/API, no anti-cheat backend changes.
+- Focused Issue #38, PR #39 (`feat/amboss-image-viewer-reuse`). Approved page spec §18 committed prior to product code.
+- Shared Viewer: `src/components/media/AmbossImageViewer.tsx` + CSS; Library re-export maintains same import path. Theme-local interaction bridge/parser + CSS for thumb rail and reveal state; no duplicated API or scoring logic.
+- PR Verify #151 PASS; AMBOSS Browser Smoke #50 PASS incl. actual image attribute clicks, overlay toggling and synchronized zoom, Tutor/Timed reveal checks, DOM thumbnail rail/size, mocked image-404 placeholder, Library Viewer regression, desktop/iPad/mobile.
+- Pending: PR merge, main Verify, Cloudflare production confirmation and #32 independent public R2 object availability. Do not call whole feature Done until applicable gates are met.

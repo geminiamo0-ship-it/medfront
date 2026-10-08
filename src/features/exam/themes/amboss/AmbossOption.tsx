@@ -43,11 +43,12 @@ export function AmbossOption({
 
   function activateFromMouse(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
-    if (target.closest('a')) return;
+    if (target.closest('a, img, button')) return;
     onActivate();
   }
 
   function activateFromKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     onActivate();
