@@ -590,3 +590,12 @@ Architecture rule:
 - Optional `SHOW OVERLAY` button starts off by design, only draws when clicked; an actual image response must decode, not merely add an IMG element. Missing assets are independently checked under Issue #32.
 
 **Acceptance:** browser checks assert generic pre-answer Viewer accessible name/title, absence of visible diagnostic heading, restored Tutor and completed Timed title/Description, unchanged Library title, and post-click overlay bitmap decoding/zoom. Require GitHub Actions Verify and AMBOSS Browser Smoke.
+
+### Live-screenshot diagnostic-heading regression closeout — 2026-10-08
+
+- Confirmed root cause: the shared Viewer showed `data.title`, derived from source `title` or `alt`, above its hidden pre-answer Description notice. Example: `Osgood-Schlatter disease` appeared before solving.
+- **Frontend PR #40 merged into `main` as `1104b88527f5fac57ea3d4682b85ae9ebfb97883`**. Visible `#aiv-title` uses `Medical Illustration` when `showDescription=false` and restores the source title when true. Existing Library defaults true and preserves behavior.
+- No API/DB/source `alt` or `title` mutation, no anti-cheat backend filtering; this is purely the approved Viewer presentation behavior.
+- **Verify #157: PASS** typecheck/lint/build. **AMBOSS Browser Smoke #53: PASS**, explicit `diagnostic_title_hidden_before_answer=true` and `overlay_bitmap_decodes=true` plus Tutor/Timed/Library/iPad/mobile regression checks.
+- `SHOW OVERLAY` intentionally starts off; user activates the optional hint by clicking it. Test checks the overlay actually decodes from mocked R2 bytes. **Real Osgood image overlay availability is not independently established** without exact object key/public response; #32 remains R2 asset verification.
+- Follow-up gates: main Verify for merge, Cloudflare deployed version/runtime, real R2 object if overlay absent after toggle. These are verification tasks, not claimed Done.
