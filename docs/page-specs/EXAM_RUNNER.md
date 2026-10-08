@@ -599,3 +599,27 @@ Architecture rule:
 - **Verify #157: PASS** typecheck/lint/build. **AMBOSS Browser Smoke #53: PASS**, explicit `diagnostic_title_hidden_before_answer=true` and `overlay_bitmap_decodes=true` plus Tutor/Timed/Library/iPad/mobile regression checks.
 - `SHOW OVERLAY` intentionally starts off; user activates the optional hint by clicking it. Test checks the overlay actually decodes from mocked R2 bytes. **Real Osgood image overlay availability is not independently established** without exact object key/public response; #32 remains R2 asset verification.
 - Follow-up gates: main Verify for merge, Cloudflare deployed version/runtime, real R2 object if overlay absent after toggle. These are verification tasks, not claimed Done.
+
+## 19. AMBOSS Library deep links, related terms and Main Article — USER APPROVED 2026-10-08
+
+**Focused Issue #41 / G2 parent #4. Status: SPEC APPROVED → IMPLEMENTING.** User annotated the Main Article button beneath correct explanation and explicitly approved dotted related terms and exact destination section.
+
+### Confirmed contract
+- Canonical backend medhvgg/main exposes optional question.articleId (LibraryArticle PK) and question.libraryName. Frontend must type these as optional. Never create a relation from arbitrary medical prose or first encountered hyperlink.
+- Imported AMBOSS HTML supplies article external ID and optional data-anker/hash anchor; reuse existing MedPark Library link path and current Split/New Tab actions.
+- Existing Library card transform can detach H2 section IDs; Library URL effect skips changed anchors on already open article; collapsed targets need expansion.
+
+### User-approved UX
+- Only after a correct explanation is actually expanded (Tutor reveal or completed Timed review), show a compact outlined book button under its explanation when question has explicit AMBOSS articleId and libraryName. Label with authoritative supplied title if available; otherwise neutral 'Main article'.
+- True AMBOSS-linked terms use thin dotted underline and keyboard-operable activation; show sanitized imported preview when present; offer existing Split / New Tab choices. No links invented from text.
+- Exact anchor navigation in Library full/new tab/split: preserve IDs, expand collapsed sections, scroll to the requested location with brief visible indication; do not misnavigate to another article.
+- Respect screenshot styling and responsive desktop, iPad, mobile. Do not redesign Library responsive layout or other themes. No scoring, DB or backend changes.
+
+### Regression and acceptance gates
+- [ ] Heading IDs (including wrapped/adjacent anchor IDs) survive transform; collapsed target expands and scrolls.
+- [ ] Same article different-anchor URL transitions work, without unnecessary refetch; wrong-article IDs cannot scroll local content.
+- [ ] Main Article button only with explicit AMBOSS question relation, correct displayed explanation, Tutor or completed Timed.
+- [ ] Related terms preserve existing learning-card IDs and anchors; safe preview/actions; no inadvertent answer submit.
+- [ ] Missing reference fails safely; not invented.
+- [ ] Desktop/iPad/mobile Chromium and existing exam/library regressions.
+- [ ] Typecheck/lint/build + GitHub Actions Verify and AMBOSS Browser Smoke; merge/main Verify; record production runtime status separately.
