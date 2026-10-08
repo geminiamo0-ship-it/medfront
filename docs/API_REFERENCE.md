@@ -111,3 +111,7 @@ Notebook entry operations used by the Library drawer. The backend also has a sep
 | 5xx | Backend/service failure | Recoverable server-error state; do not mislabel as validation |
 
 For any newly implemented endpoint, update this document or the relevant page spec with the exact current contract verified from `medhvgg/main`.
+
+## Results V1
+
+`GET /tests/:id/results` uses the canonical backend owner/entitlement checks and returns `{ test, analytics: { overall, sessionBreakdown? }, advancedAnalytics }`. `sessionBreakdown` has total/answered/correct/incorrect/omitted, persisted five-tier `byDifficultyTier` (including unclassified when missing) and `studyRecommendations` containing only primary topic names with session correct/total. Frontend client is `src/features/results/api.ts`. Existing snapshot remains managed by backend; no ranking/AI/estimated Step scores in V1.
