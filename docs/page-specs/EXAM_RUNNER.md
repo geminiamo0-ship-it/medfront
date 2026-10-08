@@ -669,7 +669,7 @@ Architecture rule:
 
 ## 21. AMBOSS semantic medical tables — USER REFERENCE APPROVED 2026-10-08
 
-**Focused Issue #45, G2 parent #4. Workflow: SPEC APPROVED → IMPLEMENTING.** User submitted prenatal question DOM showing 5-column serum-marker table (AFP, Estriol, β-HCG, Inhibin A, rows A–E), with proper native thead/tbody/scoped th/td inside `.modal-overflow-scroll`. Screenshot displays merged-looking columns. Root cause: AMBOSS CSS forcibly changes table to `display:block` with no native grid styling. User explicitly requested clear real tables including numeric/lab values. No backend or data repair required.
+**Focused Issue #45, G2 parent #4. Workflow: VERIFYING external Cloudflare runtime; implementation/PR checks PASS.** User submitted prenatal question DOM showing 5-column serum-marker table (AFP, Estriol, β-HCG, Inhibin A, rows A–E), with proper native thead/tbody/scoped th/td inside `.modal-overflow-scroll`. Screenshot displays merged-looking columns. Root cause: AMBOSS CSS forcibly changes table to `display:block` with no native grid styling. User explicitly requested clear real tables including numeric/lab values. No backend or data repair required.
 
 ### Approved UI
 - Preserve source semantic rows, headers, spans, values, ↑/↓ and sanitization. Restore native CSS `display:table` inside a theme-local scrolling table frame.
@@ -679,9 +679,19 @@ Architecture rule:
 - No inferred/rebuilt columns, backend/schema changes, scoring changes, DOM mutation outside AMBOSS, or loss of media/source links.
 
 ### Acceptance gates
-- [ ] Browser test uses user's real prenatal example: 5 headers, rows A–E, exact arrows, normal values, semantic scopes, borders and no adjacent cell overlap.
-- [ ] Bare numerical/lab table with units is wrapped exactly once and styled consistently.
-- [ ] Wide table local horizontal scroll and no page overflow, on desktop (1440), iPad (834) and mobile (390).
-- [ ] Tables in option text, revealed explanation and hints render with proper columns, no unintentional answer selection; Timed description/reveal remains gated.
-- [ ] Contrast in AMBOSS dark mode and keyboard/pointer usable; prior Tutor/Timed/Image/Library browser regressions pass.
+- [x] Browser test uses user's real prenatal example: 5 headers, rows A–E, exact arrows, normal values, semantic scopes, borders and no adjacent cell overlap.
+- [x] Bare numerical/lab table with units is wrapped exactly once and styled consistently.
+- [x] Wide table local horizontal scroll and no page overflow, on desktop (1440), iPad (834) and mobile (390).
+- [x] Tables in option text, revealed explanation and hints render with proper columns, no unintentional answer selection; Timed description/reveal remains gated.
+- [x] Contrast in AMBOSS dark mode and keyboard/pointer usable; prior Tutor/Timed/Image/Library browser regressions pass.
 - [ ] Verify, Chrome browser smoke, merge/main Verify, spec/issue/PROJECT_STATUS; production Cloudflare runtime verified separately or remain VERIFYING.
+
+### §21 implementation / verification checkpoint — 2026-10-08
+
+- User's exact DOM establishes semantic imported 5-column prenatal serum-marker table, not broken underlying question data. Confirmed bug in AMBOSS theme's `table{display:block}` applied to native tables; no backend edit required.
+- [PR #46](https://github.com/geminiamo0-ship-it/medfront/pull/46) squash merged to `medfront/main`: `ec5bf7715ba02029bd97203a852680d90a5d02c7`.
+- `AmbossRichHtml.tsx`: theme-local adapter delegates to shared SafeHtml sanitizer; reuses existing `modal-overflow-scroll` or wraps bare table exactly once; preserves thead/tbody/scope/data and keyboard-accessible scroll frame. Used for stem, hint, choice and explanation. No core/backend change.
+- `styles/amboss.tables.css`: native CSS table layout, grid lines, distinct headers, row labels, tabular numeric alignment, subtle zebra stripes, sticky labels on scroll, dark variables and local overflow for narrow screens. The old `display:block` table rule was removed.
+- Browser smoke uses exact supplied AFP/Estriol/HCG/Inhibin headings with A–E original ↑/↓/normal values; separate hemoglobin and platelet table with units in option text and revealed explanation. Checks native table display, border/padding, no adjacent header overlap, header scope, phone local panning without full-page overflow, iPad full-fit when it fits, and dark theme contrast.
+- [PR Verify #178](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715597) PASS (typecheck/lint/build). [AMBOSS Browser Smoke #64](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715568) PASS including `semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true` plus Tutor/Timed/Image/Library regressions. The first iPad browser check erroneously demanded scrolling when all columns already fit; the check now correctly accepts fully visible columns and still strictly requires local scroll on phone.
+- Runtime Cloudflare deployed version and genuine database/R2 media not independently inspected. Issue #45 remains OPEN/VERIFYING until live confirmation, while #43/#41/#38/#32 remain independently open. Final main/docs Verify tracked in PROJECT_STATUS.md.
