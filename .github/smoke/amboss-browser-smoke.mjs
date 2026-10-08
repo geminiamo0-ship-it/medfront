@@ -5,6 +5,17 @@ const baseUrl = 'http://127.0.0.1:4173';
 const outDir = 'amboss-browser-artifacts';
 await fs.mkdir(outDir, { recursive: true });
 
+const serumMarkerTable = `
+<div class="modal-overflow-scroll" data-medical-fixture="prenatal"><table>
+<thead><tr><th scope="col"></th><th scope="col">α-Fetoprotein (AFP)</th><th scope="col">Estriol</th><th scope="col">β-Human chorionic gonadotropin (HCG)</th><th scope="col">Inhibin A</th></tr></thead>
+<tbody>
+<tr><th scope="row">A</th><td>↓</td><td>↓</td><td>↓</td><td>normal</td></tr>
+<tr><th scope="row">B</th><td>↓</td><td>↓</td><td>↑</td><td>↑</td></tr>
+<tr><th scope="row">C</th><td>Normal</td><td>normal</td><td>normal</td><td>normal</td></tr>
+<tr><th scope="row">D</th><td>↓</td><td>↓</td><td>↓</td><td>↓</td></tr>
+<tr><th scope="row">E</th><td>↑</td><td>normal</td><td>normal</td><td>normal</td></tr>
+</tbody></table></div>`;
+const hemoglobinTable = '<table data-medical-fixture="hemoglobin"><thead><tr><th scope="col">Measurement</th><th scope="col">Value</th><th scope="col">Reference range</th></tr></thead><tbody><tr><th scope="row">Hemoglobin</th><td>8.4 g/dL</td><td>12–16 g/dL</td></tr><tr><th scope="row">Platelets</th><td>125 × 10³/µL</td><td>150–400 × 10³/µL</td></tr></tbody></table>';
 const baseQuestionHtml = `
 <style>
 .nowrap { white-space: nowrap; }
@@ -30,11 +41,12 @@ const baseQuestionHtml = `
 <span data-global-media-src="https://storage.blablabl234a.online/offline_media/legacy-image.jpg"
       data-unrelated-url="https://example.com/outside.png">media origin test</span>
 <img data-relative-media-test="stem" src="offline_media/ihg_681237c83e6287_31701899.jpg" width="1" height="1" alt="Imported stem illustration">
-<img data-missing-image="true" src="offline_media/browser-missing-media.jpg" width="100" height="60" alt="Missing image">`;
+<img data-missing-image="true" src="offline_media/browser-missing-media.jpg" width="100" height="60" alt="Missing image">
+${serumMarkerTable}`;
 
 const options = [
   { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span><img data-relative-media-test="option" src="./offline_media/option-relative.png" width="36" height="25" alt="Imported option illustration"></p>' },
-  { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' },
+  { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' + hemoglobinTable },
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
   { id: 105, displayOrder: 'E', textHtml: '<p>Herpes simplex virus</p>' },
@@ -140,7 +152,8 @@ function ambossExplanationBlob(question) {
         ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f" data-description="&lt;p&gt;Reference about edema&lt;/p&gt;">edema</a> <span class="api" data-learningcard-id="SM0yLg" data-anker="Ztreatment" data-description="&lt;p&gt;Treatment of edema&lt;/p&gt;">treatment</span>'
         : '';
     const illustration = option.displayOrder === "B" ? '<img data-exam-image="explanation" src="offline_media/answer-image.jpg" width="155" height="115" alt="Explanation illustration" data-description="&lt;p&gt;Detailed option explanation image.&lt;/p&gt;">' : '';
-    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p></div>`;
+    const explanationTable = option.displayOrder === 'B' ? hemoglobinTable : '';
+    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p>${explanationTable}</div>`;
   });
 
   parts.push(
