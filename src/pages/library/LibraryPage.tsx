@@ -346,7 +346,7 @@ export default function LibraryPage() {
           bankId: ambossBank.id,
           title,
         });
-        navigate(`/test/${test.id}`;
+        navigate(`/test/${test.id}`);
         return;
       }
       const banks = await getQuestionBanks();
@@ -395,7 +395,7 @@ export default function LibraryPage() {
       };
 
       const testData = await createTest(payload);
-      navigate(`/test/${testData.id}`;
+      navigate(`/test/${testData.id}`);
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : (err as Error).message || 'Test Creation Failed', true);
     } finally {
