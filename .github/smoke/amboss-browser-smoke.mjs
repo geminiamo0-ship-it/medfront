@@ -131,6 +131,7 @@ let timedHighlightSaves = 0;
 let timedAiSummaryCalls = 0;
 let timedReviewExplanationFetches = 0;
 let libraryArticleFetches = 0;
+let createdArticleTestBody = null;
 const longLibrarySection = Array(20).fill('<p>Reference detail for scrolling and centering an AMBOSS article section.</p>').join('');
 
 let tutorLifecycleStatus = 'in_progress';
@@ -404,7 +405,12 @@ async function installApiMocks(target) {
     }
 
     if (path === '/tests' && method === 'POST') {
-      createdTimedBody = JSON.parse(route.request().postData() || '{}');
+      const body = JSON.parse(route.request().postData() || '{}');
+      if (body.filters?.articleId !== undefined) {
+        createdArticleTestBody = body;
+        return json(route, { id: 9004 }, 201);
+      }
+      createdTimedBody = body;
       return json(route, { id: 9002 }, 201);
     }
 
@@ -1164,6 +1170,28 @@ try {
     await context.close();
   }
 
+  // Library AMBOSS Create Test button: the article's internal id, not its
+  // original external string, must reach the authenticated test endpoint.
+  {
+    createdArticleTestBody = null;
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await page.goto(`${baseUrl}/library?source=amboss&article=SM0yLg`, { waitUntil: 'networkidle' });
+    await page.getByText('Internal AMBOSS article smoke').waitFor();
+    const createFromArticle = page.getByRole('button', { name: 'Create practice test from article' });
+    await createFromArticle.waitFor({ state: 'visible' });
+    assert(await createFromArticle.isEnabled(), 'AMBOSS article Create Test button was disabled');
+    await createFromArticle.click();
+    await page.waitForURL(/\\/dashboard\\/test\\/9004/, { waitUntil: 'commit' });
+    assert(createdArticleTestBody?.filters?.articleId === 2583,
+      'AMBOSS article test did not use canonical internal library article ID');
+    assert(createdArticleTestBody?.filters?.questionBankIds?.join(',') === '1',
+      'AMBOSS article test did not scope to the correct question bank');
+    assert(createdArticleTestBody?.type === 'tutor' && createdArticleTestBody?.mode === 'unused' &&
+      createdArticleTestBody?.step === 1,
+      'AMBOSS article test did not preserve Tutor / Unused / Step 1 semantics');
+    await context.close();
+  }
+
   {
     createdTimedBody = null;
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
@@ -1564,7 +1592,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true amboss_article_create_test=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
