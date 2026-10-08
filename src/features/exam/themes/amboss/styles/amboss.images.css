@@ -1,5 +1,22 @@
 /* Imported AMBOSS images remain alongside their original question text. */
 .amboss-stem::after { content:'';display:block;clear:both; }
+/* Place even trailing imported images beside the beginning of the stem. */
+.amboss-stem-image-rail {
+  float:right;
+  width:min(38%,240px);
+  max-width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:3px 0 14px 20px;
+}
+.amboss-stem-image-rail img {
+  float:none;
+  width:100%;
+  max-width:100%;
+  margin:0;
+}
+
 .amboss-stem img {
   float:right;
   display:block;
@@ -49,6 +66,16 @@
 }
 .amboss-workspace img[data-exam-image-failed="true"] { display:none; }
 @media(max-width:640px){
+  .amboss-stem-image-rail {
+    float:none;
+    width:100%;
+    max-width:100%;
+    flex-flow:row wrap;
+    align-items:center;
+    justify-content:center;
+    margin:12px 0;
+  }
+  .amboss-stem-image-rail img { width:auto;max-width:min(100%,260px); }
   .amboss-stem img {
     float:none;
     max-width:min(100%,260px);
