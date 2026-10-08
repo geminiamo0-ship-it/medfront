@@ -33,11 +33,6 @@ export function AmbossImageViewer({
   const clampZoom = (z: number) => Math.max(0.4, Math.min(4, z));
 
   useEffect(() => {
-    setFailedImage(false);
-    setFailedOverlay(false);
-  }, [data.imgSrc, data.overlaySrc]);
-
-  useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
