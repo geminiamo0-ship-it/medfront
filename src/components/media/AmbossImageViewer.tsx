@@ -93,7 +93,10 @@ export function AmbossImageViewer({
             </button>
           ) : null}
         </div>
-        <div id="aiv-title">{data.title || 'Medical Illustration'}</div>
+        {/* Imported alt/title often contains the answer. Keep that metadata intact,
+            but delay the visible diagnostic heading until the exam reveals it.
+            Library viewers default to showDescription=true and are unchanged. */}
+        <div id="aiv-title">{showDescription ? (data.title || 'Medical Illustration') : 'Medical Illustration'}</div>
         {showDescription ? (
           <div id="aiv-desc" dangerouslySetInnerHTML={{ __html:safeRichHtml(data.descHtml) }} />
         ) : (
