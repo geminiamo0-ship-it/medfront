@@ -20,13 +20,12 @@ function sourceUrl(source: string): string {
 
 export function useAmbossExamImages(questionId: number | null, showDescription: boolean) {
   const mediaRootRef = useRef<HTMLElement>(null);
-  const [imageViewer, setImageViewer] = useState<ImageViewerData | null>(null);
+  const [imageViewer, setImageViewer] = useState<{ questionId:number | null; data:ImageViewerData } | null>(null);
   const close = useCallback(() => setImageViewer(null), []);
 
   // Imported rich HTML remains in the sanitizer. Make only its media elements
   // keyboard-operable and handle broken images without modifying source data.
   useEffect(() => {
-    setImageViewer(null);
     const root = mediaRootRef.current;
     if (!root) return;
 
@@ -64,6 +63,8 @@ export function useAmbossExamImages(questionId: number | null, showDescription: 
     const title = img.getAttribute('title') || img.getAttribute('alt') || 'Medical Illustration';
     const desc = img.getAttribute('data-description') || '';
     setImageViewer({
+      questionId,
+      data: {
       imgSrc,
       title,
       imgAlt: img.getAttribute('alt') || title,
@@ -71,8 +72,9 @@ export function useAmbossExamImages(questionId: number | null, showDescription: 
       overlaySrc,
       showOverlay:false,
       zoom:1,
+      },
     });
-  }, []);
+  }, [questionId]);
 
   const handleImageClickCapture = (event: MouseEvent<HTMLElement>): boolean => {
     const target = event.target;
@@ -93,11 +95,11 @@ export function useAmbossExamImages(questionId: number | null, showDescription: 
     open(event.target);
   };
 
-  const modal = imageViewer ? (
+  const modal = imageViewer && imageViewer.questionId === questionId ? (
     <AmbossImageViewer
-      data={imageViewer}
+      data={imageViewer.data}
       showDescription={showDescription}
-      onUpdate={(patch) => setImageViewer((current) => current ? { ...current, ...patch } : current)}
+      onUpdate={(patch) => setImageViewer((current) => current ? { ...current, data:{ ...current.data, ...patch } } : current)}
       onClose={close}
     />
   ) : null;
