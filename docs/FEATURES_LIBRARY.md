@@ -91,3 +91,7 @@ No Library responsive redesign or existing reading tools are changed.
 
 **Deployment evidence (2026-10-08):** backend PR #31 and one-off runner PR #32 merged. Railway reported `[AMBOSS BACKFILL VERIFIED] 2783 linked, 2 intentionally unmatched; committed.`; temporary pre-deploy config restored. Frontend PR #48 merge and live browser/API test still pending. See
 `docs/page-specs/LIBRARY_CREATE_TEST.md`.
+
+## 2026-10-09 article Create Test route fix
+
+The registered exam runner is `/test/:testId` (outside AppLayout). The old Library CTA incorrectly used `/dashboard/test/:id`, which is not a registered route and falls through to `/hub`. Both AMBOSS and unchanged Passmedicine/Pastest create flows now navigate to the registered route. `ExamRunnerPage` delegates selection to the existing theme registry: bank code/name `AMBOSS` → `AmbossTheme`; non-AMBOSS remains on its separate standard/future-theme path. Chromium smoke asserts AMBOSS *content actually renders* after the click, rather than accepting an invalid URL that subsequently redirects.

@@ -17,7 +17,7 @@ Library responsive work, no importer rewrite in this issue.
 - **Desktop/tablet/mobile:** existing header toolbar slot and styles,
   no new layout or visual redesign. The button becomes visible for AMBOSS.
 - Disabled while loading/creating; uses existing toast, navigation and error
-  handling. On success navigate to `/dashboard/test/:id`. On an empty
+  handling. On success navigate to the actual Exam Runner route `/test/:testId` (SPA navigation); the theme registry must display `AmbossTheme` for AMBOSS test questions. On an empty
   article, display backend error and remain on Library.
 - Backend owns authentication, subscription, quota, source/bank validation and
   actual selection. The frontend may inspect the bank listing only to send
@@ -63,3 +63,5 @@ design. Issue opened. Production runtime verification pending; do not mark
 the issue DONE on CI alone.
 
 2026-10-08: Railway verified transaction (2783 linked / 2 intentionally unmatched); predeploy reset. Frontend/browser gates remain open.
+
+2026-10-09: Reported bug: Create Test used non-existent `/dashboard/test/:id` and the router catch-all silently sent learners to `/hub`. Correct route is `/test/:testId`, which selects AMBOSS exam theme by bank metadata. Regression requires a loaded AMBOSS stem after navigation, not URL-only assertion. Existing Passmedicine/Pastest shortcuts also use the registered test route; separate theme designs remain future scope.
