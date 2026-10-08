@@ -1454,6 +1454,12 @@ try {
         targetTop:target.top,
         readerTop:reader.top,
         targetVisible:target.top >= reader.top - 4 && target.bottom <= reader.bottom + 4,
+        ancestors:Array.from((function*() {
+          for (let parent=element.parentElement;parent;parent=parent.parentElement) {
+            yield { tag:parent.tagName,id:parent.id,overflow:getComputedStyle(parent).overflowY,
+              scrollTop:parent.scrollTop,scrollHeight:parent.scrollHeight,clientHeight:parent.clientHeight };
+          }
+        })()).slice(0,10),
       };
     });
     assert(anchorPosition.targetVisible && anchorPosition.drift < 26,
