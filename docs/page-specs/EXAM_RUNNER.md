@@ -568,3 +568,12 @@ Architecture rule:
 - Case coverage: true `<img>` stem/option/answer description; before/after Tutor submit, Timed until/end block; optional overlay and aligned zoom; no-overlay; keyboard/ESC; Library reuse; mock missing-image fallback; desktop/iPad/mobile and no overflow.
 - **PR Verify #151:** typecheck ✅ lint ✅ build ✅. **AMBOSS Browser Smoke #50:** ✅ `shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true` plus existing Tutor/Timed/sidebar regressions.
 - Browser checks use mocked R2 responses, not proof of public object upload/permissions. Live assets remain independently tracked by #32. No new Result/Review page or theme started.
+
+
+### Main merge / external gate — 2026-10-08
+
+- **PR #39 merged** to frontend `main` as `dedcfad064b95660236fb9e4250eeeabef2b50f3`; final PR Verify #153 ✅, Browser Smoke #52 ✅.
+- **Main Verify #154**, run `37823707167`: typecheck ✅, lint ✅, production build ✅.
+- **Production deployment not yet independently confirmed:** Cloudflare Workers live version/screenshot/real-media availability still need external runtime evidence. GitHub CI isn't a Cloudflare deployment check.
+- Issue #38 remains **OPEN / VERIFYING** for production confirmation rather than falsely marked Done. Separate public R2 asset availability remains open in Issue #32.
+- Other planned G2 surfaces (Test Analysis/Results, My Notebook, Flashcards, additional themes) are not part of this slice and remain unchanged.
