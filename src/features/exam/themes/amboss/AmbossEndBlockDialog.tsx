@@ -56,7 +56,7 @@ export function AmbossEndBlockDialog({
           <ExamIcon name="end-block" size={26} />
         </div>
         <h2 id="amboss-end-block-title">End this block?</h2>
-        <p>Your current answers will be finalized. The dedicated Test Analysis experience will be added in its approved review slice.</p>
+        <p>Your answers will be finalized. Your results will open after the block is completed.</p>
 
         <div className="amboss-end-block-stats">
           <div><span>Answered</span><strong>{answered}</strong></div>
