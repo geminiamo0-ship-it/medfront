@@ -104,6 +104,8 @@ export default function LibraryPage() {
   const popoverTimer = useRef<number | null>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [pendingAnchor, setPendingAnchor] = useState<{ anchor: string; term: string } | null>(null);
+  const lastRequestedDeepLink = useRef('');
+  const inFlightArticleAnchor = useRef('');
   const [pendingSplitAnchor, setPendingSplitAnchor] = useState<{
     anchor: string;
     term: string;
@@ -643,7 +645,8 @@ export default function LibraryPage() {
       setArticleTitle(title || 'Article');
       setArticleLoading(true);
       setArticle(null);
-      setPendingAnchor(anchor ? { anchor, term: title || '' } : null);
+      inFlightArticleAnchor.current = anchor;
+      setPendingAnchor(null);
       setIaQuery('');
       setIaTotal(0);
       setIaCurrent(0);
@@ -652,6 +655,7 @@ export default function LibraryPage() {
       try {
         const art = await getArticle(id);
         setArticle(art);
+        setPendingAnchor(inFlightArticleAnchor.current ? { anchor: inFlightArticleAnchor.current, term: '' } : null);
         setArticleTitle(art.name || art.title || title || 'Article');
         setIsRead(!!art.isRead);
         setIsBookmarked(!!art.isBookmarked);
@@ -664,23 +668,27 @@ export default function LibraryPage() {
     [showToast],
   );
 
-  // Exam explanations deep-link here with the AMBOSS external article ID.
-  // The backend resolves that external ID to the internal LibraryArticle PK.
+  // Library deep links are driven by article+anchor, not by the article fetch
+  // lifecycle. A second section in the same article must not be discarded,
+  // and a state update must not trigger another GET for the same URL.
+  const linkedArticleId = params.get('article')?.trim() || '';
+  const linkedAnchor = params.get('anchor')?.trim() || '';
   useEffect(() => {
-    const linkedArticleId = params.get('article')?.trim() || '';
-    if (!linkedArticleId) return;
-
-    const linkedAnchor = params.get('anchor')?.trim() || '';
-    if (
-      String(articleId ?? '') === linkedArticleId &&
-      (article || articleLoading)
-    ) {
+    if (!linkedArticleId) { lastRequestedDeepLink.current = ''; return; }
+    const key = `${linkedArticleId}\u0000${linkedAnchor}`;
+    if (lastRequestedDeepLink.current === key) return;
+    lastRequestedDeepLink.current = key;
+    const sameArticle = String(articleId ?? '') === linkedArticleId ||
+      (article?.externalId != null && String(article.externalId) === linkedArticleId);
+    if (sameArticle && (article || articleLoading)) {
+      if (articleLoading) inFlightArticleAnchor.current = linkedAnchor;
+      else setPendingAnchor(linkedAnchor ? { anchor: linkedAnchor, term: '' } : null);
       return;
     }
-
     void openArticle(linkedArticleId, '', linkedAnchor);
-  }, [article, articleId, articleLoading, openArticle, params]);
-
+    // Only URL changes should cause this effect, not the article's loading state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedArticleId, linkedAnchor, openArticle]);
   /**
    * Navigate to a cross-reference. If the anchor already exists in the open
    * article we just scroll to it (no refetch); otherwise open/split and jump.
@@ -694,10 +702,12 @@ export default function LibraryPage() {
         return;
       }
       // Open: if the target section is already in the current article, just jump.
-      if (scrollToAnchor(articleRef.current, anchor, title)) return;
+      const sameArticle = String(articleId ?? '') === targetId ||
+        (article?.externalId != null && String(article.externalId) === targetId);
+      if (sameArticle && scrollToAnchor(articleRef.current, anchor, title)) return;
       void openArticle(targetId, title, anchor);
     },
-    [openArticle, openSplitScreen],
+    [article, articleId, openArticle, openSplitScreen],
   );
 
   const onToggleRead = useCallback(async () => {

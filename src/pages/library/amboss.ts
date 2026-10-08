@@ -60,6 +60,28 @@ export function transformToAmbossCards(html: string): string {
     },
   );
 
+  // Imported AMBOSS sections may put their true anchor on a wrapper or
+  // empty marker immediately preceding <h2>. Move it onto the heading before
+  // splitting cards, so a deep link targets the visible section, not the
+  // detached overview wrapper produced by the old string transform.
+  if (typeof DOMParser !== 'undefined' && /<h2\b/i.test(out)) {
+    const document = new DOMParser().parseFromString(out, 'text/html');
+    document.querySelectorAll('h2').forEach((heading) => {
+      if (heading.id) return;
+      const marker = heading.previousElementSibling;
+      if (marker?.id && !marker.textContent?.trim() && marker.tagName === 'SPAN') {
+        heading.id = marker.id;
+        marker.removeAttribute('id');
+      } else {
+        const parent = heading.parentElement;
+        if (parent?.id && parent.querySelector('h2') === heading) {
+          heading.id = parent.id;
+          parent.removeAttribute('id');
+        }
+      }
+    });
+    out = document.body.innerHTML;
+  }
   if (!out.includes('<h2')) {
     return `<div class="amboss-card"><div class="amboss-card-body">${out}</div></div>`;
   }
@@ -71,13 +93,13 @@ export function transformToAmbossCards(html: string): string {
     const part = raw.trim();
     if (!part) continue;
     if (part.toLowerCase().startsWith('<h2')) {
-      currentHeader = part.replace(/<\/?h2[^>]*>/gi, '').trim();
+      currentHeader = part;
     } else {
-      const headerTitle = currentHeader || 'Overview';
+      const headerHtml = currentHeader || '<h2>Overview</h2>';
       result += `
         <div class="amboss-card">
           <div class="amboss-card-header" data-amboss-toggle>
-            <h2><span>${headerTitle}</span></h2>
+            ${headerHtml}
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="amboss-card-body">${part}</div>

@@ -3,7 +3,7 @@ import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamOption } from '../../types';
 import { ExamIcon } from '../../shared/ExamIcon';
 import { SafeHtml } from '../../shared/SafeHtml';
-import { parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
+import { importedReferencePreview, parseAmbossExplanationHtml, parseAmbossQuestionHtml } from './ambossMarkup';
 import { AmbossLabsPanel } from './AmbossLabsPanel';
 import { AmbossLibraryLinkMenu } from './AmbossLibraryLinkMenu';
 import { AmbossLibrarySplitPane } from './AmbossLibrarySplitPane';
@@ -37,6 +37,7 @@ export function AmbossQuestionWorkspace({
   const [libraryLinkMenu, setLibraryLinkMenu] = useState<{
     href: string;
     title: string;
+    previewHtml: string;
     left: number;
     top: number;
   } | null>(null);
@@ -90,6 +91,16 @@ export function AmbossQuestionWorkspace({
 
   if (!question || !controller.test) return null;
 
+  // Use the existing backend relation only. Never guess a primary source
+  // from arbitrary inline medical-term links in an explanation.
+  const mainArticleId = Number(question.articleId);
+  const mainArticleHref =
+    Number.isSafeInteger(mainArticleId) &&
+    mainArticleId > 0 &&
+    (!question.libraryName || question.libraryName.trim().toLowerCase() === 'amboss')
+      ? `/library?source=amboss&article=${encodeURIComponent(String(mainArticleId))}`
+      : undefined;
+
   const revealOptions = controller.currentReveal?.explanation.options ?? [];
   const resolvedOptions: AmbossResolvedOption[] = question.options.map((option: ExamOption) => {
     const reveal = revealOptions.find((item) => item.id === option.id);
@@ -142,6 +153,7 @@ export function AmbossQuestionWorkspace({
     setLibraryLinkMenu({
       href,
       title: link.textContent?.trim() || 'AMBOSS article',
+      previewHtml: importedReferencePreview(link.getAttribute('data-description') || link.getAttribute('data-content') || ''),
       left,
       top,
     });
@@ -322,6 +334,7 @@ export function AmbossQuestionWorkspace({
                   inspected={inspected}
                   showExplanation={showExplanation}
                   showCorrectAnswer={controller.isCompleted}
+                  mainArticleHref={mainArticleHref}
                   onActivate={() => activateOption(option.id)}
                 />
               );
@@ -400,6 +413,7 @@ export function AmbossQuestionWorkspace({
           left={libraryLinkMenu.left}
           top={libraryLinkMenu.top}
           title={libraryLinkMenu.title}
+          previewHtml={libraryLinkMenu.previewHtml}
           onSplit={openLibrarySplit}
           onNewTab={openLibraryNewTab}
           onClose={() => setLibraryLinkMenu(null)}

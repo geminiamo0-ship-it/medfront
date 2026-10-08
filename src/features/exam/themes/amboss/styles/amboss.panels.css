@@ -614,3 +614,10 @@
   font-size:11px;
   font-weight:800;
 }
+
+
+.amboss-reference-preview{padding:10px 12px 9px;border-bottom:1px solid var(--amboss-line)}
+.amboss-reference-preview>strong{display:block;font-size:12px;margin-bottom:6px;overflow-wrap:anywhere}
+.amboss-reference-preview-body{font-size:12px;line-height:1.5;max-height:126px;overflow:auto;overflow-wrap:anywhere}
+.amboss-reference-preview-body p{margin:0 0 5px}
+.amboss-reference-preview-body a{text-decoration:underline dotted}

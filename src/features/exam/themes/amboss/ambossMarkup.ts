@@ -2,34 +2,50 @@ import { safeRichHtml } from '@/lib/sanitize';
 
 
 function rewriteAmbossLibraryLinks(root: ParentNode): void {
-  root.querySelectorAll<HTMLAnchorElement>('a').forEach((anchor) => {
-    const href = anchor.getAttribute('href') || '';
+  // AMBOSS imports use both real anchors and medical-term spans carrying a
+  // learning-card external ID. Only explicit references become clickable.
+  root.querySelectorAll<HTMLElement>('a, span[data-learningcard-id], span[data-lxid]').forEach((node) => {
+    const href = node.getAttribute('href') || '';
     const hash = href.includes('#') ? href.slice(href.indexOf('#') + 1) : '';
     const hashParams = new URLSearchParams(hash);
-
-    const externalId =
-      anchor.getAttribute('data-learningcard-id')?.trim() ||
-      hashParams.get('xid')?.trim() ||
-      '';
-
+    const externalId = node.getAttribute('data-learningcard-id')?.trim() ||
+      node.getAttribute('data-lxid')?.trim() || hashParams.get('xid')?.trim() || '';
     if (!externalId) return;
-
-    const sectionAnchor =
-      anchor.getAttribute('data-anker')?.trim() ||
-      hashParams.get('anker')?.trim() ||
-      '';
-
-    const params = new URLSearchParams({
-      source: 'amboss',
-      article: externalId,
-    });
+    const sectionAnchor = node.getAttribute('data-anker')?.trim() || hashParams.get('anker')?.trim() || '';
+    const params = new URLSearchParams({ source: 'amboss', article: externalId });
     if (sectionAnchor) params.set('anchor', sectionAnchor);
-
-    anchor.setAttribute('href', `/library?${params.toString()}`);
-    anchor.setAttribute('data-medpark-library-link', '1');
-    anchor.removeAttribute('target');
-    anchor.removeAttribute('rel');
+    const linked = node.tagName === 'A' ? node as HTMLAnchorElement : node.ownerDocument.createElement('a');
+    if (linked !== node) {
+      for (const attribute of Array.from(node.attributes)) {
+        if (attribute.name.startsWith('data-') || attribute.name === 'class' || attribute.name === 'title') {
+          linked.setAttribute(attribute.name, attribute.value);
+        }
+      }
+      linked.innerHTML = node.innerHTML;
+      node.replaceWith(linked);
+    }
+    linked.setAttribute('href', `/library?${params.toString()}`);
+    linked.setAttribute('data-medpark-library-link', '1');
+    linked.classList.add('amboss-related-term');
+    linked.removeAttribute('target');
+    linked.removeAttribute('rel');
   });
+}
+
+/** Imported popover descriptions may be UTF-8 Base64 or ordinary HTML. */
+export function importedReferencePreview(value: string): string {
+  if (!value || value.length > 16000) return '';
+  let html = value;
+  if (value.length > 16 && /^[A-Za-z0-9+/=\\s]+$/.test(value.trim())) {
+    try {
+      const decoded = atob(value.trim());
+      const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      html = new TextDecoder().decode(bytes);
+    } catch {
+      html = value;
+    }
+  }
+  return safeRichHtml(html);
 }
 
 

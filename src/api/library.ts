@@ -19,6 +19,7 @@ export interface LibraryCategory {
 
 export interface LibraryArticleContent {
   id: number;
+  externalId?: string | null;
   name?: string;
   title?: string;
   contentHtml?: string;

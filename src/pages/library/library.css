@@ -1301,3 +1301,16 @@ mark.msr.cur{background:#fb923c;color:#fff}
   padding-left:20px;
   padding-right:20px;
 }
+
+
+/* Destination feedback for precise AMBOSS section jumps. */
+.library-root .amboss-card-header.amboss-reference-target,
+.library-root #acon .amboss-reference-target,
+.library-root #pane-sec-content .amboss-reference-target{
+  outline:2px solid #12a48b;
+  outline-offset:3px;
+  border-radius:4px;
+}
+@media(prefers-reduced-motion:reduce){
+  .library-root .amboss-reference-target{scroll-behavior:auto}
+}

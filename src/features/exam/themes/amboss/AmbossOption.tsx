@@ -16,6 +16,7 @@ interface AmbossOptionProps {
   showExplanation: boolean;
   showCorrectAnswer?: boolean;
   onActivate: () => void;
+  mainArticleHref?: string;
 }
 
 export function AmbossOption({
@@ -26,6 +27,7 @@ export function AmbossOption({
   showExplanation,
   showCorrectAnswer = false,
   onActivate,
+  mainArticleHref,
 }: AmbossOptionProps) {
   const correct =
     revealed &&
@@ -68,7 +70,22 @@ export function AmbossOption({
       <div className="amboss-option-main">
         <SafeHtml html={option.textHtml} className="amboss-option-text" />
         {showExplanation ? (
-          <SafeHtml html={option.explanationHtml} className="amboss-option-explanation" />
+          <>
+            <SafeHtml html={option.explanationHtml} className="amboss-option-explanation" />
+            {option.isCorrect === true && mainArticleHref ? (
+              <div className="amboss-main-article">
+                <a
+                  href={mainArticleHref}
+                  data-medpark-library-link="1"
+                  className="amboss-main-article-link"
+                  title="Open the linked main article in MedPark Library"
+                >
+                  <span aria-hidden="true">▤</span>
+                  <span>Main article</span>
+                </a>
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
       <span className="amboss-option-stat">
