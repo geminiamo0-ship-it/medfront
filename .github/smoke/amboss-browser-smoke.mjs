@@ -1434,10 +1434,27 @@ try {
     assert(!overflow, `${device.name}: unintended horizontal page overflow`);
 
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-final.png`, fullPage: true });
+
+    // Responsive AMBOSS Library targets must center in their own reader, not
+    // drag the outer viewport or light up an enclosing card/header.
+    await page.goto(`${baseUrl}/library?source=amboss&article=SM0yLg&anchor=Ztreatment`, { waitUntil:'networkidle' });
+    await page.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
+    await page.waitForTimeout(700);
+    const anchorPosition = await page.evaluate(() => {
+      const target = document.getElementById('Ztreatment').getBoundingClientRect();
+      const reader = document.getElementById('ascroll').getBoundingClientRect();
+      return {
+        drift:Math.abs((target.top+target.height/2)-(reader.top+reader.height/2)),
+        readerHeight:reader.height,
+        targetVisible:target.top >= reader.top - 4 && target.bottom <= reader.bottom + 4,
+      };
+    });
+    assert(anchorPosition.targetVisible && anchorPosition.drift < 26,
+      device.name + ': AMBOSS exact anchor did not center in mobile/tablet reader: ' + JSON.stringify(anchorPosition));
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
