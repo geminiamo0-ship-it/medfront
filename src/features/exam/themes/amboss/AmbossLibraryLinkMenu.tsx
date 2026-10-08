@@ -1,7 +1,9 @@
+import { SafeHtml } from '../../shared/SafeHtml';
 interface AmbossLibraryLinkMenuProps {
   left: number;
   top: number;
   title: string;
+  previewHtml?: string;
   onSplit: () => void;
   onNewTab: () => void;
   onClose: () => void;
@@ -11,6 +13,7 @@ export function AmbossLibraryLinkMenu({
   left,
   top,
   title,
+  previewHtml,
   onSplit,
   onNewTab,
   onClose,
@@ -28,6 +31,12 @@ export function AmbossLibraryLinkMenu({
         style={{ left, top }}
         onMouseDown={(event) => event.stopPropagation()}
       >
+        {previewHtml ? (
+          <div className="amboss-reference-preview">
+            <strong>{title}</strong>
+            <SafeHtml html={previewHtml} className="amboss-reference-preview-body" />
+          </div>
+        ) : null}
         <button type="button" role="menuitem" onClick={onSplit}>
           <span aria-hidden="true">◫</span>
           <span>
