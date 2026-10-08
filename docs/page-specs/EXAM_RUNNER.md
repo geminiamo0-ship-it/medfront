@@ -577,3 +577,16 @@ Architecture rule:
 - **Production deployment not yet independently confirmed:** Cloudflare Workers live version/screenshot/real-media availability still need external runtime evidence. GitHub CI isn't a Cloudflare deployment check.
 - Issue #38 remains **OPEN / VERIFYING** for production confirmation rather than falsely marked Done. Separate public R2 asset availability remains open in Issue #32.
 - Other planned G2 surfaces (Test Analysis/Results, My Notebook, Flashcards, additional themes) are not part of this slice and remain unchanged.
+
+### Screenshot-verified diagnosis/title visibility correction — 2026-10-08
+
+**Live user screenshot:** During an unanswered AMBOSS exam question, Image Viewer shows the diagnostic heading `Osgood-Schlatter disease` next to the hidden-Description notice. The viewer takes `data.title` from source `title` or `alt` and currently renders it unconditionally in `#aiv-title`; this is a pre-answer UX regression, not an anti-cheat request.
+
+**Expected contract (existing user approval, no new design):**
+- Before Tutor answer/SHOW ANSWER and before Timed End Block: show a **neutral heading, `Medical Illustration`**, and no diagnostic Description text in the Viewer.
+- After Tutor reveal or completed Timed review: show the **real source title/diagnosis** and sanitized Description.
+- AMBOSS Library continues to show the real title/Description from the start (`showDescription` defaults true).
+- Existing imported `alt`, `title`, `data-description` stay unchanged in the HTML/API, per user's explicit no-anti-cheat-filtering decision.
+- Optional `SHOW OVERLAY` button starts off by design, only draws when clicked; an actual image response must decode, not merely add an IMG element. Missing assets are independently checked under Issue #32.
+
+**Acceptance:** browser checks assert generic pre-answer Viewer accessible name/title, absence of visible diagnostic heading, restored Tutor and completed Timed title/Description, unchanged Library title, and post-click overlay bitmap decoding/zoom. Require GitHub Actions Verify and AMBOSS Browser Smoke.
