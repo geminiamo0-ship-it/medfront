@@ -3,9 +3,9 @@
 **Last updated:** 2026-10-08  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
-**Active issue:** #43 — AMBOSS exact reference centering + spotlight (frontend PR #44 merged, Browser Smoke green; verifying Cloudflare runtime). Related #41 original article references, #38 Image Viewer, #32 R2 upload remain open external VERIFYING.  
-**Active phase:** G2 — AMBOSS article navigation polished, exact inline-word and heading Spotlight implemented.  
-**Current status:** User-approved Smart Scroll + Spotlight in shared AMBOSS Library navigation merged as PR #44 (`c6ed90699467de7baea1b6abafee1dcd8bb0a912`). PR Verify #172 ✅, AMBOSS Browser Smoke #61 ✅ including centered exact word/heading in article reader, collapsed section, same-article anchor, Split/New Tab regressions, reduced-motion, Desktop/iPad/Mobile. A phone-only ~45px drift was caught by browser regression and fixed using limited corrections that respect user scroll intent; final Browser Smoke passed. **#43 remains OPEN/VERIFYING** for independent Cloudflare deployed build and live anchored-article UX, not code CI. Other G2 Results/Review, My Notebook, Flashcards and themes stay deferred.
+**Active issue:** #45 — AMBOSS semantic medical exam tables (PR #46 merged and Chromium verified; Cloudflare runtime VERIFYING). Previous #43/#41/#38/#32 external gates remain independently open.  
+**Active phase:** G2 — AMBOSS Exam Runner visual correctness, table rows/columns and numeric/lab readability.  
+**Current status:** User-supplied Inspect showed a valid prenatal serum-marker `<table>` but old AMBOSS CSS forced `display:block`, collapsing the visible column layout. Focused Issue #45 and approved EXAM_RUNNER §21 resolved with a theme-only sanitized `AmbossRichHtml` table scroll adapter and native grid styles. [PR #46](https://github.com/geminiamo0-ship-it/medfront/pull/46) merged to main at `ec5bf7715ba02029bd97203a852680d90a5d02c7`, Verify #178 ✅, Chromium Browser Smoke #64 ✅: exact 5-column AFP/Estriol/HCG/Inhibin A table with rows A–E, numeric hemoglobin/platelet tables, header scope/grid, explanation reveal, desktop/iPad/mobile local overflow, dark mode and prior Tutor/Timed/Library/Image regressions. **Issue #45 remains OPEN / VERIFYING for Cloudflare deployed-version and live real table inspection**; GitHub Actions success is not production proof. No backend/DB changes or other-page work.
 
 ## 1. Repository ownership
 
@@ -150,13 +150,13 @@ Approved runner spec: `docs/page-specs/EXAM_RUNNER.md`.
 
 ## 7. Exact next step
 
-**Primary #43 — VERIFYING Cloudflare runtime:** PR #44 (`c6ed90699467de7baea1b6abafee1dcd8bb0a912`) merged user-approved exact anchor-centering / Spotlight. Spec `docs/page-specs/EXAM_RUNNER.md` §20 approved before code. [PR Verify #172](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448646) PASS; [Browser Smoke #61](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37832448723) PASS. One shared utility used by full Library, New Tab, and embedded Split View; no backend/API or scoring changes.
+**Issue #45 — VERIFYING Cloudflare live tables:** user-approved AMBOSS semantic medical tables slice merged via PR #46 (`ec5bf7715ba02029bd97203a852680d90a5d02c7`), [PR Verify #178](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715597) PASS, [Chromium Browser Smoke #64](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37834715568) PASS on desktop/iPad/mobile including literal user-supplied prenatal AFP/Estriol/β-HCG/Inhibin A table and numerical lab tables. §21 spec committed before code. Main/docs Verify must be completed before signoff.
 
-**First unchecked task:** confirm main Verify and latest docs-handoff Verify green; independently verify Cloudflare production deployed revision contains PR #44 or newer. Test a real sourced AMBOSS link to an H2 and inline term, and check centering and two subtle pulses in real Library and Exam Runner Split View. Without Cloudflare version/runtime evidence, leave #43 OPEN / VERIFYING; do not falsely mark Done.
+**First unchecked runtime gate:** independently confirm Cloudflare production deploy includes PR #46 or later and inspect a real AMBOSS question with imported five-column/numeric table: visible grid and headers, correct arrows/values, responsive horizontal panning on a narrow phone, light/dark contrast. If runtime version or actual article content is inaccessible, keep #45 OPEN / VERIFYING rather than calling production Done.
 
-**Other independent VERIFYING items:** #41 — main-source/related-term reference live Cloudflare article acceptance; #38 — media Viewer deployment and real interaction; #32 — public R2 uploaded objects HTTP 200 and image MIME. Browser smoke mocks are not proof of production asset availability.
+**Independent open gates:** #43 exact Library-anchor/spotlight production acceptance; #41 linked source section production acceptance; #38 Image Viewer deployed version; #32 actual R2 objects HTTP 200 image MIME. GitHub Chrome fixtures are mocked; don't claim real bucket or Cloudflare live state.
 
-**Boundaries:** G2 Results/Review, My Notebook, Flashcards and other themes need separate user-approved design/spec; Library mobile/tablet redesign is deliberately parked beyond focused navigation fix. Canonical backend medhvgg/main unchanged. QBank #11 runtime acceptance parked.
+**Out of scope:** G2 Results/Review, Notebook, Flashcards, additional theme designs and unrelated QBank #11 remain parked until new user-approved spec. Canonical backend medhvgg/main unchanged; no schema/import mutation.
 
 ## AMBOSS implementation checkpoint — 2026-10-07
 
@@ -570,3 +570,11 @@ Frontend PR #34 → `9c5acc78483b6f7a12463a62d05480d54755d458` merged.
 - CSS two soft turquoise pulses ~1.75s without layout or typography shift; prefers-reduced-motion static outline.
 - Final PR Verify #172 PASS, Browser Smoke #61 PASS (desktop/iPad/mobile exact center, inline word, reduced motion, existing Tutor/Timed/Library/image regression). Earlier mobile test caught real ~45px center drift; corrected and retested, not waived.
 - Main documentation/CI and independent Cloudflare deployed version/runtime remain the last gates; Issue #43 OPEN / VERIFYING. Existing #41/#38/#32 external acceptance gates remain separate.
+
+## AMBOSS native medical table checkpoint — 2026-10-08
+
+- Evidence: exact prenatal table from user HTML had valid THEAD/TBODY scoped TH/TD but AMBOSS question CSS set table display:block; source data did not need repair.
+- Approved focused Issue #45, page spec EXAM_RUNNER §21 committed before code. PR #46 merge `ec5bf7715ba02029bd97203a852680d90a5d02c7`.
+- Theme-only `AmbossRichHtml.tsx` uses SafeHtml sanitizer, reuses existing modal-overflow-scroll frames or wraps bare imported tables once. Shared for question, option, explanation and hint; CSS native table, borders/zebra/row headers, aligned numeric data, light/dark, local horizontal overflow.
+- PR Verify #178 success, Browser Smoke #64 success with literal AFP/Estriol/HCG/Inhibin A table and hemoglobin/platelets; desktop/iPad/mobile, header scope, no overlapping cells, mobile scroll and no outer overflow, dark contrast and previous AMBOSS regressions.
+- Main/docs Verify and Cloudflare live deployed version are separate gates. Issue #45 remains OPEN / VERIFYING until real runtime acceptance. Issues #43/#41/#38/#32 remain independent external checks.
