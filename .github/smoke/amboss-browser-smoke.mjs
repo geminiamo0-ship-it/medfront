@@ -442,7 +442,15 @@ async function installApiMocks(target) {
     // Successful article Create Test must LOAD the real AMBOSS Exam Runner.
     // A URL-only assertion would miss the catch-all route redirect to /hub.
     if (path === '/tests/9004' && method === 'GET') {
-      return json(route, { ...decoratedTestState(), id: 9004, title: 'Edema Practice' });
+      return json(route, {
+        ...structuredClone(testState),
+        id: 9004,
+        title: 'Edema Practice',
+        questions: [makeQuestion(2001, 1, 'hard')],
+        totalQuestions: 1,
+        resumeQuestionId: 2001,
+        resumeDisplayOrder: 1,
+      });
     }
 
     if (path === '/tests/9002' && method === 'GET') {
@@ -1188,12 +1196,6 @@ try {
     assert(await createFromArticle.isEnabled(), 'AMBOSS article Create Test button was disabled');
     await createFromArticle.click();
     await page.waitForURL(/\/test\/9004(?:[?#]|$)/, { waitUntil: 'load' });
-    await page.waitForTimeout(1100);
-    console.log('AMBOSS_ARTICLE_ROUTE_DIAGNOSTIC', JSON.stringify({
-      url: page.url(),
-      body: (await page.locator('body').innerText()).slice(0, 1500),
-      stems: await page.locator('.amboss-stem').count(),
-    }));
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     assert(page.url().endsWith('/test/9004'),
       'Create Test must navigate to the registered /test/:testId route, not /hub');
