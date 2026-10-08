@@ -32,6 +32,16 @@ function rewriteAmbossLibraryLinks(root: ParentNode): void {
   });
 }
 
+
+/** Reuse the existing AMBOSS article deep-link conversion inside image descriptions. */
+export function prepareAmbossImageDescription(value: string): string {
+  const safe = safeRichHtml(value);
+  if (typeof DOMParser === 'undefined') return safe;
+  const document = new DOMParser().parseFromString(safe, 'text/html');
+  rewriteAmbossLibraryLinks(document.body);
+  return safeRichHtml(document.body.innerHTML);
+}
+
 export interface ParsedAmbossQuestion {
   stemHtml: string;
   hintHtml: string;
