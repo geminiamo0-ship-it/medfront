@@ -993,7 +993,7 @@ try {
       'Section heading was not centered inside the Library reader: ' + JSON.stringify(headingCenter));
     assert(headingCenter.running.includes('amboss-anchor-spotlight'), 'Heading lacks two-pulse spotlight animation');
     assert(!headingCenter.wrongCardFlash, 'Navigation flashed the full card instead of actual heading');
-    const targetCard = popup.locator('h2#Ztreatment').locator('xpath=ancestor::*[contains(@class,"amboss-card")]');
+    const targetCard = popup.locator('h2#Ztreatment').locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " amboss-card ")][1]');
     await targetCard.evaluate((node) => node.classList.add('collapsed'));
     await popup.evaluate(() => {
       const url = new URL(window.location.href);
