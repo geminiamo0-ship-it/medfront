@@ -1180,6 +1180,9 @@ try {
     assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
     assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
     assert(timedStatus === 'completed', 'End Block did not complete the timed test');
+    // The calculator popover remains open from the prior tools test and covers
+    // the image; close it as a learner would before clicking the thumbnail.
+    await page.getByRole('button', { name: /^Calculator$/i }).click();
     await page.locator('img[data-exam-image="stem"]').click();
     await page.getByRole('dialog').getByText(/Hyperdensity \(green overlay\)/).waitFor();
     await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
