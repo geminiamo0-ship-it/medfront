@@ -1458,17 +1458,27 @@ try {
       const table = frame.querySelector('table');
       const rect = frame.getBoundingClientRect();
       return { overflow:getComputedStyle(frame).overflowX, left:rect.left, right:rect.right,
-        scrollable:frame.scrollWidth > frame.clientWidth + 10, display:getComputedStyle(table).display };
+        scrollable:frame.scrollWidth > frame.clientWidth + 10,
+        tableWidth:table.getBoundingClientRect().width, frameWidth:rect.width,
+        display:getComputedStyle(table).display };
     });
-    assert(tableScroll.display === 'table' && tableScroll.overflow === 'auto' && tableScroll.scrollable,
-      device.name + ': wide imported medical table is not locally horizontally scrollable: ' + JSON.stringify(tableScroll));
+    assert(tableScroll.display === 'table' && tableScroll.overflow === 'auto',
+      device.name + ': AMBOSS table must keep native layout inside an overflow-capable frame: ' + JSON.stringify(tableScroll));
     assert(tableScroll.left >= -1 && tableScroll.right <= device.width + 1,
       device.name + ': imported medical table spills beyond card/screen: ' + JSON.stringify(tableScroll));
     assert(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
       device.name + ': medical table caused page-wide sideways overflow');
-    await mobileSerum.evaluate(frame => { frame.scrollLeft = frame.scrollWidth; });
-    assert((await mobileSerum.evaluate(frame => frame.scrollLeft)) > 0,
-      device.name + ': rightmost HCG/Inhibin columns cannot be reached via table-local scrolling');
+    if (tableScroll.scrollable) {
+      await mobileSerum.evaluate(frame => { frame.scrollLeft = frame.scrollWidth; });
+      assert((await mobileSerum.evaluate(frame => frame.scrollLeft)) > 0,
+        device.name + ': rightmost HCG/Inhibin columns cannot be reached by local scrolling');
+    } else {
+      assert(device.name === 'ipad' && tableScroll.tableWidth <= tableScroll.frameWidth + 2,
+        device.name + ': table columns are clipped without local scroll: ' + JSON.stringify(tableScroll));
+    }
+    if (device.name === 'mobile') {
+      assert(tableScroll.scrollable, 'Phone must support horizontal panning for wide five-column markers');
+    }
     const thumbBox = await page.locator('.amboss-stem-image-rail').boundingBox();
     assert(thumbBox && thumbBox.width <= device.width - 20, device.name + ': stem thumbnails overflow screen');
     await page.locator('img[data-exam-image="stem"]').click();
