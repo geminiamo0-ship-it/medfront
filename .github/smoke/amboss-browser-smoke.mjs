@@ -1090,7 +1090,16 @@ try {
 
     // Clicking a section should CENTER its actual heading in the article's
     // scrollable reader, not scroll the outer browser or highlight the card.
-    await popup.waitForTimeout(700);
+    // Smooth scrolling can take longer on busy CI runners; wait for the
+    // *same exact* centered position instead of asserting at a fixed 700ms.
+    await popup.waitForFunction(() => {
+      const heading = document.getElementById('Ztreatment');
+      const reader = document.getElementById('ascroll');
+      if (!heading || !reader) return false;
+      const h = heading.getBoundingClientRect();
+      const p = reader.getBoundingClientRect();
+      return Math.abs((h.top + h.height / 2) - (p.top + p.height / 2)) < 24;
+    }, null, { timeout: 7000 });
     const headingCenter = await popup.evaluate(() => {
       const heading = document.getElementById('Ztreatment');
       const reader = document.getElementById('ascroll');
