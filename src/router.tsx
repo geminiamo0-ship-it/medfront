@@ -16,6 +16,7 @@ import WelcomePage from '@/pages/qbank/WelcomePage';
 import CreateTestPage from '@/pages/qbank/CreateTestPage';
 import PreviousTestsPage from '@/pages/qbank/PreviousTestsPage';
 import TestPage from '@/pages/TestPage';
+import TestResultsPage from '@/features/results/TestResultsPage';
 import LibraryPage from '@/pages/library/LibraryPage';
 import { ComingSoon } from '@/pages/ComingSoon';
 
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
 
   // Exam themes own the whole viewport and must not inherit the global app chrome.
   { path: '/test/:testId', element: protect(<TestPage />) },
+  { path: '/test/:testId/results', element: protect(<TestResultsPage />) },
 
   {
     element: protect(<AppLayout />),
