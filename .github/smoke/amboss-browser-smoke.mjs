@@ -718,13 +718,20 @@ try {
     // opt-in hint; Description is not visible in the viewer until reveal.
     const stemImage = page.locator('img[data-exam-image="stem"]');
     await stemImage.click();
-    const viewer = page.getByRole('dialog', { name: /Subarachnoid hemorrhage/i });
+    const viewer = page.getByRole('dialog', { name: 'Medical Illustration' });
     await viewer.waitFor();
+    assert((await viewer.locator('#aiv-title').innerText()).trim() === 'Medical Illustration',
+      'Tutor pre-answer viewer exposed image diagnosis in the title');
+    assert((await viewer.getByText('Subarachnoid hemorrhage in the basal cisterns', { exact:true }).count()) === 0,
+      'Tutor pre-answer viewer exposed imported diagnostic title');
     assert((await viewer.getByText(/Hyperdensity \(green overlay\)/).count()) === 0,
       'Tutor viewer leaked clinical Description before first answer');
     assert((await viewer.locator('#aiv-overlay').count()) === 0, 'Overlay appeared without consent');
     await viewer.getByRole('button', { name: 'SHOW OVERLAY' }).click();
     assert((await viewer.locator('#aiv-overlay').count()) === 1, 'Optional overlay did not appear');
+    await viewer.locator('#aiv-overlay').evaluate((image) => image.decode());
+    assert(await viewer.locator('#aiv-overlay').evaluate((image) => image.complete && image.naturalWidth > 0),
+      'Overlay IMG element exists but its bitmap did not load/decode');
     assert((await viewer.locator('#aiv-overlay').getAttribute('src')) ===
       'https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/5b2d50b498902.jpg',
       'Relative overlay source lost R2 origin');
@@ -813,7 +820,9 @@ try {
 
     // Tutor first-answer reveal unlocks the existing sanitized description.
     await page.locator('img[data-exam-image="stem"]').click();
-    const revealedViewer = page.getByRole('dialog');
+    const revealedViewer = page.getByRole('dialog', { name: /Subarachnoid hemorrhage/i });
+    assert((await revealedViewer.locator('#aiv-title').innerText()).includes('Subarachnoid hemorrhage'),
+      'Tutor revealed image title did not restore imported diagnosis');
     await revealedViewer.getByText(/Hyperdensity \(green overlay\)/).waitFor();
     assert((await revealedViewer.getByText(/CT head \(without contrast; axial plane\)/).count()) === 1,
       'Tutor image Description was not rendered after answer');
@@ -933,6 +942,8 @@ try {
     // The extracted Viewer must still work unchanged from the original Library.
     await popup.locator('img.pm-img').click();
     const libraryViewer = popup.getByRole('dialog', { name:'Library image example' });
+    assert((await libraryViewer.locator('#aiv-title').innerText()) === 'Library image example',
+      'Library viewer title was unexpectedly hidden by Exam-only gating');
     await libraryViewer.getByText('Library image description').waitFor();
     await libraryViewer.getByRole('button', { name:'SHOW OVERLAY' }).click();
     assert((await libraryViewer.locator('#aiv-overlay').count()) === 1,
@@ -1093,6 +1104,8 @@ try {
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
     await page.locator('img[data-exam-image="stem"]').click();
+    assert((await page.getByRole('dialog').locator('#aiv-title').innerText()) === 'Medical Illustration',
+      'Timed pre-completion image title exposed the diagnosis');
     assert((await page.getByRole('dialog').getByText(/Hyperdensity \(green overlay\)/).count()) === 0,
       'Timed image Description leaked during solving');
     await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
@@ -1203,6 +1216,8 @@ try {
     // the image; close it as a learner would before clicking the thumbnail.
     await page.getByRole('button', { name: /^Calculator$/i }).click();
     await page.locator('img[data-exam-image="stem"]').click();
+    assert((await page.getByRole('dialog').locator('#aiv-title').innerText()).includes('Subarachnoid hemorrhage'),
+      'Timed completed review did not restore the diagnostic title');
     await page.getByRole('dialog').getByText(/Hyperdensity \(green overlay\)/).waitFor();
     await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
 
@@ -1312,7 +1327,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
