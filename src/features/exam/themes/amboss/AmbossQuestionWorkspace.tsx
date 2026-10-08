@@ -90,6 +90,16 @@ export function AmbossQuestionWorkspace({
 
   if (!question || !controller.test) return null;
 
+  // Use the existing backend relation only. Never guess a primary source
+  // from arbitrary inline medical-term links in an explanation.
+  const mainArticleId = Number(question.articleId);
+  const mainArticleHref =
+    Number.isSafeInteger(mainArticleId) &&
+    mainArticleId > 0 &&
+    (!question.libraryName || question.libraryName.trim().toLowerCase() === 'amboss')
+      ? `/library?source=amboss&article=${encodeURIComponent(String(mainArticleId))}`
+      : undefined;
+
   const revealOptions = controller.currentReveal?.explanation.options ?? [];
   const resolvedOptions: AmbossResolvedOption[] = question.options.map((option: ExamOption) => {
     const reveal = revealOptions.find((item) => item.id === option.id);
@@ -322,6 +332,7 @@ export function AmbossQuestionWorkspace({
                   inspected={inspected}
                   showExplanation={showExplanation}
                   showCorrectAnswer={controller.isCompleted}
+                  mainArticleHref={mainArticleHref}
                   onActivate={() => activateOption(option.id)}
                 />
               );
