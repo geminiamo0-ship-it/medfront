@@ -545,15 +545,26 @@ Architecture rule:
 - Keep `safeRichHtml` sanitization and existing global R2 media URL normalization. Backend is unchanged.
 
 ### Verification and acceptance
-- [ ] stem thumbnail layout desktop/iPad/mobile; multiple images; no unintended horizontal overflow
-- [ ] Tutor before-answer open/close/zoom/overlay toggling; Description visually hidden
-- [ ] Tutor after-answer shows sanitized rich Description
-- [ ] Timed selection does not reveal description; post End Block does
-- [ ] explanation thumbnail opens shared Viewer after reveal and is not huge inline
-- [ ] no-overlay images show zoom only; overlay alignment remains correct on zoom
-- [ ] clicking image in answer content doesn't submit another answer
-- [ ] Library original image viewer still works without regressions
-- [ ] real unknown/missing image has graceful fallback
-- [ ] typecheck, lint, build, Chromium browser smoke, GitHub Actions Verify; then merge, deploy confirmation and handoff
+- [x] stem thumbnail layout desktop/iPad/mobile; multiple images; no unintended horizontal overflow
+- [x] Tutor before-answer open/close/zoom/overlay toggling; Description visually hidden
+- [x] Tutor after-answer shows sanitized rich Description
+- [x] Timed selection does not reveal description; post End Block does
+- [x] explanation thumbnail opens shared Viewer after reveal and is not huge inline
+- [x] no-overlay images show zoom only; overlay alignment remains correct on zoom
+- [x] clicking image in answer content doesn't submit another answer
+- [x] Library original image viewer still works without regressions
+- [x] real unknown/missing image has graceful fallback
+- [ ] typecheck, lint, build, Chromium browser smoke, GitHub Actions Verify; then merge, deploy confirmation and handoff — CI complete; merge, production confirmation, docs closeout still pending.
 
 **Approval record:** user: "ق الـImage Viewer الموجود في AMBOSS Library اتفق", "أنا أميل للزر طبعا", anti-cheat filtering explicitly rejected, then "نفذ" on 2026-10-08. Workflow moves SPEC APPROVED → IMPLEMENTING; no additional UX discussion required for this approved slice.
+
+
+### Implementation verification checkpoint — 2026-10-08
+
+- Branch: `feat/amboss-image-viewer-reuse`, PR #39, focused Issue #38. User UX approval recorded in §18 **before** implementation.
+- Shared viewer: `src/components/media/AmbossImageViewer.tsx`, `amboss-image-viewer.css`. Existing Library file re-exports same implementation and retains the same viewer identity/interactions.
+- AMBOSS-only bridge: `src/features/exam/themes/amboss/AmbossExamImages.tsx`, `ambossMarkup.ts`, `AmbossQuestionWorkspace.tsx`, `AmbossOption.tsx`, `styles/amboss.images.css`. No backend/API contract change.
+- A trailing standalone source image is moved into a right-aligned image rail beside first stem text; images inside tables/figures/links remain in place. Explanation images are reduced to thumbnails.
+- Case coverage: true `<img>` stem/option/answer description; before/after Tutor submit, Timed until/end block; optional overlay and aligned zoom; no-overlay; keyboard/ESC; Library reuse; mock missing-image fallback; desktop/iPad/mobile and no overflow.
+- **PR Verify #151:** typecheck ✅ lint ✅ build ✅. **AMBOSS Browser Smoke #50:** ✅ `shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true` plus existing Tutor/Timed/sidebar regressions.
+- Browser checks use mocked R2 responses, not proof of public object upload/permissions. Live assets remain independently tracked by #32. No new Result/Review page or theme started.
