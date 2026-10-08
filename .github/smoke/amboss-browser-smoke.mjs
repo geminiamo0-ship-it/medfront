@@ -695,6 +695,15 @@ try {
       );
     }
 
+    // Images appended after the source paragraph must still occupy the
+    // approved right-side thumbnail rail alongside the stem text.
+    const rightRail = page.locator('.amboss-stem-image-rail');
+    assert((await rightRail.locator('img').count()) >= 2, 'Stem images were not collected into the sidebar rail');
+    const railRect = await rightRail.boundingBox();
+    const stemRect = await page.locator('.amboss-stem').boundingBox();
+    assert(railRect && stemRect && railRect.y < stemRect.y + 35,
+      'Trailing stem images rendered beneath the question instead of beside its heading');
+
     // Approved shared AMBOSS Library Image Viewer: pre-answer overlay is an
     // opt-in hint; Description is not visible in the viewer until reveal.
     const stemImage = page.locator('img[data-exam-image="stem"]');
@@ -1251,6 +1260,8 @@ try {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    const thumbBox = await page.locator('.amboss-stem-image-rail').boundingBox();
+    assert(thumbBox && thumbBox.width <= device.width - 20, device.name + ': stem thumbnails overflow screen');
     await page.locator('img[data-exam-image="stem"]').click();
     const mobileViewer = page.getByRole('dialog');
     await mobileViewer.getByRole('button', { name:'SHOW OVERLAY' }).click();
@@ -1291,7 +1302,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
