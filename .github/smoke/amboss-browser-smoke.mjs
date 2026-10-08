@@ -453,6 +453,34 @@ async function installApiMocks(target) {
       });
     }
 
+    // Results V1 visual-regression fixture: 1 correct / 40, 39 omitted.
+    if (path === '/tests/9005/results' && method === 'GET') {
+      return json(route, {
+        test: {
+          id: 9005, title: 'Amboss (Step 1) — unused', type: 'tutor', status: 'completed',
+          step: 1, totalQuestions: 40, answeredQuestions: 1, correctAnswers: 1,
+          timeSpentSeconds: 2, percentageScore: 2.5, filters: { questionBankIds: [1] },
+        },
+        analytics: {
+          overall: {
+            totalQuestions: 40, answeredQuestions: 1, correctAnswers: 1,
+            percentageScore: 2.5, timeSpentSeconds: 2, averageTimePerQuestion: 2,
+          },
+          sessionBreakdown: {
+            totalQuestions: 40, answeredQuestions: 1, correctQuestions: 1,
+            incorrectQuestions: 0, omittedQuestions: 39,
+            byDifficultyTier: [
+              { key: 'very_easy', total: 9, correct: 1, incorrect: 0, omitted: 8 },
+              { key: 'easy', total: 10, correct: 0, incorrect: 0, omitted: 10 },
+              { key: 'medium', total: 13, correct: 0, incorrect: 0, omitted: 13 },
+              { key: 'hard', total: 7, correct: 0, incorrect: 0, omitted: 7 },
+              { key: 'very_hard', total: 1, correct: 0, incorrect: 0, omitted: 1 },
+            ],
+            studyRecommendations: [],
+          },
+        },
+      });
+    }
     if ((path === '/tests/9002/results' || path === '/tests/9003/results') && method === 'GET') {
       const isTimed = path.includes('9002');
       const test = isTimed ? timedTestPayload() : tutorLifecyclePayload();
@@ -1547,6 +1575,48 @@ try {
     assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
 
     await page.screenshot({ path: `${outDir}/amboss-timed-toolbar.png`, fullPage: true });
+    await context.close();
+  }
+
+  // Results visual polish: three viewport classes, one-decimal accuracy parity,
+  // true empty recommendation behavior and real 1/40 answer distribution.
+  for (const device of [
+    { name: 'desktop', width: 1280, height: 900 },
+    { name: 'tablet', width: 834, height: 1194 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    const { context, page } = await preparePage(browser, {
+      width: device.width, height: device.height,
+    });
+    await page.goto(baseUrl + '/test/9005/results', { waitUntil: 'networkidle' });
+    await page.getByRole('heading', { name: 'Session Performance' }).waitFor();
+    const accuracy = await page.getByTestId('results-metric-accuracy').innerText();
+    const circleAccuracy = await page.locator('.mp-results__donut-number').innerText();
+    assert(accuracy === '2.5%' && circleAccuracy === '2.5%',
+      'Results accuracy must show identical one-decimal 2.5% in summary and donut');
+    assert((await page.getByTestId('results-metric-correct').innerText()) === '1/40',
+      'Results must preserve correct/total count');
+    assert((await page.getByTestId('results-completed-count').innerText()).includes('1 of 40'),
+      'Results must show completed/total count');
+    assert((await page.getByTestId('results-recommendations-empty').count()) === 1,
+      'Results must show a compact empty recommendation when no answers are wrong');
+    assert((await page.getByText('39 questions were omitted', { exact: false }).count()) === 1,
+      'Results must not mistake 39 omitted questions for topic mastery');
+    assert((await page.locator('.mp-results__difficulty-row').count()) === 5,
+      'Results five-tier difficulty breakdown is missing');
+    const dims = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      emptyHeight: document.querySelector('.mp-results__recommendations')?.getBoundingClientRect().height,
+      overviewHeight: document.querySelector('.mp-results__panels .mp-results__panel')?.getBoundingClientRect().height,
+    }));
+    assert(dims.scrollWidth <= dims.viewportWidth + 1,
+      'Results ' + device.name + ' caused horizontal page overflow');
+    assert(dims.emptyHeight < dims.overviewHeight,
+      'Empty Study Recommendations must not inherit oversized Results card height');
+    await page.screenshot({
+      path: outDir + '/medpark-results-polished-' + device.name + '.png', fullPage: true,
+    });
     await context.close();
   }
 
