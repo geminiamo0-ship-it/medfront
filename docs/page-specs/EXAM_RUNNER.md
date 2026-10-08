@@ -634,3 +634,27 @@ Architecture rule:
 - PR Verify #162 PASS (Typecheck, lint, build); AMBOSS Browser Smoke #54 PASS including `precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true` and prior image, Tutor, Timed, responsive regressions.
 - Main merge Verify #163 PASS (`37829277158`).
 - Actual Cloudflare Workers deployed version and real production Library records were **not independently verified**; Issue #41 remains VERIFYING for runtime acceptance, not DONE. Related #32/#38 external checks still open.
+
+
+## 20. Exact anchor centering + spotlight — USER APPROVED 2026-10-08
+
+**Issue #43; G2 parent #4. Workflow: SPEC APPROVED → IMPLEMENTING.** User asked that clicking a reference should bring the actual word or heading into the middle of the article reading region (without needing manual scroll), subtly pulse twice ("I'm here") and fade. User explicitly authorized implementation after the UX discussion.
+
+### Source and implementation boundary
+- Reuse existing central \`scrollToAnchor\` utility from \`src/pages/library/utils.ts\`; AMBOSS Library full/new-tab, internal article navigation and exam Split View should all use the same behavior. Do not duplicate navigation logic or change backend.
+- \`#ascroll\` is the full Library's article scroll region; the Split View has an embedded Library in an iframe with its own scrollport. Never scroll the outer Exam Runner or browser window when a nested scrollport is available.
+- Imported explicit anchors can target H2 headings, text elements (terms within paragraph), or empty markers before visible content; resolve the nearest intended visible element without arbitrarily using the card header for an inline term. Expand a collapsed parent card before measuring.
+- Center the visible target vertically in the active reader scrollport; clamp when near article top/bottom where centering is physically impossible. Gently correct drift after layout settles; do not fight user scrolling.
+- Two restrained turquoise pulses over roughly 1.7–2 seconds. Do not move text, change line-height, or leave inline background styles, and do not flash entire cards unnecessarily. Honor prefers-reduced-motion (static brief outline and instant scroll).
+- Missing/unresolved explicit anchors must fail safely (no jumping to a coincidentally similar heading), and a different article must not be searched.
+- Preserve all existing image, annotation, exam scoring, source link and dotted-link behaviors. No backend/DB/API updates. No redesign of the Library responsive layout.
+
+### Acceptance
+- [ ] Exact inline word/element anchor is centered in #ascroll with highlight on the actual element, not card header.
+- [ ] H2 section target is centered even when card was collapsed; empty marker resolves to visible nearby target.
+- [ ] Same article new anchor and exam Split View/new tab use the same behavior.
+- [ ] A second/deferred layout correction keeps the target near middle without overriding user-initiated scroll.
+- [ ] Reduced-motion uses instant scroll and no pulsing; no source HTML or inline permanent mutation.
+- [ ] Absent explicit anchor does not jump to another section.
+- [ ] Browser Chrome desktop / iPad / mobile tests plus existing Tutor/Timed and Library regressions pass.
+- [ ] GitHub Actions Verify and AMBOSS Browser Smoke green, merge/main Verify, issue/docs handoff; Cloudflare runtime independently verified or remains VERIFYING.

@@ -119,6 +119,7 @@ let timedHighlightSaves = 0;
 let timedAiSummaryCalls = 0;
 let timedReviewExplanationFetches = 0;
 let libraryArticleFetches = 0;
+const longLibrarySection = Array(20).fill('<p>Reference detail for scrolling and centering an AMBOSS article section.</p>').join('');
 
 let tutorLifecycleStatus = 'in_progress';
 let tutorLifecycleTimeSpentSeconds = 0;
@@ -570,7 +571,7 @@ async function installApiMocks(target) {
         source: 'amboss',
         externalId: 'SM0yLg',
         contentHtml:
-          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p><img class="pm-img" src="offline_media/library-image.jpg" title="Library image example" data-overlay-src="offline_media/library-overlay.jpg" data-description="&lt;p&gt;Library image description&lt;/p&gt;" /></div><span data-type="anker" id="Ztreatment"></span><h2>Treatment</h2><p>Section treatment body</p>',
+          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p><img class="pm-img" src="offline_media/library-image.jpg" title="Library image example" data-overlay-src="offline_media/library-overlay.jpg" data-description="&lt;p&gt;Library image description&lt;/p&gt;" /></div>' + longLibrarySection + '<span data-type="anker" id="Ztreatment"></span><h2>Treatment</h2><p>Section treatment body with <strong id="Zword">ubiquitinated proteins</strong> and precise anchor.</p>' + longLibrarySection + '<h2>Complications</h2><p>Further reference section</p>',
         isRead: false,
         isBookmarked: false,
       });
@@ -962,9 +963,7 @@ try {
     await popup.waitForURL(/\/library\?.*article=SM0yLg/);
     await popup.getByText('Internal AMBOSS article smoke').waitFor();
     await popup.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f').waitFor();
-    await popup.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f')
-      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
-      .locator('.amboss-card-header.amboss-reference-target').waitFor();
+    await popup.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f.amboss-reference-spotlight').waitFor();
     const libraryBeforeRetarget = libraryArticleFetches;
     await popup.evaluate(() => {
       const url = new URL(window.location.href);
@@ -973,11 +972,81 @@ try {
       dispatchEvent(new PopStateEvent('popstate'));
     });
     await popup.locator('#Ztreatment').waitFor();
-    await popup.locator('#Ztreatment')
-      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
-      .locator('.amboss-card-header.amboss-reference-target').waitFor();
+    await popup.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
     assert(libraryArticleFetches === libraryBeforeRetarget,
       'Changing anchor inside loaded article unnecessarily refetched entire article');
+
+    // Clicking a section should CENTER its actual heading in the article's
+    // scrollable reader, not scroll the outer browser or highlight the card.
+    await popup.waitForTimeout(700);
+    const headingCenter = await popup.evaluate(() => {
+      const heading = document.getElementById('Ztreatment');
+      const reader = document.getElementById('ascroll');
+      const h = heading.getBoundingClientRect();
+      const p = reader.getBoundingClientRect();
+      return { drift: Math.abs((h.top + h.height/2) - (p.top + p.height/2)),
+        canCenter: reader.scrollHeight - reader.clientHeight > 600,
+        running: getComputedStyle(heading).animationName,
+        wrongCardFlash: !!heading.closest('.amboss-card').querySelector('.amboss-card-header.amboss-reference-spotlight') };
+    });
+    assert(headingCenter.canCenter && headingCenter.drift < 24,
+      'Section heading was not centered inside the Library reader: ' + JSON.stringify(headingCenter));
+    assert(headingCenter.running.includes('amboss-anchor-spotlight'), 'Heading lacks two-pulse spotlight animation');
+    assert(!headingCenter.wrongCardFlash, 'Navigation flashed the full card instead of actual heading');
+    const targetCard = popup.locator('h2#Ztreatment').locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " amboss-card ")][1]');
+    await targetCard.evaluate((node) => node.classList.add('collapsed'));
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor','Zword');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.locator('#Zword.amboss-reference-spotlight').waitFor();
+    assert((await targetCard.evaluate(node => node.classList.contains('collapsed'))) === false,
+      'Inline-target link did not expand its collapsed AMBOSS section');
+    await popup.waitForTimeout(700);
+    const wordCenter = await popup.evaluate(() => {
+      const word = document.getElementById('Zword').getBoundingClientRect();
+      const reader = document.getElementById('ascroll').getBoundingClientRect();
+      return Math.abs((word.top + word.height/2) - (reader.top + reader.height/2));
+    });
+    assert(wordCenter < 24, 'Inline linked word not centered: drift=' + wordCenter);
+    assert((await popup.locator('h2#Ztreatment.amboss-reference-spotlight').count()) === 0,
+      'Old heading was still highlighted after moving to another anchor');
+    assert(libraryArticleFetches === libraryBeforeRetarget, 'Inline anchor link refetched loaded article');
+    // Missing explicit anchor must not highlight a different, similarly named heading.
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor','Zmissing');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.waitForTimeout(140);
+    assert((await popup.locator('.amboss-reference-spotlight').count()) <= 1,
+      'A missing explicit anchor flashed an unrelated section');
+    // Restore a concrete link before Library image regression continues.
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor','Ztreatment');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
+
+    await popup.emulateMedia({ reducedMotion:'reduce' });
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor','Zword');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.locator('#Zword.amboss-reference-spotlight').waitFor();
+    const reduced = await popup.locator('#Zword').evaluate(node =>
+      ({ animation:getComputedStyle(node).animationName,
+         outline:getComputedStyle(node).outlineStyle }));
+    assert(reduced.animation === 'none' && reduced.outline !== 'none',
+      'Reduced-motion anchor should show static outline without pulsing: ' + JSON.stringify(reduced));
+    await popup.emulateMedia({ reducedMotion:'no-preference' });
     assert(!popup.url().includes('embedded=1'), 'New-tab Library unexpectedly opened in embedded mode');
     // The extracted Viewer must still work unchanged from the original Library.
     await popup.locator('img.pm-img').click();
@@ -999,9 +1068,7 @@ try {
     await splitPane.waitFor();
     const libraryFrame = page.frameLocator('.amboss-library-frame');
     await libraryFrame.getByText('Internal AMBOSS article smoke').waitFor();
-    await libraryFrame.locator('#Zc00dca4994157e86d8e6e8ee9510443f')
-      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
-      .locator('.amboss-card-header.amboss-reference-target').waitFor();
+    await libraryFrame.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f.amboss-reference-spotlight').waitFor();
     assert(
       (await libraryFrame.locator('#sb').count()) === 0,
       'Embedded Library must not render the browse sidebar',
@@ -1367,10 +1434,40 @@ try {
     assert(!overflow, `${device.name}: unintended horizontal page overflow`);
 
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-final.png`, fullPage: true });
+
+    // Responsive AMBOSS Library targets must center in their own reader, not
+    // drag the outer viewport or light up an enclosing card/header.
+    await page.goto(`${baseUrl}/library?source=amboss&article=SM0yLg&anchor=Ztreatment`, { waitUntil:'networkidle' });
+    await page.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
+    await page.waitForTimeout(1450);
+    const anchorPosition = await page.evaluate(() => {
+      const element = document.getElementById('Ztreatment');
+      const scrollport = document.getElementById('ascroll');
+      const target = element.getBoundingClientRect();
+      const reader = scrollport.getBoundingClientRect();
+      return {
+        drift:Math.abs((target.top+target.height/2)-(reader.top+reader.height/2)),
+        signedDrift:(target.top+target.height/2)-(reader.top+reader.height/2),
+        readerHeight:reader.height,
+        scrollTop:scrollport.scrollTop,
+        maxScroll:scrollport.scrollHeight-scrollport.clientHeight,
+        targetTop:target.top,
+        readerTop:reader.top,
+        targetVisible:target.top >= reader.top - 4 && target.bottom <= reader.bottom + 4,
+        ancestors:Array.from((function*() {
+          for (let parent=element.parentElement;parent;parent=parent.parentElement) {
+            yield { tag:parent.tagName,id:parent.id,overflow:getComputedStyle(parent).overflowY,
+              scrollTop:parent.scrollTop,scrollHeight:parent.scrollHeight,clientHeight:parent.clientHeight };
+          }
+        })()).slice(0,10),
+      };
+    });
+    assert(anchorPosition.targetVisible && anchorPosition.drift < 26,
+      device.name + ': AMBOSS exact anchor did not center in mobile/tablet reader: ' + JSON.stringify(anchorPosition));
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true inline_anchor_spotlight=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }

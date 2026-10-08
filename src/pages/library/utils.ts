@@ -20,61 +20,145 @@ export function fixImageUrls(html: string): string {
   );
 }
 
+/** Cancel the last spotlight when navigating again within the same reader. */
+const activeReferenceJumps = new WeakMap<HTMLElement, () => void>();
+
+function visibleReferenceTarget(element: HTMLElement): HTMLElement {
+  // Imported articles sometimes use an empty marker immediately before the
+  // actual heading, or an inline marker inside the paragraph to be highlighted.
+  // Never substitute the card header for an explicitly linked word/phrase.
+  if (element.matches('h1,h2,h3,h4,h5,h6') || (element.textContent ?? '').trim()) return element;
+  const sibling = element.nextElementSibling;
+  if (sibling instanceof HTMLElement && (sibling.textContent ?? '').trim()) return sibling;
+  const paragraph = element.closest<HTMLElement>('p,li,h1,h2,h3,h4,h5,h6');
+  if (paragraph && (paragraph.textContent ?? '').trim()) return paragraph;
+  const parent = element.parentElement;
+  return parent && (parent.textContent ?? '').trim() ? parent : element;
+}
+
+function readerScrollport(container: HTMLElement): HTMLElement | null {
+  // The nearest scrollable ancestor is important for the full Library, its
+  // split pane and the Library iframe inside AMBOSS Exam Runner.
+  for (let parent = container.parentElement; parent; parent = parent.parentElement) {
+    const overflow = window.getComputedStyle(parent).overflowY;
+    if (/(auto|scroll)/.test(overflow) && parent.scrollHeight > parent.clientHeight + 1) {
+      return parent;
+    }
+  }
+  return null;
+}
+
 /**
- * Scroll to an anchor inside a container.
- * Order: #id / [name] / [data-anker] (excluding cross-ref links, which also
- * carry data-anker and would otherwise send us to the wrong place), then a
- * text fallback on the term.
+ * Find the EXACT imported AMBOSS anchor, expand its card if needed, center it
+ * inside the article reader and pulse the target (not the enclosing card).
+ * Returns false for missing explicit anchors without guessing another section.
+ * All entry points (full Library, same-article links and split panes) call this.
  */
 export function scrollToAnchor(container: HTMLElement | null, anchor: string, term?: string): boolean {
   if (!container) return false;
-  let el: HTMLElement | null = null;
-
+  let element: HTMLElement | null = null;
   if (anchor) {
-    const a = anchor.replace(/"/g, '\\"');
     try {
-      // The real anchor target is `#Z…` / `<span data-type="anker" id="Z…">`.
-      // Do NOT match `[data-anker]` — that attribute lives on the SOURCE link
-      // (a span), which appears earlier in the doc and would scroll us to the
-      // wrong place.
-      el = container.querySelector(
-        `#${CSS.escape(anchor)}, [name="${a}"], [data-type="anker"][id="${a}"]`,
-      ) as HTMLElement | null;
-    } catch {
-      el = null;
-    }
-  }
-
-  // An explicit but absent anchor must not silently jump to an unrelated
-  // heading with a similar label. Text fallback is only for anchorless refs.
-  if (!el && !anchor && term) {
-    const t = term.trim().toLowerCase();
-    if (t) {
-      const heads = container.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
-      for (const h of Array.from(heads)) {
-        const txt = (h.textContent || '').trim().toLowerCase();
-        if (txt === t || txt.startsWith(t)) {
-          el = h as HTMLElement;
-          break;
-        }
+      element = container.querySelector<HTMLElement>('#' + CSS.escape(anchor));
+      if (!element) {
+        element = Array.from(container.querySelectorAll<HTMLElement>('[name]'))
+          .find((node) => node.getAttribute('name') === anchor) ?? null;
       }
+    } catch {
+      return false;
     }
   }
+  // A supplied anchor has authority over title guesses. Never navigate to a
+  // similarly named section if that explicit target is absent.
+  if (!element && !anchor && term) {
+    const requested = term.trim().toLowerCase();
+    if (requested) {
+      element = Array.from(container.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6,strong,b'))
+        .find((node) => {
+          const title = (node.textContent ?? '').trim().toLowerCase();
+          return title === requested || title.startsWith(requested);
+        }) ?? null;
+    }
+  }
+  if (!element) return false;
 
-  if (!el) return false;
-  // AMBOSS sections can be collapsed when opened via a deep link.
-  const card = el.closest<HTMLElement>('.amboss-card');
-  if (card?.classList.contains('collapsed')) card.classList.remove('collapsed');
-  const target = card?.querySelector<HTMLElement>('.amboss-card-header') ?? el;
-  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  target.classList.add('amboss-reference-target');
-  window.setTimeout(() => target.classList.remove('amboss-reference-target'), 1800);
-  const prev = el.style.backgroundColor;
-  el.style.transition = 'background-color .3s';
-  el.style.backgroundColor = 'rgba(255,69,0,.25)';
-  window.setTimeout(() => {
-    el!.style.backgroundColor = prev;
-  }, 1200);
+  const card = element.closest<HTMLElement>('.amboss-card');
+  card?.classList.remove('collapsed');
+  const target = visibleReferenceTarget(element);
+  const scrollport = readerScrollport(container);
+  const owner = scrollport ?? container;
+  activeReferenceJumps.get(owner)?.();
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cancelled = false;
+  let interrupted = false;
+  const correctionTimers: number[] = [];
+  let cleanupTimer: number | null = null;
+  let firstFrame = 0;
+  let secondFrame = 0;
+  const onUserScrollIntent = () => { interrupted = true; };
+  const cancel = () => {
+    cancelled = true;
+    window.cancelAnimationFrame(firstFrame);
+    window.cancelAnimationFrame(secondFrame);
+    correctionTimers.forEach((timer) => window.clearTimeout(timer));
+    if (cleanupTimer !== null) window.clearTimeout(cleanupTimer);
+    window.removeEventListener('wheel', onUserScrollIntent);
+    window.removeEventListener('touchstart', onUserScrollIntent);
+    window.removeEventListener('pointerdown', onUserScrollIntent);
+    window.removeEventListener('keydown', onUserScrollIntent);
+    target.classList.remove('amboss-reference-spotlight');
+    if (activeReferenceJumps.get(owner) === cancel) activeReferenceJumps.delete(owner);
+  };
+  activeReferenceJumps.set(owner, cancel);
+
+  // Reapplying the class restarts two gentle pulses for each actual navigation.
+  target.classList.remove('amboss-reference-spotlight');
+  void target.offsetWidth;
+  target.classList.add('amboss-reference-spotlight');
+
+  const center = (behavior: ScrollBehavior) => {
+    if (cancelled) return;
+    if (!scrollport) {
+      target.scrollIntoView({ block:'center', inline:'nearest', behavior });
+      return;
+    }
+    const targetRect = target.getBoundingClientRect();
+    const viewportRect = scrollport.getBoundingClientRect();
+    const drift = (targetRect.top + targetRect.height / 2)
+      - (viewportRect.top + viewportRect.height / 2);
+    if (Math.abs(drift) < 2) return;
+    const maximum = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+    scrollport.scrollTo({
+      top: Math.max(0, Math.min(maximum, scrollport.scrollTop + drift)),
+      behavior,
+    });
+  };
+
+  // React has committed the Library content at this point. Two frames let the
+  // expanded card settle before measuring the correct reader and target.
+  firstFrame = window.requestAnimationFrame(() => {
+    secondFrame = window.requestAnimationFrame(() => {
+      center(reduceMotion ? 'instant' : 'smooth');
+      if (reduceMotion) return;
+      // One correction accommodates late fonts/images; never recenter after
+      // a person starts scrolling or interacting.
+      window.addEventListener('wheel', onUserScrollIntent, { passive:true });
+      window.addEventListener('touchstart', onUserScrollIntent, { passive:true });
+      window.addEventListener('pointerdown', onUserScrollIntent, { passive:true });
+      window.addEventListener('keydown', onUserScrollIntent);
+      // Long native smooth scrolls and late layout changes can take longer
+      // on phone viewports. Re-check the exact reader center a few times, not
+      // just once; stop immediately if the user starts controlling the page.
+      // Bounded corrections avoid permanent scroll observers or loops.
+      for (const delay of [300, 700, 1150]) {
+        correctionTimers.push(window.setTimeout(() => {
+          if (!interrupted) center('instant');
+        }, delay));
+      }
+    });
+  });
+  cleanupTimer = window.setTimeout(cancel, reduceMotion ? 1200 : 2100);
   return true;
 }
 
