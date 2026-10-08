@@ -47,6 +47,8 @@ function makeQuestion(id, displayOrder, difficultyTier = 'hard') {
   return {
     id,
     externalId: String(7700 + displayOrder),
+    articleId: displayOrder === 1 ? 2583 : undefined,
+    libraryName: displayOrder === 1 ? 'amboss' : undefined,
     displayOrder,
     textHtml: displayOrder === 1 ? baseQuestionHtml : `<p>AMBOSS sample question ${displayOrder} with <span class="Highlight">key clue</span>.</p>`,
     explanationHtml: '',
@@ -116,6 +118,7 @@ let timedSelectionSaves = 0;
 let timedHighlightSaves = 0;
 let timedAiSummaryCalls = 0;
 let timedReviewExplanationFetches = 0;
+let libraryArticleFetches = 0;
 
 let tutorLifecycleStatus = 'in_progress';
 let tutorLifecycleTimeSpentSeconds = 0;
@@ -133,7 +136,7 @@ function ambossExplanationBlob(question) {
     const state = option.displayOrder === 'H' ? 'Correct' : 'Incorrect';
     const libraryLink =
       option.displayOrder === 'H'
-        ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f">edema</a>'
+        ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f" data-description="&lt;p&gt;Reference about edema&lt;/p&gt;">edema</a> <span class="api" data-learningcard-id="SM0yLg" data-anker="Ztreatment" data-description="&lt;p&gt;Treatment of edema&lt;/p&gt;">treatment</span>'
         : '';
     const illustration = option.displayOrder === "B" ? '<img data-exam-image="explanation" src="offline_media/answer-image.jpg" width="155" height="115" alt="Explanation illustration" data-description="&lt;p&gt;Detailed option explanation image.&lt;/p&gt;">' : '';
     return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p></div>`;
@@ -558,14 +561,16 @@ async function installApiMocks(target) {
       ]);
     }
 
-    if (path === '/library/article/SM0yLg' && method === 'GET') {
+    if ((path === '/library/article/SM0yLg' || path === '/library/article/2583') && method === 'GET') {
+      libraryArticleFetches += 1;
       return json(route, {
         id: 2583,
         name: 'Edema',
         title: 'Edema',
         source: 'amboss',
+        externalId: 'SM0yLg',
         contentHtml:
-          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p><img class="pm-img" src="offline_media/library-image.jpg" title="Library image example" data-overlay-src="offline_media/library-overlay.jpg" data-description="&lt;p&gt;Library image description&lt;/p&gt;" /></div>',
+          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p><img class="pm-img" src="offline_media/library-image.jpg" title="Library image example" data-overlay-src="offline_media/library-overlay.jpg" data-description="&lt;p&gt;Library image description&lt;/p&gt;" /></div><span data-type="anker" id="Ztreatment"></span><h2>Treatment</h2><p>Section treatment body</p>',
         isRead: false,
         isBookmarked: false,
       });
@@ -847,6 +852,9 @@ try {
       `Tutor explanation time leaked into solving clock: ${tutorPausedAt} → ${tutorPausedLater}`,
     );
 
+    assert((await page.locator('.amboss-main-article-link').count()) === 0,
+      'Main Article appeared under an incorrect option before correct explanation was opened');
+
     // Later clicks are explanation-only: no second submit, but correctness UI opens.
     await answerRows.nth(7).click(); // H = correct and final option
     await answerRows.nth(7).locator('.amboss-option-explanation').waitFor();
@@ -854,6 +862,18 @@ try {
     assert(submitBodies.length === 1, 'Post-submit option click incorrectly called submit again');
     assert(await answerRows.nth(7).evaluate((node) => node.classList.contains('is-correct')), 'Final correct option did not turn green');
     assert((await page.locator('.amboss-option-explanation').count()) === 2, 'Final option explanation did not open inline');
+    const mainSource = answerRows.nth(7).locator('a.amboss-main-article-link');
+    await mainSource.waitFor();
+    assert((await mainSource.getAttribute('href')) === '/library?source=amboss&article=2583',
+      'Correct answer did not use canonical question.articleId for Main Article');
+    assert((await answerRows.nth(1).locator('.amboss-main-article-link').count()) === 0,
+      'Main Article incorrectly appeared below wrong answer');
+    const medicalTerm = answerRows.nth(7).locator('a.amboss-related-term').first();
+    assert((await medicalTerm.evaluate((node) => getComputedStyle(node).textDecorationStyle)) === 'dotted',
+      'True MedPark Library reference should have dotted underline');
+    const inlineTerm = answerRows.nth(7).locator('a.amboss-related-term').filter({ hasText:'treatment' });
+    assert((await inlineTerm.count()) === 1, 'Linked AMBOSS span did not become a Library reference');
+
 
     // Show All expands every explanation without changing the recorded first answer.
     await page.getByRole('button', { name: /SHOW ALL EXPLANATIONS/i }).click();
@@ -883,6 +903,8 @@ try {
       `Tutor omission did not include active solving delta: ${JSON.stringify(submitBodies[1])}`,
     );
     assert((await page.locator('.amboss-option-explanation').count()) === 8, 'Omission reveal did not open all explanations');
+    assert((await page.locator('.amboss-main-article-link').count()) === 0,
+      'A question with no trusted articleId invented a Main Article reference');
     const secondQuestionPaused = (await tutorTopTimer.textContent())?.trim();
     await page.waitForTimeout(1150);
     assert(
@@ -923,6 +945,7 @@ try {
     await internalLibraryLink.click();
     const linkMenu = page.getByRole('menu', { name: /Open edema/i });
     await linkMenu.waitFor();
+    await linkMenu.getByText('Reference about edema').waitFor();
     assert(
       (await page.getByRole('menuitem', { name: /Open in split view/i }).count()) === 1,
       'Split-view option missing from AMBOSS article menu',
@@ -938,6 +961,23 @@ try {
     const popup = await popupPromise;
     await popup.waitForURL(/\/library\?.*article=SM0yLg/);
     await popup.getByText('Internal AMBOSS article smoke').waitFor();
+    await popup.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f').waitFor();
+    await popup.locator('h2#Zc00dca4994157e86d8e6e8ee9510443f')
+      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
+      .locator('.amboss-card-header.amboss-reference-target').waitFor();
+    const libraryBeforeRetarget = libraryArticleFetches;
+    await popup.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('anchor', 'Ztreatment');
+      history.pushState({}, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await popup.locator('#Ztreatment').waitFor();
+    await popup.locator('#Ztreatment')
+      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
+      .locator('.amboss-card-header.amboss-reference-target').waitFor();
+    assert(libraryArticleFetches === libraryBeforeRetarget,
+      'Changing anchor inside loaded article unnecessarily refetched entire article');
     assert(!popup.url().includes('embedded=1'), 'New-tab Library unexpectedly opened in embedded mode');
     // The extracted Viewer must still work unchanged from the original Library.
     await popup.locator('img.pm-img').click();
@@ -959,6 +999,9 @@ try {
     await splitPane.waitFor();
     const libraryFrame = page.frameLocator('.amboss-library-frame');
     await libraryFrame.getByText('Internal AMBOSS article smoke').waitFor();
+    await libraryFrame.locator('#Zc00dca4994157e86d8e6e8ee9510443f')
+      .locator('xpath=ancestor::*[contains(@class,"amboss-card")]')
+      .locator('.amboss-card-header.amboss-reference-target').waitFor();
     assert(
       (await libraryFrame.locator('#sb').count()) === 0,
       'Embedded Library must not render the browse sidebar',
@@ -1327,7 +1370,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
