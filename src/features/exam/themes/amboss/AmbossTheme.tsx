@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import { AmbossAiSummaryPanel } from './AmbossAiSummaryPanel';
@@ -27,6 +27,14 @@ export function AmbossTheme({ controller }: { controller: ExamRunnerController }
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [endBlockOpen, setEndBlockOpen] = useState(false);
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
+  const sawActiveTest = useRef(false);
+  // Do not redirect when reopening a historical completed test for review.
+  useEffect(() => {
+    if (controller.test?.status === 'in_progress') sawActiveTest.current = true;
+    if (controller.test?.status === 'completed' && sawActiveTest.current) {
+      navigate('/test/' + controller.test.id + '/results', { replace: true });
+    }
+  }, [controller.test?.id, controller.test?.status, navigate]);
 
   if (!controller.test || !controller.currentQuestion) return null;
 

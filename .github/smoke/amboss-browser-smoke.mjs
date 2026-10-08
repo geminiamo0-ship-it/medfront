@@ -453,6 +453,38 @@ async function installApiMocks(target) {
       });
     }
 
+    if ((path === '/tests/9002/results' || path === '/tests/9003/results') && method === 'GET') {
+      const isTimed = path.includes('9002');
+      const test = isTimed ? timedTestPayload() : tutorLifecyclePayload();
+      const total = test.questions.length;
+      const answered = isTimed ? Number(test.answeredQuestions) : 0;
+      const correct = isTimed ? Number(test.correctAnswers) : 0;
+      const omitted = total - answered;
+      return json(route, {
+        test: { ...test, filters: { questionBankIds: [1] } },
+        analytics: {
+          overall: {
+            totalQuestions: total, answeredQuestions: answered,
+            correctAnswers: correct, percentageScore: total ? correct * 100 / total : 0,
+            timeSpentSeconds: test.timeSpentSeconds,
+            averageTimePerQuestion: answered ? test.timeSpentSeconds / answered : 0,
+          },
+          sessionBreakdown: {
+            totalQuestions: total, answeredQuestions: answered,
+            correctQuestions: correct, incorrectQuestions: answered - correct,
+            omittedQuestions: omitted,
+            byDifficultyTier: [
+              { key: 'easy', total: 1, correct: 1, incorrect: 0, omitted: 0 },
+              { key: 'medium', total: 2, correct: 0, incorrect: 1, omitted: 1 },
+              { key: 'hard', total: total - 3, correct: 0, incorrect: 0, omitted: total - 3 },
+            ],
+            studyRecommendations: [
+              { topicId: 17, name: 'Cardiac physiology', correct: 1, total: 3, incorrect: 2, omitted: 0 },
+            ],
+          },
+        },
+      });
+    }
     if (path === '/tests/9002' && method === 'GET') {
       return json(route, timedTestPayload());
     }
@@ -1058,7 +1090,16 @@ try {
 
     // Clicking a section should CENTER its actual heading in the article's
     // scrollable reader, not scroll the outer browser or highlight the card.
-    await popup.waitForTimeout(700);
+    // Smooth scrolling can take longer on busy CI runners; wait for the
+    // *same exact* centered position instead of asserting at a fixed 700ms.
+    await popup.waitForFunction(() => {
+      const heading = document.getElementById('Ztreatment');
+      const reader = document.getElementById('ascroll');
+      if (!heading || !reader) return false;
+      const h = heading.getBoundingClientRect();
+      const p = reader.getBoundingClientRect();
+      return Math.abs((h.top + h.height / 2) - (p.top + p.height / 2)) < 24;
+    }, null, { timeout: 7000 });
     const headingCenter = await popup.evaluate(() => {
       const heading = document.getElementById('Ztreatment');
       const reader = document.getElementById('ascroll');
@@ -1292,15 +1333,17 @@ try {
     const tutorEndDialog = page.locator('.amboss-end-block-dialog');
     await tutorEndDialog.getByText('Solving time', { exact: true }).waitFor();
     await tutorEndDialog.getByRole('button', { name: /End block now/i }).click();
-    await page.getByRole('button', { name: /AI Summary/i }).waitFor();
+    await page.waitForURL(/\/test\/9003\/results/);
+    await page.getByRole('heading', { name: 'Session Performance' }).waitFor();
+    await page.getByRole('heading', { name: 'Study Recommendations' }).waitFor();
     assert(tutorLifecycleStatus === 'completed', 'Tutor End Block did not complete the test');
     assert(
       Number(tutorCompleteBody?.totalTimeSpentSeconds) >= Number(tutorSuspendBody?.totalTimeSpentSeconds),
       'Tutor End Block lost elapsed time accumulated before Suspend/Resume',
     );
 
-    await page.screenshot({ path: `${outDir}/amboss-tutor-lifecycle.png`, fullPage: true });
-    await page.getByRole('button', { name: 'EXIT SESSION' }).click();
+    await page.screenshot({ path: `${outDir}/amboss-tutor-results.png`, fullPage: true });
+    await page.getByRole('link', { name: 'Previous Tests' }).last().click();
     await page.waitForURL(/\/qbank\/1\/previous-tests\?step=1/);
     await context.close();
   }
@@ -1435,13 +1478,20 @@ try {
     await endBlockDialog.getByText('Answered', { exact: true }).waitFor();
     await endBlockDialog.getByText('Unanswered', { exact: true }).waitFor();
     await page.getByRole('button', { name: /End block now/i }).click();
+    await page.waitForURL(/\/test\/9002\/results/);
+    await page.getByRole('heading', { name: 'Session Performance' }).waitFor();
+    assert((await page.getByRole('heading', { name: 'Performance by Difficulty' }).count()) === 1,
+      'Timed End Block did not show difficulty results');
+    assert((await page.getByText('Cardiac physiology').count()) === 1,
+      'Study Recommendations did not show the topic name');
+    await page.getByRole('link', { name: 'Review Questions' }).click();
+    await page.waitForURL(/\/test\/9002$/);
     await page.getByRole('button', { name: /AI Summary/i }).waitFor();
     assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
     assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
     assert(timedStatus === 'completed', 'End Block did not complete the timed test');
-    // The calculator popover remains open from the prior tools test and covers
-    // the image; close it as a learner would before clicking the thumbnail.
-    await page.getByRole('button', { name: /^Calculator$/i }).click();
+    // Returning from Results remounts the completed AMBOSS exam with
+    // calculator closed; do NOT toggle it open over the image.
     await page.locator('img[data-exam-image="stem"]').click();
     assert((await page.getByRole('dialog').locator('#aiv-title').innerText()).includes('Subarachnoid hemorrhage'),
       'Timed completed review did not restore the diagnostic title');
@@ -1497,6 +1547,18 @@ try {
     assert(timedAiSummaryCalls === 1, 'AI Summary did not call the review-only AI endpoint');
 
     await page.screenshot({ path: `${outDir}/amboss-timed-toolbar.png`, fullPage: true });
+    await context.close();
+  }
+
+  // Same Results UI on a phone: no viewport-wide horizontal overflow.
+  {
+    const { context, page } = await preparePage(browser, { width: 390, height: 844 });
+    await page.goto(`${baseUrl}/test/9002/results`, { waitUntil: 'networkidle' });
+    await page.getByRole('heading', { name: 'Session Performance' }).waitFor();
+    assert(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
+      'Results V1 caused mobile horizontal overflow');
+    await page.getByRole('heading', { name: 'Study Recommendations' }).waitFor();
+    await page.screenshot({ path: `${outDir}/medpark-results-v1-mobile.png`, fullPage: true });
     await context.close();
   }
 
