@@ -1591,7 +1591,7 @@ try {
     await page.goto(baseUrl + '/test/9005/results', { waitUntil: 'networkidle' });
     await page.getByRole('heading', { name: 'Session Performance' }).waitFor();
     const accuracy = await page.getByTestId('results-metric-accuracy').innerText();
-    const circleAccuracy = await page.locator('.mp-results__donut-number').innerText();
+    const circleAccuracy = (await page.locator('.mp-results__donut-number').textContent())?.trim();
     assert(accuracy === '2.5%' && circleAccuracy === '2.5%',
       'Results accuracy must show identical one-decimal 2.5% in summary and donut');
     assert((await page.getByTestId('results-metric-correct').innerText()) === '1/40',
