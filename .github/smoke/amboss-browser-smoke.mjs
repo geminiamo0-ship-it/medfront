@@ -1439,13 +1439,20 @@ try {
     // drag the outer viewport or light up an enclosing card/header.
     await page.goto(`${baseUrl}/library?source=amboss&article=SM0yLg&anchor=Ztreatment`, { waitUntil:'networkidle' });
     await page.locator('h2#Ztreatment.amboss-reference-spotlight').waitFor();
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(1100);
     const anchorPosition = await page.evaluate(() => {
-      const target = document.getElementById('Ztreatment').getBoundingClientRect();
-      const reader = document.getElementById('ascroll').getBoundingClientRect();
+      const element = document.getElementById('Ztreatment');
+      const scrollport = document.getElementById('ascroll');
+      const target = element.getBoundingClientRect();
+      const reader = scrollport.getBoundingClientRect();
       return {
         drift:Math.abs((target.top+target.height/2)-(reader.top+reader.height/2)),
+        signedDrift:(target.top+target.height/2)-(reader.top+reader.height/2),
         readerHeight:reader.height,
+        scrollTop:scrollport.scrollTop,
+        maxScroll:scrollport.scrollHeight-scrollport.clientHeight,
+        targetTop:target.top,
+        readerTop:reader.top,
         targetVisible:target.top >= reader.top - 4 && target.bottom <= reader.bottom + 4,
       };
     });
