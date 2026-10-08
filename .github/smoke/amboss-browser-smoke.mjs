@@ -564,7 +564,7 @@ async function installApiMocks(target) {
         title: 'Edema',
         source: 'amboss',
         contentHtml:
-          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p></div>',
+          '<div id="Zc00dca4994157e86d8e6e8ee9510443f"><h2>Edema</h2><p>Internal AMBOSS article smoke</p><img class="pm-img" src="offline_media/library-image.jpg" title="Library image example" data-overlay-src="offline_media/library-overlay.jpg" data-description="&lt;p&gt;Library image description&lt;/p&gt;" /></div>',
         isRead: false,
         isBookmarked: false,
       });
@@ -911,6 +911,15 @@ try {
     await popup.waitForURL(/\/library\?.*article=SM0yLg/);
     await popup.getByText('Internal AMBOSS article smoke').waitFor();
     assert(!popup.url().includes('embedded=1'), 'New-tab Library unexpectedly opened in embedded mode');
+    // The extracted Viewer must still work unchanged from the original Library.
+    await popup.locator('img.pm-img').click();
+    const libraryViewer = popup.getByRole('dialog', { name:'Library image example' });
+    await libraryViewer.getByText('Library image description').waitFor();
+    await libraryViewer.getByRole('button', { name:'SHOW OVERLAY' }).click();
+    assert((await libraryViewer.locator('#aiv-overlay').count()) === 1,
+      'Library shared Viewer lost its overlay interaction');
+    await libraryViewer.getByRole('button', { name:'Close image viewer' }).click();
+    assert((await popup.getByRole('dialog').count()) === 0, 'Library Viewer did not close');
     await popup.close();
 
     // Split keeps the exam in place and embeds the same Library reader.
@@ -1279,7 +1288,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
