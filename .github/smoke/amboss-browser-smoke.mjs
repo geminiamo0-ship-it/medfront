@@ -23,12 +23,16 @@ const baseQuestionHtml = `
   <p>Ethyl alcohol at concentrations of 60–80% is a potent virucidal agent that is effective against
   <span class="wichtig">enveloped viruses</span>.</p>
 </div>
+<img data-exam-image="stem" src="https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/big_5b2d50b498902.jpg"
+ width="180" height="120" alt="Subarachnoid hemorrhage in the basal cisterns"
+ data-overlay-src="offline_media/5b2d50b498902.jpg"
+ data-description="&lt;p&gt;CT head (without contrast; axial plane)&lt;/p&gt;&lt;p&gt;Hyperdensity (green overlay) in the basal cisterns indicates the presence of subarachnoid hemorrhage.&lt;/p&gt;">
 <span data-global-media-src="https://storage.blablabl234a.online/offline_media/legacy-image.jpg"
       data-unrelated-url="https://example.com/outside.png">media origin test</span>
 <img data-relative-media-test="stem" src="offline_media/ihg_681237c83e6287_31701899.jpg" width="1" height="1" alt="Imported stem illustration">`;
 
 const options = [
-  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span><img data-relative-media-test="option" src="./offline_media/option-relative.png" width="1" height="1" alt="Imported option illustration"></p>' },
+  { id: 101, displayOrder: 'A', textHtml: '<p>Hepatitis A virus <span data-option-media-src="https://storage-public.medpark.io/offline_media/option.png"></span><img data-relative-media-test="option" src="./offline_media/option-relative.png" width="36" height="25" alt="Imported option illustration"></p>' },
   { id: 102, displayOrder: 'B', textHtml: '<p>Parvovirus</p>' },
   { id: 103, displayOrder: 'C', textHtml: '<p>Poliovirus</p>' },
   { id: 104, displayOrder: 'D', textHtml: '<p>Polyomavirus</p>' },
@@ -130,7 +134,8 @@ function ambossExplanationBlob(question) {
       option.displayOrder === 'H'
         ? ' <a href="https://www.amboss.com/us/library#xid=SM0yLg&anker=Zc00dca4994157e86d8e6e8ee9510443f" data-learningcard-id="SM0yLg" data-anker="Zc00dca4994157e86d8e6e8ee9510443f">edema</a>'
         : '';
-    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}</p></div>`;
+    const illustration = option.displayOrder === "B" ? '<img data-exam-image="explanation" src="offline_media/answer-image.jpg" width="155" height="115" alt="Explanation illustration" data-description="&lt;p&gt;Detailed option explanation image.&lt;/p&gt;">' : '';
+    return `<div><b>${option.displayOrder.toLowerCase()} (${state}):</b><br><p>Blob explanation for option ${option.displayOrder} on question ${question.id}.${libraryLink}${illustration}</p></div>`;
   });
 
   parts.push(
@@ -690,6 +695,39 @@ try {
       );
     }
 
+    // Approved shared AMBOSS Library Image Viewer: pre-answer overlay is an
+    // opt-in hint; Description is not visible in the viewer until reveal.
+    const stemImage = page.locator('img[data-exam-image="stem"]');
+    await stemImage.click();
+    const viewer = page.getByRole('dialog', { name: /Subarachnoid hemorrhage/i });
+    await viewer.waitFor();
+    assert((await viewer.getByText(/Hyperdensity \(green overlay\)/).count()) === 0,
+      'Tutor viewer leaked clinical Description before first answer');
+    assert((await viewer.locator('#aiv-overlay').count()) === 0, 'Overlay appeared without consent');
+    await viewer.getByRole('button', { name: 'SHOW OVERLAY' }).click();
+    assert((await viewer.locator('#aiv-overlay').count()) === 1, 'Optional overlay did not appear');
+    assert((await viewer.locator('#aiv-overlay').getAttribute('src')) ===
+      'https://pub-2a81f2cb19cc4473a3d076e657af6121.r2.dev/offline_media/5b2d50b498902.jpg',
+      'Relative overlay source lost R2 origin');
+    await viewer.getByRole('button', { name: 'Zoom In' }).click();
+    const imageZoom = await viewer.locator('#aiv-img').evaluate((node) => getComputedStyle(node).transform);
+    const overlayZoom = await viewer.locator('#aiv-overlay').evaluate((node) => getComputedStyle(node).transform);
+    assert(imageZoom === overlayZoom, 'Overlay and original image zoom became unsynchronized');
+    await viewer.getByRole('button', { name: 'HIDE OVERLAY' }).click();
+    assert((await viewer.locator('#aiv-overlay').count()) === 0, 'Hide Overlay did not hide layer');
+    await page.keyboard.press('Escape');
+    assert((await page.getByRole('dialog').count()) === 0, 'ESC did not close the shared Viewer');
+    assert(submitBodies.length === 0, 'Viewing stem image submitted an answer');
+
+    // Clicking an image embedded in a clickable option must never select it.
+    const optionImage = page.locator('img[data-relative-media-test="option"]').first();
+    await optionImage.click();
+    await page.getByRole('dialog').waitFor();
+    assert((await page.getByRole('button', { name:'SHOW OVERLAY' }).count()) === 0,
+      'A no-overlay image should not show the overlay toggle');
+    await page.getByRole('button', { name:'Close image viewer' }).click();
+    assert(submitBodies.length === 0, 'Clicking an option illustration submitted an answer');
+
     await page.screenshot({ path: `${outDir}/amboss-desktop-baseline.png`, fullPage: true });
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 1, 'Desktop sidebar should start open');
     assert((await page.locator('input[placeholder="Find AMBOSS content"]').count()) === 0, 'Removed AMBOSS search field reappeared');
@@ -753,6 +791,24 @@ try {
     );
     assert(await answerRows.nth(1).evaluate((node) => node.classList.contains('is-incorrect')), 'First wrong answer did not turn red');
     assert((await page.locator('.amboss-option-explanation').count()) === 1, 'Only the first clicked explanation should open initially');
+
+    // Tutor first-answer reveal unlocks the existing sanitized description.
+    await page.locator('img[data-exam-image="stem"]').click();
+    const revealedViewer = page.getByRole('dialog');
+    await revealedViewer.getByText(/Hyperdensity \(green overlay\)/).waitFor();
+    assert((await revealedViewer.getByText(/CT head \(without contrast; axial plane\)/).count()) === 1,
+      'Tutor image Description was not rendered after answer');
+    await revealedViewer.getByRole('button', { name:'Close image viewer' }).click();
+    assert(submitBodies.length === 1, 'Opening a revealed image resubmitted the answer');
+
+    const explanationImage = answerRows.nth(1).locator('img[data-exam-image="explanation"]');
+    await explanationImage.waitFor();
+    const maxExplanationWidth = await explanationImage.evaluate((node) => node.getBoundingClientRect().width);
+    assert(maxExplanationWidth <= 170, 'Explanation thumbnail is too large');
+    await explanationImage.click();
+    await page.getByRole('dialog').getByText('Detailed option explanation image.').waitFor();
+    await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
+    assert(submitBodies.length === 1, 'Explanation image click incorrectly submitted another answer');
 
     const tutorPausedAt = (await tutorTopTimer.textContent())?.trim();
     assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Tutor clock did not enter paused state after submit');
@@ -1008,6 +1064,11 @@ try {
     await page.goto(`${baseUrl}/test/9002`, { waitUntil: 'networkidle' });
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
 
+    await page.locator('img[data-exam-image="stem"]').click();
+    assert((await page.getByRole('dialog').getByText(/Hyperdensity \(green overlay\)/).count()) === 0,
+      'Timed image Description leaked during solving');
+    await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
+
     assert((await page.getByRole('button', { name: /AI Summary/i }).count()) === 0, 'AI Summary leaked into active Timed block');
 
     const topTimer = page.locator('.amboss-primary-timer strong');
@@ -1110,6 +1171,10 @@ try {
     assert(timedBatchBody?.complete === true, 'End Block did not use complete=true batch submission');
     assert(Array.isArray(timedBatchBody?.answers) && timedBatchBody.answers.length === 5, 'End Block did not submit the full question set');
     assert(timedStatus === 'completed', 'End Block did not complete the timed test');
+    await page.locator('img[data-exam-image="stem"]').click();
+    await page.getByRole('dialog').getByText(/Hyperdensity \(green overlay\)/).waitFor();
+    await page.getByRole('dialog').getByRole('button', { name:'Close image viewer' }).click();
+
 
     // Untouched Q2 is Omitted after End Block. Omitted remains a result state,
     // but completed review must expose the correct answer and explanations
@@ -1174,6 +1239,16 @@ try {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(`${baseUrl}/test/9001`, { waitUntil: 'networkidle' });
     await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    await page.locator('img[data-exam-image="stem"]').click();
+    const mobileViewer = page.getByRole('dialog');
+    await mobileViewer.getByRole('button', { name:'SHOW OVERLAY' }).click();
+    const modalBox = await mobileViewer.boundingBox();
+    assert(modalBox && modalBox.x >= -1 && modalBox.width <= device.width + 1,
+      device.name + ': viewer is not viewport-safe');
+    assert(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
+      device.name + ': modal caused horizontal overflow');
+    await mobileViewer.getByRole('button', { name:'Close image viewer' }).click();
+
     await page.screenshot({ path: `${outDir}/amboss-${device.name}-baseline.png`, fullPage: true });
 
     assert((await page.locator('.amboss-sidebar.is-open').count()) === 0, `${device.name}: drawer should start closed`);
@@ -1204,7 +1279,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true image_option_no_submit=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
