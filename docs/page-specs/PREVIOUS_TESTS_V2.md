@@ -1,7 +1,7 @@
 # Previous Tests V2 — Page Spec
 
 **Issue:** #55 (Epic #1 / G2 parent #4; companion Create Test #11)
-**Workflow state:** IMPLEMENTING — first approved UI slice in frontend PR #58; live deployment acceptance remains unverified
+**Workflow state:** IMPLEMENTING — first approved frontend UI slice MERGED via PR #58 (`3da699ed`), PR CI/browser PASS; backend #38/#39 and signed-in Cloudflare acceptance pending
 **Route(s):** `/qbank/:bankId/previous-tests?step=N`; integrated changes to `/qbank/:bankId/create-test?step=N` and existing AMBOSS Exam Runner lifecycle
 **Approved:** 2026-10-09 (explicit user acceptance of simple standalone HTML prototype and palette-readiness)
 **Design reference:** User-supplied simple AMBOSS-style results table screenshot, followed by the standalone MedPark Previous Tests desktop/mobile HTML mock shown in conversation.
@@ -117,7 +117,7 @@ Avoid per-row API requests/N+1 for topics and Systems; batch metadata on backend
 
 **2026-10-09:** User approved **the same simplicity** as the presented prototype, and requested preparation for a **new future color palette**, not designing/changing that palette now. This authorizes the visual spec only, without asserting unfinished backend mechanics have been approved as implemented. Current primary #53 Results verification remains active; #55 is **SPEC APPROVED / PARKED** until the correct handoff.
 
-**Implementation:** approved frontend UI is implemented on PR #58 for CI/browser verification; deployment unverified. Exact repeat and full pool provenance require separate canonical backend contracts #38/#39. The original UX prototype alone was not deployed.
+**Implementation:** frontend UI merged into `medfront/main` in PR #58 (`3da699ed`); Typecheck/Lint/Build and mocked Chromium acceptance PASS. Deployment unverified. Exact repeat and full pool provenance require separate canonical backend contracts #38/#39. The original UX prototype alone was not deployed.
 
 ## 14. Audited canonical API gaps — 2026-10-09
 
@@ -145,6 +145,6 @@ Frontend [PR #58](https://github.com/geminiamo0-ship-it/medfront/pull/58) implem
 - Listing API still lacks authoritative historical Custom/All provenance and full taxonomy snapshots. Hence ambiguous source labels are shown as `—`; long-name disclosure reveals the **persisted title** only, not missing server metadata. Backend #39 is required for complete pool and all names. Exact repeat-from-internal-Test-ID remains unimplemented until backend #38; no unsafe external-ID translation was added.
 - AMBOSS server-acknowledged Exit -> suspend -> Previous Tests and End Block -> Results code is unchanged and already covered by existing browser smoke; no frontend-only persistence or scoring introduced.
 
-**Verification:** Typecheck/Lint/Build and Chromium smoke are run from PR #58. The browser smoke fixtures cover Standard manual title, System+Topic auto title, all status actions, Copy ID, full-name disclosure, desktop/tablet/mobile screenshots and overflow. Record precise green run IDs in #55 when available. This is NOT a claim of real signed-in Cloudflare acceptance; user will verify deployment separately.
+**Verification:** [PR Verify #37865707959](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865707959) PASS (Typecheck/Lint/Build), final documentation [PR Verify #37865862156](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865862156) PASS; [Chromium Browser Smoke #37865707945](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865707945) PASS on actual UI code. They use a mocked API; no production authentication was tested. The browser smoke fixtures cover Standard manual title, System+Topic auto title, all status actions, Copy ID, full-name disclosure, desktop/tablet/mobile screenshots and overflow. Record precise green run IDs in #55 when available. This is NOT a claim of real signed-in Cloudflare acceptance; user will verify deployment separately.
 
 **Remaining:** backend #38 authorized same-question repeat attempt, backend #39 authoritative pool/full taxonomy list projection, signed-in live app acceptance; keep #55 OPEN and not DONE until those approved requirements and gates pass.
