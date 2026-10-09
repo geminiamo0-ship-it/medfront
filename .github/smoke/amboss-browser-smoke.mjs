@@ -1378,7 +1378,7 @@ try {
     await expanded.click();
     assert((await complete.getByText('System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease', { exact:true }).count()) >= 1,
       device.name + ': long names cannot be disclosed');
-    await expanded.press('Escape');
+    await complete.getByRole('button', { name: /Hide full name/i }).press('Escape');
     assert((await complete.getByRole('button', { name: /Show full name/i }).count()) === 1,
       device.name + ': Escape did not close full name details');
     const suspended = container.filter({ hasText: 'Suspended clinical practice' });
