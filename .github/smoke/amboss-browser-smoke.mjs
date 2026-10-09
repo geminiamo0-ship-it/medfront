@@ -418,6 +418,25 @@ async function installApiMocks(target) {
       const now = new Date().toISOString();
       return json(route, [
         {
+          id: 9006,
+          title: 'System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease',
+          type: 'tutor', mode: 'unused', step: 1, status: 'completed',
+          totalQuestions: 40, answeredQuestions: 1, correctAnswers: 1, percentageScore: '2.5',
+          startedAt: now, completedAt: now, createdAt: now,
+        },
+        {
+          id: 9007, title: 'Custom IDs — internal test provenance not supplied',
+          type: 'timed', mode: 'all', step: 1, status: 'in_progress',
+          totalQuestions: 12, answeredQuestions: 0, correctAnswers: 0, percentageScore: '0',
+          startedAt: now, completedAt: null, createdAt: now,
+        },
+        {
+          id: 9008, title: 'Suspended clinical practice',
+          type: 'tutor', mode: 'unused', step: 1, status: 'suspended',
+          totalQuestions: 5, answeredQuestions: 2, correctAnswers: 1, percentageScore: '50',
+          startedAt: now, completedAt: null, createdAt: now,
+        },
+        {
           id: 9003,
           title: 'AMBOSS tutor lifecycle smoke',
           type: 'tutor',
@@ -1285,6 +1304,9 @@ try {
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/qbank/1/create-test?step=1`, { waitUntil: 'networkidle' });
     await page.getByRole('heading', { name: 'Create Test' }).waitFor();
+    const standardNameInput = page.getByRole('textbox', { name: /Test Name/i });
+    await standardNameInput.fill('Manual timed practice');
+    await page.getByText('Your entered name will be used.').waitFor();
 
     await page.getByRole('button', { name: /^Timed$/i }).click();
     await page.getByText('Time per question', { exact: true }).waitFor();
@@ -1297,9 +1319,82 @@ try {
     await page.getByText('1h 00m', { exact: true }).waitFor();
     await page.getByRole('button', { name: /^Create Test$/i }).click();
     await page.waitForURL(/\/test\/9002/);
+    assert(createdTimedBody?.title === 'Manual timed practice', 'Standard Create Test ignored the optional manual name');
     assert(createdTimedBody?.type === 'timed', 'Create Test did not send type=timed');
     assert(Number(createdTimedBody?.totalQuestions) === 40, 'Create Test did not preserve 40 questions');
     assert(Number(createdTimedBody?.timeLimitSeconds) === 3600, `Expected 40 × 90s = 3600s, got ${createdTimedBody?.timeLimitSeconds}`);
+    await context.close();
+  }
+
+  // Automatic Test Name must persist actual selected System/Topic names when blank.
+  {
+    createdTimedBody = null;
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await context.route('https://medhvgg-production.up.railway.app/api/tests/metadata/subjects', (route) =>
+      json(route, [{ id: 51, name: 'Medicine', displayOrder: 1, questionCount: 100, columnIndex: 0, position: 0 }]));
+    await context.route('https://medhvgg-production.up.railway.app/api/tests/metadata/systems-with-topics', (route) =>
+      json(route, [{
+        id: 52, name: 'Cardiology', questionCount: 100,
+        topics: [{ id: 53, name: 'Heart failure', questionCount: 30 }],
+      }]));
+    await page.goto(baseUrl + '/qbank/1/create-test?step=1', { waitUntil: 'networkidle' });
+    await page.getByText('Medicine', { exact: true }).click();
+    await page.getByText('Cardiology', { exact: true }).click();
+    await page.getByRole('button', { name: 'Show topics' }).click();
+    await page.getByText('Heart failure', { exact: true }).click();
+    await page.getByText('Automatic name: System: Cardiology · Topic: Heart failure').waitFor();
+    await page.getByRole('button', { name: /^Create Test$/i }).click();
+    await page.waitForURL((url) => url.pathname === '/test/9002');
+    assert(createdTimedBody?.title === 'System: Cardiology · Topic: Heart failure',
+      'Automatic name did not persist selected System/Topic names');
+    assert(createdTimedBody?.filters?.systemIds?.join(',') === '52' &&
+      createdTimedBody?.filters?.topicIds?.join(',') === '53',
+      'Automatic title test must not drop authoritative system/topic filters');
+    await context.close();
+  }
+
+  // Previous Tests V2: accurate desktop table, responsive tablet/mobile cards,
+  // full-name disclosure, linked actions, clipboard and long-content overflow.
+  for (const device of [
+    { name: 'desktop', width: 1280, height: 900 },
+    { name: 'tablet', width: 834, height: 1194 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto(baseUrl + '/qbank/1/previous-tests?step=1', { waitUntil: 'networkidle' });
+    await page.getByRole('heading', { name: 'Previous Tests' }).waitFor();
+    const useTable = device.width >= 1280;
+    const container = useTable ? page.locator('tbody tr') : page.locator('article');
+    const complete = container.filter({ hasText: 'System: Cardiology' });
+    await complete.waitFor();
+    assert((await complete.getByText('2.5%', { exact: true }).count()) === 1,
+      device.name + ': completed percentage must preserve 2.5%, not round to 3%');
+    assert((await complete.getByRole('link', { name: 'Results' }).getAttribute('href')) === '/test/9006/results',
+      device.name + ': completed row did not link to actual results');
+    assert((await complete.getByRole('link', { name: 'Review' }).getAttribute('href')) === '/test/9006',
+      device.name + ': completed row did not preserve question review');
+    const expanded = complete.getByRole('button', { name: /Show full name/i });
+    await expanded.click();
+    assert((await complete.getByText('System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease', { exact:true }).count()) >= 1,
+      device.name + ': long names cannot be disclosed');
+    await complete.getByRole('button', { name: /Hide full name/i }).press('Escape');
+    assert((await complete.getByRole('button', { name: /Show full name/i }).count()) === 1,
+      device.name + ': Escape did not close full name details');
+    const suspended = container.filter({ hasText: 'Suspended clinical practice' });
+    assert((await suspended.getByRole('link', { name: 'Resume' }).getAttribute('href')) === '/test/9008',
+      device.name + ': suspended block did not offer Resume');
+    const active = container.filter({ hasText: 'Custom IDs — internal test provenance not supplied' });
+    assert((await active.getByRole('link', { name: 'Continue' }).getAttribute('href')) === '/test/9007',
+      device.name + ': active block did not offer Continue');
+    await complete.getByRole('button', { name: /Copy internal test ID/i }).click();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    assert(copied === '9006', device.name + ': Copy ID did not copy the internal test ID');
+    assert((await page.getByRole('status').textContent())?.includes('9006'),
+      device.name + ': clipboard success feedback missing');
+    const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    assert(!overflows, device.name + ': Previous Tests has horizontal viewport overflow');
+    await page.screenshot({ path: outDir + '/previous-tests-v2-' + device.name + '.png', fullPage: true });
     await context.close();
   }
 
@@ -1339,10 +1434,10 @@ try {
       Number(tutorSuspendBody?.totalTimeSpentSeconds) >= 1,
       `Tutor Suspend did not send elapsed session time: ${JSON.stringify(tutorSuspendBody)}`,
     );
-    await page.getByText('AMBOSS tutor lifecycle smoke', { exact: true }).waitFor();
+    await page.locator('tbody tr').filter({ hasText: 'AMBOSS tutor lifecycle smoke' }).getByText('AMBOSS tutor lifecycle smoke', { exact: true }).waitFor();
 
     const tutorRow = page.getByRole('row').filter({ hasText: 'AMBOSS tutor lifecycle smoke' });
-    await tutorRow.getByRole('link', { name: 'Open' }).click();
+    await tutorRow.getByRole('link', { name: 'Resume' }).click();
     await page.waitForURL(/\/test\/9003/);
     await page.getByRole('button', { name: /Resume block/i }).waitFor();
     assert((await page.locator('.amboss-primary-timer.is-paused').count()) === 1, 'Suspended Tutor timer was not paused');
@@ -1743,7 +1838,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true amboss_article_create_test=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true previous_tests_auto_name=true previous_tests_v2_responsive=true previous_tests_copy_id=true previous_tests_status_actions=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true amboss_article_create_test=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
