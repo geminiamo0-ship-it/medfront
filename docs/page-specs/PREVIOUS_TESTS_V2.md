@@ -1,7 +1,7 @@
 # Previous Tests V2 — Page Spec
 
 **Issue:** #55 (Epic #1 / G2 parent #4; companion Create Test #11)
-**Workflow state:** SPEC APPROVED / PARKED — implementation not started
+**Workflow state:** IMPLEMENTING — first approved UI slice in frontend PR #58; live deployment acceptance remains unverified
 **Route(s):** `/qbank/:bankId/previous-tests?step=N`; integrated changes to `/qbank/:bankId/create-test?step=N` and existing AMBOSS Exam Runner lifecycle
 **Approved:** 2026-10-09 (explicit user acceptance of simple standalone HTML prototype and palette-readiness)
 **Design reference:** User-supplied simple AMBOSS-style results table screenshot, followed by the standalone MedPark Previous Tests desktop/mobile HTML mock shown in conversation.
@@ -117,7 +117,7 @@ Avoid per-row API requests/N+1 for topics and Systems; batch metadata on backend
 
 **2026-10-09:** User approved **the same simplicity** as the presented prototype, and requested preparation for a **new future color palette**, not designing/changing that palette now. This authorizes the visual spec only, without asserting unfinished backend mechanics have been approved as implemented. Current primary #53 Results verification remains active; #55 is **SPEC APPROVED / PARKED** until the correct handoff.
 
-**Implementation:** not started. UX mock is illustrative, not deployed.
+**Implementation:** approved frontend UI is implemented on PR #58 for CI/browser verification; deployment unverified. Exact repeat and full pool provenance require separate canonical backend contracts #38/#39. The original UX prototype alone was not deployed.
 
 ## 14. Audited canonical API gaps — 2026-10-09
 
@@ -131,3 +131,20 @@ Read `medhvgg/main` at `4d3cec5`: controller, DTO, test creation, retrieval and 
 - **Rename:** `PATCH /tests/:id/name` is owner-checked and limited to 200 characters.
 
 **Next unchecked work:** finish focused backend security CI; clarify list DTO and replay-from-Test-ID backend contract as separate tickets; finish current active Results #53/#51 Cloudflare signed-in verification; unpark #55 only at an explicit checkpoint. Scope/visual approval unchanged.
+
+## 15. User-prioritized UI implementation checkpoint — 2026-10-09
+
+The user explicitly prioritized delivering the missing **Previous Tests V2 UI** now and offered to perform live Cloudflare Results verification personally. This authorizes handoff from Results #53 without calling its runtime gate passed. #53/#51 stay OPEN / VERIFYING; #55 is now the active implementation issue.
+
+Frontend [PR #58](https://github.com/geminiamo0-ship-it/medfront/pull/58) implementation scope:
+
+- Desktop compact eight-column table (Score, Name, Created, Mode, Question pool, Questions, Status, Actions) and tablet/mobile card layout; no future palette hardcoded. Visible status text, accessible long-name disclosure, focusable action controls, retry/error/loading/empty states.
+- Accurate completed-only score, one decimal; non-completed shows dash instead of fabricated 0%; created date always uses the learner browser's local timezone.
+- Completed -> Results and Review; Suspended -> Resume; In Progress -> Continue; Copy *internal* test ID via clipboard API with accessible success/error feedback and manual fallback.
+- Optional **Test Name** input now visible in Standard and Custom modes (same state, 200-char limit). Blank name uses selected Systems and Topics from current, loaded metadata to construct one persisted, bounded label. Deduplication and a `+N more` suffix handle many selections. If metadata/selection is not available, use bank/mode fallback. Manual name takes priority. No new backend title semantics were invented.
+- Listing API still lacks authoritative historical Custom/All provenance and full taxonomy snapshots. Hence ambiguous source labels are shown as `—`; long-name disclosure reveals the **persisted title** only, not missing server metadata. Backend #39 is required for complete pool and all names. Exact repeat-from-internal-Test-ID remains unimplemented until backend #38; no unsafe external-ID translation was added.
+- AMBOSS server-acknowledged Exit -> suspend -> Previous Tests and End Block -> Results code is unchanged and already covered by existing browser smoke; no frontend-only persistence or scoring introduced.
+
+**Verification:** Typecheck/Lint/Build and Chromium smoke are run from PR #58. The browser smoke fixtures cover Standard manual title, System+Topic auto title, all status actions, Copy ID, full-name disclosure, desktop/tablet/mobile screenshots and overflow. Record precise green run IDs in #55 when available. This is NOT a claim of real signed-in Cloudflare acceptance; user will verify deployment separately.
+
+**Remaining:** backend #38 authorized same-question repeat attempt, backend #39 authoritative pool/full taxonomy list projection, signed-in live app acceptance; keep #55 OPEN and not DONE until those approved requirements and gates pass.
