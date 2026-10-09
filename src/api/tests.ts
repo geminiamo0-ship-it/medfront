@@ -191,6 +191,38 @@ export function getPreviousTests(step?: number, qBankId?: number) {
   return api.get<TestListItem[]>('/tests', { params });
 }
 
+
+/** Compact, server-owned Previous Tests V2 projection. Never guess old Custom/All provenance. */
+export interface PreviousTestSummaryItem extends Omit<TestListItem, 'percentageScore'> {
+  percentageScore: number | string | null;
+  questionPoolLabel: string | null;
+  selectedSystemNames: string[];
+  selectedTopicNames: string[];
+  mixedPoolModes: string[];
+}
+
+export interface PreviousTestsSummaryPage {
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  items: PreviousTestSummaryItem[];
+}
+
+export function getPreviousTestsSummary(step: number, qBankId: number, page: number) {
+  return api.get<PreviousTestsSummaryPage>('/tests/previous-tests-summary', {
+    params: { step, qBankId, page },
+  });
+}
+
+/**
+ * Authenticated POST of an OWNED internal Test ID; backend creates a distinct
+ * attempt with the source's exact original question IDs and display order.
+ * Do not retry automatically if the network drops after POST.
+ */
+export function repeatSavedTest(sourceTestId: number) {
+  return api.post<{ id: number }>('/tests/' + sourceTestId + '/repeat', {});
+}
+
 export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {
   return api.post<SystemWithTopics[]>('/tests/metadata/systems-with-topics', { step, filters });
 }
