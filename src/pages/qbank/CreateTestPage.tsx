@@ -9,6 +9,7 @@ import {
   getSubjects,
   getSystemsWithTopics,
   retrieveTestQuestions,
+  repeatSavedTest,
   type DifficultyTier,
   type QuestionCounts,
 } from '@/api/tests';
@@ -165,6 +166,7 @@ export default function CreateTestPage() {
   const [uwIdsText, setUwIdsText] = useState('');
   const [retrieveId, setRetrieveId] = useState('');
   const [retrieving, setRetrieving] = useState(false);
+  const [repeatingSource, setRepeatingSource] = useState(false);
   const [retrieveMsg, setRetrieveMsg] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -352,6 +354,30 @@ export default function CreateTestPage() {
     }
   }
 
+  async function handleRepeatExactTest() {
+    const raw = retrieveId.trim();
+    if (!/^[1-9][0-9]*$/.test(raw) || !Number.isSafeInteger(Number(raw)) ||
+      Number(raw) > MAX_QUESTION_ID) {
+      setRetrieveMsg('Enter a valid internal Test ID.');
+      return;
+    }
+    setRepeatingSource(true);
+    setRetrieveMsg(null);
+    try {
+      const created = await repeatSavedTest(Number(raw));
+      await invalidateQbankProgressQueries(queryClient);
+      await queryClient.invalidateQueries({ queryKey: ['previous-tests-summary'] });
+      navigate('/test/' + created.id);
+    } catch (error) {
+      setRetrieveMsg(
+        (error instanceof Error ? error.message + '. ' : '') +
+        'If the connection failed, check Previous Tests before repeating again.',
+      );
+    } finally {
+      setRepeatingSource(false);
+    }
+  }
+
   async function handleRetrieve() {
     const id = Number(retrieveId.trim());
     setRetrieveMsg(null);
@@ -490,7 +516,7 @@ export default function CreateTestPage() {
             <input
               value={retrieveId}
               onChange={(e) => setRetrieveId(e.target.value)}
-              placeholder="Enter Test ID"
+              placeholder="Enter internal Test ID"
               className="w-full min-w-0 rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none sm:max-w-xl"
             />
             <button
@@ -499,9 +525,20 @@ export default function CreateTestPage() {
               disabled={retrieving}
               className="min-h-11 w-full rounded-lg bg-link px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-link/90 disabled:opacity-50 sm:w-auto"
             >
-              {retrieving ? 'Retrieving…' : 'Retrieve'}
+              {retrieving ? 'Retrieving…' : 'Load UWorld IDs'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleRepeatExactTest()}
+              disabled={retrieving || repeatingSource}
+              className="min-h-11 w-full rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-bold text-link transition-colors hover:bg-surface2 disabled:opacity-50 sm:w-auto"
+            >
+              {repeatingSource ? 'Creating…' : 'Repeat Same Questions'}
             </button>
           </div>
+          <p className="mt-2 text-xs text-ink-muted">
+            Repeat creates a fresh attempt using the original saved questions in order. Loading UWorld IDs is a separate Custom workflow.
+          </p>
           {retrieveMsg && <p className="mt-2 text-xs font-semibold text-ink-muted">{retrieveMsg}</p>}
 
           <div className="my-6 flex items-center gap-4">
