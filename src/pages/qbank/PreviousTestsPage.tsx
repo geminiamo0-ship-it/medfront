@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getPreviousTests, type TestListItem } from '@/api/tests';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getPreviousTestsSummary, repeatSavedTest, type PreviousTestSummaryItem } from '@/api/tests';
 import { SectionLoader } from '@/components/PulseLoader';
 import { type WorkspaceContext } from './WelcomePage';
+import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
 
 /** Dates are consistently the test creation date, rendered in the learner's local timezone. */
 function formatCreatedDate(iso: string): string {
@@ -13,7 +14,7 @@ function formatCreatedDate(iso: string): string {
     : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function displayScore(test: TestListItem): string {
+function displayScore(test: PreviousTestSummaryItem): string {
   if (test.status !== 'completed') return '—';
   const raw = test.percentageScore;
   if (typeof raw !== 'string' && typeof raw !== 'number') return '—';
@@ -33,31 +34,22 @@ function displayMode(type: string): string {
   return type === 'tutor' ? 'Tutor' : type === 'timed' ? 'Timed' : '—';
 }
 
-/** Only expose unambiguous persisted modes. "all" can also mean Custom IDs; #39 will add true provenance. */
-function displayPool(mode: string): string {
-  const known: Record<string, string> = {
-    unused: 'Unused',
-    used: 'Used',
-    marked: 'Marked',
-    marked_correct: 'Marked Correct',
-    marked_incorrect: 'Marked Incorrect',
-    correct: 'Correct',
-    incorrect: 'Incorrect',
-    omitted: 'Omitted',
-    suspended: 'Suspended',
-    mixed_modes: 'Mixed',
-  };
-  return known[mode] ?? '—';
+/** Server alone resolves Custom vs legacy All and preserved provenance. */
+function displayPool(test: PreviousTestSummaryItem): string {
+  return test.questionPoolLabel?.trim() || '—';
 }
 
-function TestName({ test }: { test: TestListItem }) {
+function TestName({ test }: { test: PreviousTestSummaryItem }) {
   const [expanded, setExpanded] = useState(false);
   const name = test.title?.trim() || 'Test #' + test.id;
   const long = name.length > 42;
+  const systems = test.selectedSystemNames ?? [];
+  const topics = test.selectedTopicNames ?? [];
+  const hasDetails = systems.length > 0 || topics.length > 0;
   return (
     <div className="min-w-0">
       <span className="block truncate font-semibold text-ink" title={name}>{name}</span>
-      {long && (
+      {(long || hasDetails) && (
         <>
           <button
             type="button"
@@ -69,12 +61,14 @@ function TestName({ test }: { test: TestListItem }) {
               if (event.key === 'Escape') setExpanded(false);
             }}
           >
-            {expanded ? 'Hide full name' : 'Full name'}
+            {expanded ? 'Hide details' : (long ? 'Full name' : 'Details')}
           </button>
           {expanded && (
-            <p className="mt-1 max-w-full break-words rounded-lg border border-line bg-surface2 p-2 text-xs font-normal leading-relaxed text-ink-soft">
-              {name}
-            </p>
+            <div className="mt-1 max-w-full space-y-2 break-words rounded-lg border border-line bg-surface2 p-2 text-xs font-normal leading-relaxed text-ink-soft">
+              {long && <p>{name}</p>}
+              {systems.length > 0 && <p><strong>Systems:</strong> {systems.join(', ')}</p>}
+              {topics.length > 0 && <p><strong>Topics:</strong> {topics.join(', ')}</p>}
+            </div>
           )}
         </>
       )}
@@ -83,12 +77,15 @@ function TestName({ test }: { test: TestListItem }) {
 }
 
 function TestActions({
-  test, copiedId, onCopy,
+  test, copiedId, onCopy, onRepeat, repeatingId,
 }: {
-  test: TestListItem;
+  test: PreviousTestSummaryItem;
   copiedId: number | null;
   onCopy: (testId: number) => void;
+  repeatingId: number | null;
+  onRepeat: (testId: number) => void;
 }) {
+  const [confirmRepeat, setConfirmRepeat] = useState(false);
   const complete = test.status === 'completed';
   const action = complete ? 'Results' : test.status === 'suspended' ? 'Resume' : test.status === 'in_progress' ? 'Continue' : 'Open';
   const href = '/test/' + test.id + (complete ? '/results' : '');
@@ -98,6 +95,20 @@ function TestActions({
     <div className="flex flex-wrap items-center gap-2">
       <Link to={href} className={linkClass}>{action}</Link>
       {complete && <Link to={'/test/' + test.id} className={linkClass}>Review</Link>}
+      {test.totalQuestions <= 50 && (test.type === 'tutor' || test.type === 'timed') && (
+        confirmRepeat ? (
+          <span className="inline-flex flex-wrap items-center gap-1" role="group" aria-label={'Repeat test ' + test.id}>
+            <span className="text-xs text-ink-muted">Same questions, new attempt?</span>
+            <button type="button" className={linkClass} disabled={repeatingId !== null}
+              onClick={() => onRepeat(test.id)}>{repeatingId === test.id ? 'Creating…' : 'Confirm'}</button>
+            <button type="button" className={linkClass} disabled={repeatingId !== null}
+              onClick={() => setConfirmRepeat(false)}>Cancel</button>
+          </span>
+        ) : (
+          <button type="button" className={linkClass} disabled={repeatingId !== null}
+            onClick={() => setConfirmRepeat(true)}>Repeat</button>
+        )
+      )}
       <button
         type="button"
         onClick={() => onCopy(test.id)}
@@ -112,14 +123,40 @@ function TestActions({
 
 export default function PreviousTestsPage() {
   const { bankId, step } = useOutletContext<WorkspaceContext>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [repeatingId, setRepeatingId] = useState<number | null>(null);
+  const [repeatFeedback, setRepeatFeedback] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
 
   const testsQuery = useQuery({
-    queryKey: ['previous-tests', step, bankId],
-    queryFn: () => getPreviousTests(step, bankId),
+    queryKey: ['previous-tests-summary', step, bankId, page],
+    queryFn: () => getPreviousTestsSummary(step, bankId, page),
   });
-  const tests = testsQuery.data ?? [];
+  const tests = testsQuery.data?.items ?? [];
+  const hasMore = testsQuery.data?.hasMore ?? false;
+
+  async function repeatTest(id: number) {
+    if (repeatingId !== null) return;
+    setRepeatingId(id);
+    setRepeatFeedback('');
+    try {
+      const result = await repeatSavedTest(id);
+      await invalidateQbankProgressQueries(queryClient);
+      await queryClient.invalidateQueries({ queryKey: ['previous-tests-summary'] });
+      navigate('/test/' + result.id);
+    } catch (error) {
+      // A POST could have committed before the connection dropped. Never auto-retry.
+      setRepeatFeedback(
+        (error instanceof Error ? error.message + '. ' : '') +
+        'If the connection failed, check Previous Tests before repeating again.',
+      );
+    } finally {
+      setRepeatingId(null);
+    }
+  }
 
   async function copyTestId(id: number) {
     setCopiedId(null);
@@ -149,6 +186,7 @@ export default function PreviousTestsPage() {
       </div>
 
       {copyFeedback && <p role="status" aria-live="polite" className="mt-3 break-words text-xs text-ink-muted">{copyFeedback}</p>}
+      {repeatFeedback && <p role="alert" className="mt-3 break-words text-sm text-bad">{repeatFeedback}</p>}
 
       <div className="mt-5 min-w-0 rounded-2xl border border-line bg-surface shadow-card">
         {testsQuery.isLoading ? (
@@ -160,7 +198,7 @@ export default function PreviousTestsPage() {
           </div>
         ) : tests.length === 0 ? (
           <div className="px-5 py-12 text-center text-sm text-ink-muted">
-            No tests yet. <Link to={'/qbank/' + bankId + '/create-test?step=' + step} className="font-semibold text-link hover:underline">Create your first test</Link>.
+            {page > 1 ? 'No tests on this page.' : 'No tests yet.'} <Link to={'/qbank/' + bankId + '/create-test?step=' + step} className="font-semibold text-link hover:underline">Create your first test</Link>.
           </div>
         ) : (
           <>
@@ -185,10 +223,10 @@ export default function PreviousTestsPage() {
                       <th scope="row" className="min-w-0 px-3 py-3.5 text-left font-normal"><TestName test={test} /></th>
                       <td className="px-3 py-3.5 text-ink-muted"><time dateTime={test.createdAt}>{formatCreatedDate(test.createdAt)}</time></td>
                       <td className="px-3 py-3.5 text-ink-muted">{displayMode(test.type)}</td>
-                      <td className="px-3 py-3.5 text-ink-muted">{displayPool(test.mode)}</td>
+                      <td className="px-3 py-3.5 text-ink-muted">{displayPool(test)}</td>
                       <td className="px-3 py-3.5 tabular-nums text-ink-muted">{test.totalQuestions}</td>
                       <td className="px-3 py-3.5 font-medium text-ink-soft">{displayStatus(test.status)}</td>
-                      <td className="px-3 py-3.5"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} /></td>
+                      <td className="px-3 py-3.5"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} repeatingId={repeatingId} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -207,16 +245,27 @@ export default function PreviousTestsPage() {
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-4">
                     <div><dt className="text-ink-faint">Created</dt><dd className="mt-1 text-ink-soft"><time dateTime={test.createdAt}>{formatCreatedDate(test.createdAt)}</time></dd></div>
                     <div><dt className="text-ink-faint">Mode</dt><dd className="mt-1 text-ink-soft">{displayMode(test.type)}</dd></div>
-                    <div><dt className="text-ink-faint">Question pool</dt><dd className="mt-1 text-ink-soft">{displayPool(test.mode)}</dd></div>
+                    <div><dt className="text-ink-faint">Question pool</dt><dd className="mt-1 text-ink-soft">{displayPool(test)}</dd></div>
                     <div><dt className="text-ink-faint">Questions</dt><dd className="mt-1 tabular-nums text-ink-soft">{test.totalQuestions}</dd></div>
                   </dl>
-                  <div className="mt-4"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} /></div>
+                  <div className="mt-4"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} repeatingId={repeatingId} /></div>
                 </article>
               ))}
             </div>
-            <p className="border-t border-line px-4 py-3 text-xs text-ink-faint">
-              Created dates use your local timezone. A dash for question pool means its original source was not supplied by the current API; no pool is inferred.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
+              <p className="text-xs text-ink-faint">
+                Created dates use your timezone. Old tests with unknown pool provenance show —.
+              </p>
+              <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
+                <button type="button" disabled={page === 1 || testsQuery.isFetching}
+                  className="min-h-11 rounded-lg border border-line px-3 disabled:opacity-40"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+                <span>Page {page}</span>
+                <button type="button" disabled={!hasMore || testsQuery.isFetching}
+                  className="min-h-11 rounded-lg border border-line px-3 disabled:opacity-40"
+                  onClick={() => setPage(p => p + 1)}>Next</button>
+              </div>
+            </div>
           </>
         )}
       </div>
