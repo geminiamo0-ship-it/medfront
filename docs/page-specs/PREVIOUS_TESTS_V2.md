@@ -1,7 +1,7 @@
 # Previous Tests V2 — Page Spec
 
 **Issue:** #55 (Epic #1 / G2 parent #4; companion Create Test #11)
-**Workflow state:** IMPLEMENTING — first approved frontend UI slice MERGED via PR #58 (`3da699ed`), PR CI/browser PASS; backend #38/#39 and signed-in Cloudflare acceptance pending
+**Workflow state:** VERIFYING — approved UI + backend contracts merged (frontend #58/#59, backend #40), Railway backend deployed, CI/browser-mock PASS; actual signed-in Cloudflare/API security acceptance pending
 **Route(s):** `/qbank/:bankId/previous-tests?step=N`; integrated changes to `/qbank/:bankId/create-test?step=N` and existing AMBOSS Exam Runner lifecycle
 **Approved:** 2026-10-09 (explicit user acceptance of simple standalone HTML prototype and palette-readiness)
 **Design reference:** User-supplied simple AMBOSS-style results table screenshot, followed by the standalone MedPark Previous Tests desktop/mobile HTML mock shown in conversation.
@@ -148,3 +148,17 @@ Frontend [PR #58](https://github.com/geminiamo0-ship-it/medfront/pull/58) implem
 **Verification:** [PR Verify #37865707959](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865707959) PASS (Typecheck/Lint/Build), final documentation [PR Verify #37865862156](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865862156) PASS; [Chromium Browser Smoke #37865707945](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37865707945) PASS on actual UI code. They use a mocked API; no production authentication was tested. The browser smoke fixtures cover Standard manual title, System+Topic auto title, all status actions, Copy ID, full-name disclosure, desktop/tablet/mobile screenshots and overflow. Record precise green run IDs in #55 when available. This is NOT a claim of real signed-in Cloudflare acceptance; user will verify deployment separately.
 
 **Remaining:** backend #38 authorized same-question repeat attempt, backend #39 authoritative pool/full taxonomy list projection, signed-in live app acceptance; keep #55 OPEN and not DONE until those approved requirements and gates pass.
+
+## 16. Integrated Previous Tests implementation — 2026-10-09
+
+**Source of truth:** backend `medhvgg/main` PR [#40](https://github.com/geminiamo0-ship-it/medhvgg/pull/40) (`349a7632`), frontend `medfront/main` PR [#59](https://github.com/geminiamo0-ship-it/medfront/pull/59) (`c30b64f6`). Original UI PR #58 remains unchanged. The user expressly requested finishing remaining approved Previous Tests features without waiting for their independent Results live review.
+
+Implemented:
+- Paged `GET /tests/previous-tests-summary` with server-only saved `questionPoolLabel`, selected System and Topic display names, mixed source modes and bounded results. Old ALL tests without provenance intentionally remain `—`; missing metadata is never reconstructed client-side.
+- Secure `POST /tests/:id/repeat`: JWT, original owner first, entitled Step/active banks, active original mapping and grouping validation, preserved original internal question order in a **separate** test with independent progress, Tutor/Timed settings, create quota, transactional save. Direct random fallback via old `sourceTestId` is now rejected.
+- Previous Tests desktop table/tablet/mobile cards include truthful pool data/details, pagination and small two-stage Repeat confirmation. Custom Create Test also offers `Repeat Same Questions` using an internal Test ID **separately** from loading external UWorld IDs.
+- Explicit network-error guidance avoids automatic retrying a non-idempotent POST. User approval covers current simple semantic-token look; no color palette invention.
+
+**Verification evidence:** backend [Verify #37867613983](https://github.com/geminiamo0-ship-it/medhvgg/actions/runs/37867613983) PASS including new contract tests, Railway Production deployment `05997c50` **SUCCESS** for backend `349a7632`. Frontend PR [Verify #37867722005](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37867722005) PASS and [AMBOSS Browser Smoke #37867721983](https://github.com/geminiamo0-ship-it/medfront/actions/runs/37867721983) PASS including desktop/tablet/mobile and Custom/list repeat; the browser test uses **mocked API**.
+
+**Remaining gate, not DONE:** Actual Cloudflare deploy of frontend `c30b64f6` or newer + signed-in user verification against real Railway: own authorized source creates a genuinely new attempt with identical ordered IDs, another user's ID 404 with no mapping leak, denied bank/Step, unavailable grouped/inactive question fail closed, rate limit, real pagination/provenance and result flows. No production account tokens are exposed to ChatGPT. #55 and backend #38/#39 stay OPEN/VERIFYING until documented. Separate Results #53/#51 also remain OPEN/VERIFYING.
