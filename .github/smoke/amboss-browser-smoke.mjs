@@ -132,6 +132,7 @@ let timedAiSummaryCalls = 0;
 let timedReviewExplanationFetches = 0;
 let libraryArticleFetches = 0;
 let createdArticleTestBody = null;
+let repeatRequestSourceId = null;
 const longLibrarySection = Array(20).fill('<p>Reference detail for scrolling and centering an AMBOSS article section.</p>').join('');
 
 let tutorLifecycleStatus = 'in_progress';
@@ -414,9 +415,9 @@ async function installApiMocks(target) {
       return json(route, { id: 9002 }, 201);
     }
 
-    if (path === '/tests' && method === 'GET') {
+    if ((path === '/tests' || path === '/tests/previous-tests-summary') && method === 'GET') {
       const now = new Date().toISOString();
-      return json(route, [
+      const items = [
         {
           id: 9006,
           title: 'System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease',
@@ -451,7 +452,27 @@ async function installApiMocks(target) {
           completedAt: tutorLifecycleStatus === 'completed' ? now : null,
           createdAt: now,
         },
-      ]);
+      ];
+      if (path === '/tests') return json(route, items);
+      const projected = items.map((item) => ({
+        ...item,
+        questionPoolLabel: item.id === 9007 || item.mode === 'all' ? null : 'Unused',
+        selectedSystemNames: item.id === 9006 ? ['Cardiology'] : [],
+        selectedTopicNames: item.id === 9006 ? ['Cardiac physiology', 'Valve disorders'] : [],
+        mixedPoolModes: [],
+      }));
+      return json(route, {
+        page: Number(url.searchParams.get('page') || 1),
+        pageSize: 50,
+        hasMore: false,
+        items: Number(url.searchParams.get('page') || 1) === 1 ? projected : [],
+      });
+    }
+
+    const repeatMatch = path.match(/^\\/tests\\/(\\d+)\\/repeat$/);
+    if (repeatMatch && method === 'POST') {
+      repeatRequestSourceId = Number(repeatMatch[1]);
+      return json(route, { id: 9004 }, 201);
     }
 
     if (path === '/tests/9001' && method === 'GET') {
