@@ -1344,7 +1344,7 @@ try {
     await page.getByText('Heart failure', { exact: true }).click();
     await page.getByText('Automatic name: System: Cardiology · Topic: Heart failure').waitFor();
     await page.getByRole('button', { name: /^Create Test$/i }).click();
-    await page.waitForURL(/\\/test\\/9002/);
+    await page.waitForURL((url) => url.pathname === '/test/9002');
     assert(createdTimedBody?.title === 'System: Cardiology · Topic: Heart failure',
       'Automatic name did not persist selected System/Topic names');
     assert(createdTimedBody?.filters?.systemIds?.join(',') === '52' &&
