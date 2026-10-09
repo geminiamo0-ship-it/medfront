@@ -1374,6 +1374,21 @@ try {
     await context.close();
   }
 
+  // Existing Custom Create Test form can repeat directly from an owned internal Test ID.
+  {
+    repeatRequestSourceId = null;
+    const { context, page } = await preparePage(browser, { width: 1280, height: 900 });
+    await page.goto(baseUrl + '/qbank/1/create-test?step=1', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Custom', exact: true }).first().click();
+    await page.getByPlaceholder('Enter internal Test ID').fill('9006');
+    await page.getByRole('button', { name: 'Repeat Same Questions' }).click();
+    await page.waitForURL(url => url.pathname === '/test/9004');
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    assert(repeatRequestSourceId === 9006,
+      'Custom Repeat must use the server-owned source Test ID, never UWorld ID retrieval');
+    await context.close();
+  }
+
   // Previous Tests V2: accurate desktop table, responsive tablet/mobile cards,
   // full-name disclosure, linked actions, clipboard and long-content overflow.
   for (const device of [
