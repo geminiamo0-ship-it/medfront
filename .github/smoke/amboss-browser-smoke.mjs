@@ -1416,6 +1416,15 @@ try {
     const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflows, device.name + ': Previous Tests has horizontal viewport overflow');
     await page.screenshot({ path: outDir + '/previous-tests-v2-' + device.name + '.png', fullPage: true });
+    if (device.name === 'desktop') {
+      repeatRequestSourceId = null;
+      await complete.getByRole('button', { name: 'Repeat', exact: true }).click();
+      await complete.getByRole('group', { name: 'Repeat test 9006' }).getByRole('button', { name: 'Confirm' }).click();
+      await page.waitForURL((url) => url.pathname === '/test/9004');
+      await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+      assert(repeatRequestSourceId === 9006,
+        'Repeat must call /tests/:internal-id/repeat, not external Custom question ID retrieval');
+    }
     await context.close();
   }
 
