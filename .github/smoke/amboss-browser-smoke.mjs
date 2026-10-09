@@ -132,6 +132,7 @@ let timedAiSummaryCalls = 0;
 let timedReviewExplanationFetches = 0;
 let libraryArticleFetches = 0;
 let createdArticleTestBody = null;
+let repeatRequestSourceId = null;
 const longLibrarySection = Array(20).fill('<p>Reference detail for scrolling and centering an AMBOSS article section.</p>').join('');
 
 let tutorLifecycleStatus = 'in_progress';
@@ -414,9 +415,9 @@ async function installApiMocks(target) {
       return json(route, { id: 9002 }, 201);
     }
 
-    if (path === '/tests' && method === 'GET') {
+    if ((path === '/tests' || path === '/tests/previous-tests-summary') && method === 'GET') {
       const now = new Date().toISOString();
-      return json(route, [
+      const items = [
         {
           id: 9006,
           title: 'System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease',
@@ -451,7 +452,27 @@ async function installApiMocks(target) {
           completedAt: tutorLifecycleStatus === 'completed' ? now : null,
           createdAt: now,
         },
-      ]);
+      ];
+      if (path === '/tests') return json(route, items);
+      const projected = items.map((item) => ({
+        ...item,
+        questionPoolLabel: item.id === 9007 || item.mode === 'all' ? null : 'Unused',
+        selectedSystemNames: item.id === 9006 ? ['Cardiology'] : [],
+        selectedTopicNames: item.id === 9006 ? ['Cardiac physiology', 'Valve disorders'] : [],
+        mixedPoolModes: [],
+      }));
+      return json(route, {
+        page: Number(url.searchParams.get('page') || 1),
+        pageSize: 50,
+        hasMore: false,
+        items: Number(url.searchParams.get('page') || 1) === 1 ? projected : [],
+      });
+    }
+
+    const repeatMatch = path.match(new RegExp('^/tests/([0-9]+)/repeat$'));
+    if (repeatMatch && method === 'POST') {
+      repeatRequestSourceId = Number(repeatMatch[1]);
+      return json(route, { id: 9004 }, 201);
     }
 
     if (path === '/tests/9001' && method === 'GET') {
@@ -1353,6 +1374,21 @@ try {
     await context.close();
   }
 
+  // Existing Custom Create Test form can repeat directly from an owned internal Test ID.
+  {
+    repeatRequestSourceId = null;
+    const { context, page } = await preparePage(browser, { width: 1280, height: 900 });
+    await page.goto(baseUrl + '/qbank/1/create-test?step=1', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Custom', exact: true }).first().click();
+    await page.getByPlaceholder('Enter internal Test ID').fill('9006');
+    await page.getByRole('button', { name: 'Repeat Same Questions' }).click();
+    await page.waitForURL(url => url.pathname === '/test/9004');
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+    assert(repeatRequestSourceId === 9006,
+      'Custom Repeat must use the server-owned source Test ID, never UWorld ID retrieval');
+    await context.close();
+  }
+
   // Previous Tests V2: accurate desktop table, responsive tablet/mobile cards,
   // full-name disclosure, linked actions, clipboard and long-content overflow.
   for (const device of [
@@ -1395,6 +1431,15 @@ try {
     const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflows, device.name + ': Previous Tests has horizontal viewport overflow');
     await page.screenshot({ path: outDir + '/previous-tests-v2-' + device.name + '.png', fullPage: true });
+    if (device.name === 'desktop') {
+      repeatRequestSourceId = null;
+      await complete.getByRole('button', { name: 'Repeat', exact: true }).click();
+      await complete.getByRole('group', { name: 'Repeat test 9006' }).getByRole('button', { name: 'Confirm' }).click();
+      await page.waitForURL((url) => url.pathname === '/test/9004');
+      await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
+      assert(repeatRequestSourceId === 9006,
+        'Repeat must call /tests/:internal-id/repeat, not external Custom question ID retrieval');
+    }
     await context.close();
   }
 
