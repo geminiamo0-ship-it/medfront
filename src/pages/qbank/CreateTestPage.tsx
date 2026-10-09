@@ -16,6 +16,7 @@ import type { SystemWithTopics } from '@/api/tests';
 import { type WorkspaceContext } from './WelcomePage';
 import { SectionLoader } from '@/components/PulseLoader';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
+import { buildAutomaticTestTitle } from './previousTestsTitle';
 
 type QuestionStatusMode = keyof QuestionCounts;
 type TestFilters = {
@@ -261,6 +262,14 @@ export default function CreateTestPage() {
     [systemsQuery.data],
   );
   const systemColumns = useMemo(() => splitColumns(systems), [systems]);
+  const automaticTestTitle = useMemo(() => buildAutomaticTestTitle({
+    bankName: bank?.name,
+    isCustom: questionTab === 'custom',
+    modes,
+    selectedSystemIds: systemIds,
+    selectedTopicIds: topicIds,
+    systems,
+  }), [bank?.name, questionTab, modes, systemIds, topicIds, systems]);
 
   function toggleMode(key: QuestionStatusMode) {
     setModes((prev) => {
@@ -314,11 +323,7 @@ export default function CreateTestPage() {
       const single = modes.length === 1 ? modes[0] : null;
       const total = isCustom ? customIds.length : numQuestions;
       const res = await createTest({
-        title:
-          testName.trim() ||
-          (isCustom
-            ? `${bank?.name ?? 'Bank'} — custom`
-            : `${bank?.name ?? 'Bank'} — ${modes.length === 1 ? single : 'mixed'}`),
+        title: testName.trim() || automaticTestTitle,
         type: timed ? 'timed' : 'tutor',
         mode: isCustom ? 'all' : (single ?? 'mixed_modes'),
         step,
@@ -448,17 +453,27 @@ export default function CreateTestPage() {
         )}
       </section>
 
+      <section className="mt-5 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6">
+        <label htmlFor="test-name" className="text-sm font-extrabold uppercase tracking-wide text-ink">
+          Test Name <span className="font-normal normal-case text-ink-muted">(optional)</span>
+        </label>
+        <input
+          id="test-name"
+          value={testName}
+          onChange={(e) => setTestName(e.target.value)}
+          maxLength={200}
+          placeholder="Leave blank to generate a name"
+          aria-describedby="test-name-preview"
+          className="mt-3 w-full rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
+        />
+        <p id="test-name-preview" className="mt-2 break-words text-xs leading-relaxed text-ink-muted">
+          {testName.trim() ? 'Your entered name will be used.' : 'Automatic name: ' + automaticTestTitle}
+        </p>
+      </section>
+
       {questionTab === 'custom' && (
         <section className="mt-5 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6">
-          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Test Name</h2>
-          <input
-            value={testName}
-            onChange={(e) => setTestName(e.target.value)}
-            placeholder="Optional — defaults to the bank name"
-            className="mt-3 w-full rounded-lg border border-line bg-surface2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-mp focus:outline-none"
-          />
-
-          <div className="mt-5 rounded-xl border border-link/20 bg-link/5 p-4">
+          <div className="rounded-xl border border-link/20 bg-link/5 p-4">
             <h3 className="text-sm font-bold text-ink">Instructions on using Custom mode</h3>
             <p className="mt-2 text-xs leading-relaxed text-ink-soft">
               This mode lets you hand-pick exact questions by their UWorld IDs — for faculty/group
