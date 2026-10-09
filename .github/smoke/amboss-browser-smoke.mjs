@@ -1434,7 +1434,7 @@ try {
       Number(tutorSuspendBody?.totalTimeSpentSeconds) >= 1,
       `Tutor Suspend did not send elapsed session time: ${JSON.stringify(tutorSuspendBody)}`,
     );
-    await page.getByText('AMBOSS tutor lifecycle smoke', { exact: true }).waitFor();
+    await page.locator('tbody tr').filter({ hasText: 'AMBOSS tutor lifecycle smoke' }).getByText('AMBOSS tutor lifecycle smoke', { exact: true }).waitFor();
 
     const tutorRow = page.getByRole('row').filter({ hasText: 'AMBOSS tutor lifecycle smoke' });
     await tutorRow.getByRole('link', { name: 'Resume' }).click();
