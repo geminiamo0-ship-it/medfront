@@ -1304,6 +1304,9 @@ try {
     const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/qbank/1/create-test?step=1`, { waitUntil: 'networkidle' });
     await page.getByRole('heading', { name: 'Create Test' }).waitFor();
+    const standardNameInput = page.getByRole('textbox', { name: /Test Name/i });
+    await standardNameInput.fill('Manual timed practice');
+    await page.getByText('Your entered name will be used.').waitFor();
 
     await page.getByRole('button', { name: /^Timed$/i }).click();
     await page.getByText('Time per question', { exact: true }).waitFor();
@@ -1316,9 +1319,37 @@ try {
     await page.getByText('1h 00m', { exact: true }).waitFor();
     await page.getByRole('button', { name: /^Create Test$/i }).click();
     await page.waitForURL(/\/test\/9002/);
+    assert(createdTimedBody?.title === 'Manual timed practice', 'Standard Create Test ignored the optional manual name');
     assert(createdTimedBody?.type === 'timed', 'Create Test did not send type=timed');
     assert(Number(createdTimedBody?.totalQuestions) === 40, 'Create Test did not preserve 40 questions');
     assert(Number(createdTimedBody?.timeLimitSeconds) === 3600, `Expected 40 × 90s = 3600s, got ${createdTimedBody?.timeLimitSeconds}`);
+    await context.close();
+  }
+
+  // Automatic Test Name must persist actual selected System/Topic names when blank.
+  {
+    createdTimedBody = null;
+    const { context, page } = await preparePage(browser, { width: 1440, height: 1000 });
+    await context.route('https://medhvgg-production.up.railway.app/api/tests/metadata/subjects', (route) =>
+      json(route, [{ id: 51, name: 'Medicine', displayOrder: 1, questionCount: 100, columnIndex: 0, position: 0 }]));
+    await context.route('https://medhvgg-production.up.railway.app/api/tests/metadata/systems-with-topics', (route) =>
+      json(route, [{
+        id: 52, name: 'Cardiology', questionCount: 100,
+        topics: [{ id: 53, name: 'Heart failure', questionCount: 30 }],
+      }]));
+    await page.goto(baseUrl + '/qbank/1/create-test?step=1', { waitUntil: 'networkidle' });
+    await page.getByText('Medicine', { exact: true }).click();
+    await page.getByText('Cardiology', { exact: true }).click();
+    await page.getByRole('button', { name: 'Show topics' }).click();
+    await page.getByText('Heart failure', { exact: true }).click();
+    await page.getByText('Automatic name: System: Cardiology · Topic: Heart failure').waitFor();
+    await page.getByRole('button', { name: /^Create Test$/i }).click();
+    await page.waitForURL(/\\/test\\/9002/);
+    assert(createdTimedBody?.title === 'System: Cardiology · Topic: Heart failure',
+      'Automatic name did not persist selected System/Topic names');
+    assert(createdTimedBody?.filters?.systemIds?.join(',') === '52' &&
+      createdTimedBody?.filters?.topicIds?.join(',') === '53',
+      'Automatic title test must not drop authoritative system/topic filters');
     await context.close();
   }
 
@@ -1807,7 +1838,7 @@ try {
     await context.close();
   }
 
-  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true previous_tests_v2_responsive=true previous_tests_copy_id=true previous_tests_status_actions=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true amboss_article_create_test=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
+  console.log('AMBOSS_BROWSER_SMOKE_OK desktop=true ipad=true mobile=true clue=true hint=true labs=true notes=true mark=true first_answer_submit=true post_submit_inline=true show_all=true omitted=true blob_explanations=true last_option_explanation=true internal_library_link=true library_split=true library_new_tab=true timed_create_duration=true previous_tests_auto_name=true previous_tests_v2_responsive=true previous_tests_copy_id=true previous_tests_status_actions=true timed_timer_ticks=true tutor_timer_ticks=true tutor_suspend_navigation=true tutor_end_block=true marker_palette=true marker_dark_contrast=true tutor_pause_on_submit=true tutor_resume_unanswered=true tutor_submit_time_delta=true omitted_review_correct=true omitted_review_explanation_fetch=true omitted_review_no_mutation=true global_r2_media_origin=true relative_r2_images=true shared_image_viewer=true stem_image_rail=true missing_image_fallback=true library_image_regression=true tutor_image_reveal=true timed_image_reveal=true image_overlay_zoom=true overlay_bitmap_decodes=true diagnostic_title_hidden_before_answer=true image_option_no_submit=true precise_library_anchor=true same_article_anchor_no_refetch=true main_article_relation=true dotted_related_terms=true exact_anchor_center=true responsive_anchor_center=true semantic_medical_tables=true numeric_lab_tables=true scoped_table_headers=true dark_table_contrast=true responsive_table_scroll=true inline_anchor_spotlight=true amboss_article_create_test=true reduced_motion_anchor=true sidebar_stem_previews=true sidebar_progress=true sidebar_question_timer=true sidebar_exit_navigation=true pencil_palette=true');
 } finally {
   await browser.close();
 }
