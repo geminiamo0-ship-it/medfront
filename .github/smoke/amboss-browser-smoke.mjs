@@ -469,7 +469,7 @@ async function installApiMocks(target) {
       });
     }
 
-    const repeatMatch = path.match(/^\\/tests\\/(\\d+)\\/repeat$/);
+    const repeatMatch = path.match(new RegExp('^/tests/([0-9]+)/repeat$'));
     if (repeatMatch && method === 'POST') {
       repeatRequestSourceId = Number(repeatMatch[1]);
       return json(route, { id: 9004 }, 201);
