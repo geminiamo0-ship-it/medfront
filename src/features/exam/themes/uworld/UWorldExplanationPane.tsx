@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { SafeHtml } from '../../shared/SafeHtml';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 
-export function UWorldExplanationPane({ controller: c }: { controller: ExamRunnerController }) {
+export function UWorldExplanationPane({ controller: c, onAiTutor }: { controller: ExamRunnerController; onAiTutor: () => void }) {
   const q = c.currentQuestion;
   const requested = useRef<number | null>(null);
   useEffect(() => {
@@ -17,6 +17,10 @@ export function UWorldExplanationPane({ controller: c }: { controller: ExamRunne
     <section className="uw-explanation-pane" aria-label="Explanation">
       <header className="uw-explanation-header">
         <span className="uw-explanation-tab">Explanation:</span>
+        <button className="uw-ai-tutor" type="button" onClick={onAiTutor} disabled={!c.isCompleted}
+          title={c.isCompleted ? 'Ask MedPark AI about this reviewed question' : 'Available after completing the block'}>
+          Consult AI Tutor
+        </button>
         {c.reviewExplanationMutation.isPending ? <small>Loading…</small> : null}
       </header>
       <div className="uw-explanation-content">
