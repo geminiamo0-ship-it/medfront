@@ -1414,7 +1414,7 @@ try {
     { name: 'mobile', width: 390, height: 844 },
   ]) {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
-    await page.goto(baseUrl + '/qbank/1/welcome?step=1', { waitUntil: 'networkidle' });
+    await page.goto(baseUrl + '/qbank/1?step=1', { waitUntil: 'networkidle' });
     await page.getByRole('heading', { name: 'Statistics', exact: true }).waitFor();
     const originalTab = page.getByRole('tab', { name: 'Original' });
     const repeatTab = page.getByRole('tab', { name: 'Repeat' });
