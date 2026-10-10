@@ -20,6 +20,7 @@ export function UWorldTheme({ controller: c }: { controller: ExamRunnerControlle
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<UWorldTool | null>(null);
   const [endOpen, setEndOpen] = useState(false);
+  const [markerActive, setMarkerActive] = useState(false);
   const [splitWidth, setSplitWidth] = useState(42);
   const [lifecycleError, setLifecycleError] = useState('');
   const sawActive = useRef(false);
@@ -65,10 +66,11 @@ export function UWorldTheme({ controller: c }: { controller: ExamRunnerControlle
         onToggle={() => setSidebarOpen(v => !v)} onExit={requestExit}
         onSelect={id => { c.goToQuestion(id); if (window.innerWidth < 900) setSidebarOpen(false); }}/>
       <UWorldTopbar controller={c} onToggleSidebar={() => setSidebarOpen(v => !v)}
-        onSettings={() => setSettingsOpen(true)} onTool={toggleTool} onFullscreen={() => void toggleFullscreen()}/>
+        onSettings={() => setSettingsOpen(true)} onTool={toggleTool} onFullscreen={() => void toggleFullscreen()}
+        markerActive={markerActive} onMarker={() => setMarkerActive(v => !v)}/>
       <main className="uw-exam">
         <div className="uw-exam-layout">
-          <UWorldQuestionPane key={c.currentQuestion.id} controller={c} />
+          <UWorldQuestionPane key={c.currentQuestion.id} controller={c} markerActive={markerActive} />
           {visibleExplanation ? (
             <>
               {split ? <UWorldSplitter width={splitWidth} onChange={setSplitWidth} /> : null}
