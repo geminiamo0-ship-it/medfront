@@ -52,7 +52,10 @@ export function UWorldTheme({ controller: c }: { controller: ExamRunnerControlle
     if (c.isSuspended || c.isCompleted) leave();
     else void suspendAndLeave();
   }
-  function toggleTool(tool: UWorldTool) { setActiveTool(current => current === tool ? null : tool); }
+  function toggleTool(tool: UWorldTool) {
+    if (tool === 'labs') c.ensureLabsLoaded();
+    setActiveTool(current => current === tool ? null : tool);
+  }
   async function toggleFullscreen() {
     if (!document.fullscreenElement) {
       try { await document.documentElement.requestFullscreen(); }
