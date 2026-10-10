@@ -6,3 +6,4 @@
 
 /* Latest UWorld-only topbar overrides; Bottom Bar gets its own later pass. */
 @import './styles/uworld-topbar.css';
+@import './styles/uworld-mobile-tools.css';
