@@ -3,6 +3,7 @@ import { PulseLoader } from '@/components/PulseLoader';
 import { resolveExamTheme } from './registry';
 import { useExamRunner } from './core/useExamRunner';
 import { AmbossTheme } from './themes/amboss/AmbossTheme';
+import { UWorldTheme } from './themes/uworld/UWorldTheme';
 
 export function ExamRunnerPage() {
   const { testId } = useParams();
@@ -42,6 +43,17 @@ export function ExamRunnerPage() {
           </div>
         )}
         <AmbossTheme controller={controller} />
+      </>
+    );
+  }
+
+  if (theme === 'uworld') {
+    return (
+      <>
+        {controller.test.reviewMode === 'original' ? (
+          <div role="status" className="sticky top-0 z-50 border-b border-line bg-surface px-4 py-2 text-center text-sm font-semibold text-ink">Reviewing your first recorded answer for each question</div>
+        ) : null}
+        <UWorldTheme controller={controller} />
       </>
     );
   }

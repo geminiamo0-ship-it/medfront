@@ -1,0 +1,46 @@
+.uw-runner { position:fixed; inset:0; overflow:hidden; color:var(--uw-ink); background:var(--uw-page); font-family:Inter,"Segoe UI",Arial,sans-serif; z-index:30; }
+.uw-runner *, .uw-runner *::before,.uw-runner *::after { box-sizing:border-box; }
+.uw-runner button { font:inherit; cursor:pointer; }
+.uw-runner button:disabled {opacity:.4;cursor:not-allowed;}
+.uw-runner button:focus-visible,.uw-runner a:focus-visible,.uw-runner [tabindex]:focus-visible {
+  outline:2px solid var(--uw-accent);outline-offset:2px;
+}
+.uw-sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.uw-sidebar {position:absolute;z-index:40;inset:0 auto 0 0;width:var(--uw-sidebar);background:var(--uw-paper);border-right:1px solid var(--uw-line);transform:translateX(-105%);transition:transform .18s ease;display:flex;flex-direction:column;}
+.uw-sidebar-open .uw-sidebar {transform:none;}
+.uw-sidebar-header {height:32px;display:flex;justify-content:space-between;background:var(--uw-extra);border-bottom:1px solid var(--uw-line);}
+.uw-sidebar-header button {width:30px;border:0;color:var(--uw-accent);background:transparent;display:grid;place-items:center;}
+.uw-sidebar-questions {min-height:0;flex:1;overflow-y:auto;}
+.uw-question-row {display:grid;grid-template-columns:1fr 22px;align-items:center;width:100%;height:22px;border:0;text-align:right;color:var(--uw-ink);padding:0 6px;font-size:12px;}
+.uw-question-row:nth-child(odd){background:var(--uw-paper);}
+.uw-question-row:nth-child(even){background:var(--uw-row);}
+.uw-question-row.is-current{background:var(--uw-active);color:#fff;font-weight:700;}
+.uw-question-status {display:grid;place-items:center;font-size:15px;font-weight:700;color:var(--uw-accent);}
+.uw-question-status.is-correct{color:var(--uw-correct);}
+.uw-question-status.is-incorrect{color:var(--uw-wrong);}
+.uw-question-row.is-current .uw-question-status{color:#fff;}
+.uw-topbar {height:var(--uw-top);position:absolute;top:0;right:0;left:0;z-index:35;display:grid;grid-template-columns:minmax(230px,1fr) auto minmax(0,1fr);background:var(--uw-bar);color:#fff;transition:left .18s ease;}
+.uw-sidebar-open .uw-topbar {left:var(--uw-sidebar);}
+.uw-top-left {display:flex;align-items:center;gap:8px;min-width:0;}
+.uw-top-menu {height:100%;width:35px;border:0;background:transparent;color:inherit;display:grid;place-items:center;flex:none;}
+.uw-item-index {line-height:1.18;min-width:102px;white-space:nowrap;}
+.uw-item-index strong {display:block;font-size:12px;}
+.uw-item-index small{display:block;font-size:9px;}
+.uw-mark {border:0;background:transparent;color:inherit;display:flex;align-items:center;gap:4px;padding:5px;font-size:12px;font-weight:600;}
+.uw-mark.is-marked{color:#ffce75;}
+.uw-top-center,.uw-top-right {display:flex;justify-content:center;align-items:stretch;min-width:0;}
+.uw-top-right {justify-content:flex-end;}
+.uw-bar-action {height:100%;min-width:50px;padding:3px 6px;border:0;background:transparent;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;line-height:1.15;white-space:nowrap;}
+.uw-bar-action:hover:not(:disabled),.uw-top-menu:hover,.uw-mark:hover{background:rgba(255,255,255,.10);}
+.uw-exam {position:absolute;left:0;right:0;top:var(--uw-top);bottom:var(--uw-bottom);overflow:hidden;background:var(--uw-page);transition:left .18s ease;}
+.uw-sidebar-open .uw-exam{left:var(--uw-sidebar);}
+.uw-exam-layout {height:100%;min-height:0;display:flex;}
+.uw-runner[data-mode="continuous"] .uw-exam-layout{display:block;overflow-y:auto;}
+.uw-bottombar {position:absolute;bottom:0;right:0;left:0;height:var(--uw-bottom);z-index:35;background:var(--uw-bar);color:#fff;display:flex;align-items:stretch;transition:left .18s ease;}
+.uw-sidebar-open .uw-bottombar{left:var(--uw-sidebar);}
+.uw-bottom-status{min-width:210px;padding:0 15px;display:flex;align-items:center;gap:9px;font-size:11px;}
+.uw-bottom-status strong,.uw-bottom-status small{display:block;font-weight:650;}
+.uw-bottom-status small{font-size:10px;margin-top:3px;}
+.uw-bottom-tools {display:flex;align-items:stretch;justify-content:flex-end;margin-left:auto;min-width:0;}
+.uw-end svg {color:#ff786d;}
+.uw-mobile-overlay{display:none;}
