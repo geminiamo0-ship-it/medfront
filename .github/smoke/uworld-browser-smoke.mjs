@@ -182,7 +182,7 @@ try {
       assert(Math.abs(railGeometry.circleWidth - railGeometry.circleHeight) <= 1
         && (railGeometry.circleRadius.includes('50%') || railGeometry.circleRadius.startsWith('23px')),
         'Tools must render as circular icons');
-      assert(/^matrix\\(0, 1, -1, 0,/.test(railGeometry.rotation),
+      assert(railGeometry.rotation.startsWith('matrix(0, 1, -1, 0,'),
         'Settings gear should rotate 90deg when the rail is open: ' + railGeometry.rotation);
       await page.screenshot({ path: output + '/mobile-tools-vertical-' + viewport.width + '.png' });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
