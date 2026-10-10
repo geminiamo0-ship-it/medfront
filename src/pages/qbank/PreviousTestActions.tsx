@@ -104,9 +104,14 @@ export default function PreviousTestActions({
           className={`absolute right-0 z-30 w-[min(17rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-1.5 shadow-pop ${menuAbove ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
           {complete && (
             <>
-              <Link className={menuItem} to={'/test/' + test.originalReviewId} onClick={close}>
-                <Icon name="history" /> Review Original Test
+              <Link className={menuItem} to={'/test/' + test.id + '?review=original'} onClick={close}>
+                <Icon name="history" /> Review First Answers
               </Link>
+              {test.originalReviewId !== test.id && (
+                <Link className={menuItem} to={'/test/' + test.originalReviewId} onClick={close}>
+                  <Icon name="review" /> Review Original Test
+                </Link>
+              )}
               {test.latestRepeatReviewId != null && (
                 <Link className={menuItem} to={'/test/' + test.latestRepeatReviewId} onClick={close}>
                   <Icon name="review" /> Review Latest Repeat
