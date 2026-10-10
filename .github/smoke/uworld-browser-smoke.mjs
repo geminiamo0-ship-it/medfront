@@ -141,9 +141,52 @@ try {
       assert.deepEqual(await tools.locator('button').allTextContents(), [
         'Shortcuts', 'Full Screen', 'Marker', 'Lab Values', 'Notes', 'Calculator', 'Appearance & Layout',
       ]);
-      await page.waitForTimeout(320);
-      // Use viewport screenshot: the animated absolute tray extends below header bounds.
-      await page.screenshot({ path: output + '/mobile-tools-expanded-' + viewport.width + '.png' });
+      await page.waitForTimeout(570);
+      const railGeometry = await page.evaluate(() => {
+        const tray = document.querySelector('.uw-mobile-tools-tray');
+        const gear = document.querySelector('.uw-settings-gear');
+        const toggle = document.querySelector('.uw-mobile-settings-toggle');
+        const buttons = Array.from(document.querySelectorAll('.uw-mobile-tray-action'));
+        const orb = buttons[0]?.querySelector('.uw-mobile-action-orb');
+        if (!tray || !toggle || !gear || !orb) return null;
+        const items = buttons.map(button => button.getBoundingClientRect());
+        const floating = tray.getBoundingClientRect();
+        const settings = toggle.getBoundingClientRect();
+        const circle = orb.getBoundingClientRect();
+        const lefts = items.map(item => item.left + item.width / 2);
+        return {
+          width: floating.width,
+          rightGap: window.innerWidth - floating.right,
+          gearAlignment: Math.abs(settings.right - floating.right),
+          top: floating.top,
+          mainBottom: settings.bottom,
+          itemCenters: lefts,
+          itemTops: items.map(item => item.top),
+          circleWidth: circle.width,
+          circleHeight: circle.height,
+          circleRadius: getComputedStyle(orb).borderRadius,
+          rotation: getComputedStyle(gear).transform,
+          scrollHeight: tray.scrollHeight,
+          clientHeight: tray.clientHeight,
+        };
+      });
+      assert(railGeometry, 'Mobile radial rail layout unavailable');
+      assert(railGeometry.width <= 86 && railGeometry.rightGap >= -1 && railGeometry.rightGap <= 12,
+        'Rail should float near right screen edge, not across the screen: ' + JSON.stringify(railGeometry));
+      assert(railGeometry.gearAlignment <= 12 && railGeometry.top >= railGeometry.mainBottom,
+        'Rail must unfold immediately below settings gear: ' + JSON.stringify(railGeometry));
+      assert(railGeometry.itemTops.every((top, i, items) => i === 0 || top > items[i-1]),
+        'Tools must be a single descending column, not a horizontal grid');
+      assert(Math.max(...railGeometry.itemCenters) - Math.min(...railGeometry.itemCenters) <= 3,
+        'Tool orbs are not vertically aligned');
+      assert(Math.abs(railGeometry.circleWidth - railGeometry.circleHeight) <= 1
+        && railGeometry.circleRadius.includes('50%') || Math.abs(railGeometry.circleWidth - railGeometry.circleHeight) <= 1
+          && railGeometry.circleRadius.startsWith('23px'),
+        'Tools must render as circular icons');
+      assert(railGeometry.rotation.startsWith('matrix(0, 1, -1, 0,') ||
+        railGeometry.rotation.startsWith('matrix(0, 1, -1, 0,'),
+        'Settings gear should rotate 90deg when the rail is open: ' + railGeometry.rotation);
+      await page.screenshot({ path: output + '/mobile-tools-vertical-' + viewport.width + '.png' });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
       await settings.click();
       assert.equal(await settings.getAttribute('aria-expanded'), 'false',
