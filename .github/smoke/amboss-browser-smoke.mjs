@@ -387,6 +387,21 @@ async function installApiMocks(target) {
       });
     }
 
+    if (path === '/tests/performance/statistics' && method === 'GET') {
+      const view = url.searchParams.get('view');
+      const isRepeat = view === 'repeat';
+      return json(route, { success: true, data: {
+        qBankName: 'AMBOSS Step 1', statisticsView: view,
+        score: { percentage: isRepeat ? '80.0' : '60.0', totalCorrect: isRepeat ? 8 : 6,
+          totalIncorrect: isRepeat ? 2 : 4, totalOmitted: 0 },
+        answerChanges: { correctToIncorrect: 0, incorrectToCorrect: 1, incorrectToIncorrect: 0 },
+        usage: { percentage: '10.0', usedQuestions: 278, unusedQuestions: 2507, totalQuestions: 2785 },
+        testCount: { created: 3, completed: 2, suspended: 1 },
+        percentileRank: 0, medianScore: 0, medianPercentile: 0,
+        yourAverageTimeSpent: 50, othersAverageTimeSpent: 65,
+      } });
+    }
+
     if (path === '/tests/metadata/difficulty-counts' && method === 'POST') {
       return json(route, {
         very_hard: 100,
@@ -460,6 +475,9 @@ async function installApiMocks(target) {
         selectedSystemNames: item.id === 9006 ? ['Cardiology'] : [],
         selectedTopicNames: item.id === 9006 ? ['Cardiac physiology', 'Valve disorders'] : [],
         mixedPoolModes: [],
+        originalReviewId: item.id,
+        latestRepeatReviewId: item.id === 9006 ? 9009 : null,
+        isRepeatAttempt: false,
       }));
       return json(route, {
         page: Number(url.searchParams.get('page') || 1),
@@ -1389,6 +1407,31 @@ try {
     await context.close();
   }
 
+  // Original and Repeat view are bank-scoped, keyboard-accessible, and viewport-safe.
+  for (const device of [
+    { name: 'desktop', width: 1280, height: 900 },
+    { name: 'tablet', width: 834, height: 1194 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
+    await page.goto(baseUrl + '/qbank/1?step=1', { waitUntil: 'networkidle' });
+    await page.getByRole('heading', { name: 'Statistics', exact: true }).waitFor();
+    const originalTab = page.getByRole('tab', { name: 'Original' });
+    const repeatTab = page.getByRole('tab', { name: 'Repeat' });
+    assert((await originalTab.getAttribute('aria-selected')) === 'true', device.name + ': Original must be default');
+    await repeatTab.click();
+    await page.getByText('Latest Repeat Score').waitFor();
+    await page.getByText('80%', { exact: true }).first().waitFor();
+    assert((await repeatTab.getAttribute('aria-selected')) === 'true', device.name + ': Repeat aria state');
+    assert(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
+      device.name + ': statistics horizontal overflow');
+    await originalTab.click();
+    await page.getByText('Original Score').waitFor();
+    await page.getByText('60%', { exact: true }).first().waitFor();
+    await page.screenshot({ path: outDir + '/original-repeat-stats-' + device.name + '.png', fullPage: true });
+    await context.close();
+  }
+
   // Previous Tests V2: accurate desktop table, responsive tablet/mobile cards,
   // full-name disclosure, linked actions, clipboard and long-content overflow.
   for (const device of [
@@ -1408,8 +1451,10 @@ try {
       device.name + ': completed percentage must preserve 2.5%, not round to 3%');
     assert((await complete.getByRole('link', { name: 'Results' }).getAttribute('href')) === '/test/9006/results',
       device.name + ': completed row did not link to actual results');
-    assert((await complete.getByRole('link', { name: 'Review' }).getAttribute('href')) === '/test/9006',
+    assert((await complete.getByRole('link', { name: 'Review Original' }).getAttribute('href')) === '/test/9006',
       device.name + ': completed row did not preserve question review');
+    assert((await complete.getByRole('link', { name: 'Review Latest Repeat' }).getAttribute('href')) === '/test/9009',
+      device.name + ': latest completed repeated review must link to the server-owned attempt');
     const expanded = complete.getByRole('button', { name: /Show full name/i });
     await expanded.click();
     assert((await complete.getByText('System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease', { exact:true }).count()) >= 1,
@@ -1428,6 +1473,9 @@ try {
     assert(copied === '9006', device.name + ': Copy ID did not copy the internal test ID');
     assert((await page.getByRole('status').textContent())?.includes('9006'),
       device.name + ': clipboard success feedback missing');
+    // Delete is explicitly confirmed; cancelling must not invoke the destructive API.
+    await complete.getByRole('button', { name: 'Delete', exact: true }).click();
+    await complete.getByRole('group', { name: 'Delete test 9006' }).getByRole('button', { name: 'Cancel' }).click();
     const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflows, device.name + ': Previous Tests has horizontal viewport overflow');
     await page.screenshot({ path: outDir + '/previous-tests-v2-' + device.name + '.png', fullPage: true });

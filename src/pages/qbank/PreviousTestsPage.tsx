@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPreviousTestsSummary, repeatSavedTest, type PreviousTestSummaryItem } from '@/api/tests';
+import { getPreviousTestsSummary, repeatSavedTest, deleteSavedTest, type PreviousTestSummaryItem } from '@/api/tests';
 import { SectionLoader } from '@/components/PulseLoader';
 import { type WorkspaceContext } from './WelcomePage';
 import { invalidateQbankProgressQueries } from '@/lib/qbankProgressQueries';
@@ -77,15 +77,18 @@ function TestName({ test }: { test: PreviousTestSummaryItem }) {
 }
 
 function TestActions({
-  test, copiedId, onCopy, onRepeat, repeatingId,
+  test, copiedId, onCopy, onRepeat, onDelete, repeatingId, deletingId,
 }: {
   test: PreviousTestSummaryItem;
   copiedId: number | null;
   onCopy: (testId: number) => void;
   repeatingId: number | null;
   onRepeat: (testId: number) => void;
+  onDelete: (testId: number) => void;
+  deletingId: number | null;
 }) {
   const [confirmRepeat, setConfirmRepeat] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const complete = test.status === 'completed';
   const action = complete ? 'Results' : test.status === 'suspended' ? 'Resume' : test.status === 'in_progress' ? 'Continue' : 'Open';
   const href = '/test/' + test.id + (complete ? '/results' : '');
@@ -94,7 +97,13 @@ function TestActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Link to={href} className={linkClass}>{action}</Link>
-      {complete && <Link to={'/test/' + test.id} className={linkClass}>Review</Link>}
+      {complete && <Link to={'/test/' + test.id} className={linkClass}>{test.isRepeatAttempt ? 'Review Attempt' : 'Review Original'}</Link>}
+      {complete && test.isRepeatAttempt && test.originalReviewId !== test.id && (
+        <Link to={'/test/' + test.originalReviewId} className={linkClass}>Review Original</Link>
+      )}
+      {complete && test.latestRepeatReviewId && test.latestRepeatReviewId !== test.id && (
+        <Link to={'/test/' + test.latestRepeatReviewId} className={linkClass}>Review Latest Repeat</Link>
+      )}
       {test.totalQuestions <= 50 && (test.type === 'tutor' || test.type === 'timed') && (
         confirmRepeat ? (
           <span className="inline-flex flex-wrap items-center gap-1" role="group" aria-label={'Repeat test ' + test.id}>
@@ -108,6 +117,18 @@ function TestActions({
           <button type="button" className={linkClass} disabled={repeatingId !== null}
             onClick={() => setConfirmRepeat(true)}>Repeat</button>
         )
+      )}
+      {confirmDelete ? (
+        <span role="group" aria-label={'Delete test ' + test.id} className="inline-flex flex-wrap items-center gap-1">
+          <span className="text-xs text-bad">Delete only this test and its attempts?</span>
+          <button type="button" className={linkClass} disabled={deletingId !== null || repeatingId !== null}
+            onClick={() => onDelete(test.id)}>{deletingId === test.id ? 'Deleting…' : 'Confirm Delete'}</button>
+          <button type="button" className={linkClass} disabled={deletingId !== null}
+            onClick={() => setConfirmDelete(false)}>Cancel</button>
+        </span>
+      ) : (
+        <button type="button" className={linkClass} disabled={deletingId !== null || repeatingId !== null}
+          onClick={() => setConfirmDelete(true)}>Delete</button>
       )}
       <button
         type="button"
@@ -127,6 +148,8 @@ export default function PreviousTestsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [repeatingId, setRepeatingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteFeedback, setDeleteFeedback] = useState('');
   const [repeatFeedback, setRepeatFeedback] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
@@ -158,6 +181,22 @@ export default function PreviousTestsPage() {
     }
   }
 
+  async function deleteTest(id: number) {
+    if (deletingId !== null || repeatingId !== null) return;
+    setDeletingId(id);
+    setDeleteFeedback('');
+    try {
+      await deleteSavedTest(id);
+      await invalidateQbankProgressQueries(queryClient);
+      await queryClient.invalidateQueries({ queryKey: ['previous-tests-summary'] });
+      setDeleteFeedback('Test deleted. Other saved attempts and their question progress remain unchanged.');
+    } catch (error) {
+      setDeleteFeedback((error instanceof Error ? error.message : 'Delete failed') + '. Refresh to confirm saved tests before trying again.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function copyTestId(id: number) {
     setCopiedId(null);
     try {
@@ -186,6 +225,7 @@ export default function PreviousTestsPage() {
       </div>
 
       {copyFeedback && <p role="status" aria-live="polite" className="mt-3 break-words text-xs text-ink-muted">{copyFeedback}</p>}
+      {deleteFeedback && <p role="status" aria-live="polite" className="mt-3 text-sm text-ink-muted">{deleteFeedback}</p>}
       {repeatFeedback && <p role="alert" className="mt-3 break-words text-sm text-bad">{repeatFeedback}</p>}
 
       <div className="mt-5 min-w-0 rounded-2xl border border-line bg-surface shadow-card">
@@ -226,7 +266,7 @@ export default function PreviousTestsPage() {
                       <td className="px-3 py-3.5 text-ink-muted">{displayPool(test)}</td>
                       <td className="px-3 py-3.5 tabular-nums text-ink-muted">{test.totalQuestions}</td>
                       <td className="px-3 py-3.5 font-medium text-ink-soft">{displayStatus(test.status)}</td>
-                      <td className="px-3 py-3.5"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} repeatingId={repeatingId} /></td>
+                      <td className="px-3 py-3.5"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} onDelete={(id) => void deleteTest(id)} repeatingId={repeatingId} deletingId={deletingId} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -248,7 +288,7 @@ export default function PreviousTestsPage() {
                     <div><dt className="text-ink-faint">Question pool</dt><dd className="mt-1 text-ink-soft">{displayPool(test)}</dd></div>
                     <div><dt className="text-ink-faint">Questions</dt><dd className="mt-1 tabular-nums text-ink-soft">{test.totalQuestions}</dd></div>
                   </dl>
-                  <div className="mt-4"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} repeatingId={repeatingId} /></div>
+                  <div className="mt-4"><TestActions test={test} copiedId={copiedId} onCopy={(id) => void copyTestId(id)} onRepeat={(id) => void repeatTest(id)} onDelete={(id) => void deleteTest(id)} repeatingId={repeatingId} deletingId={deletingId} /></div>
                 </article>
               ))}
             </div>
