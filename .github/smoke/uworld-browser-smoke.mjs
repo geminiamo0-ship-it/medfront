@@ -152,7 +152,8 @@ try {
       assert.equal(await settings.getAttribute('aria-expanded'), 'false',
         'Escape must close mobile tray');
       await settings.click();
-      await page.getByText('Patient with knee pain').click();
+      // Click visible exam canvas below the dropdown, not text covered by the tray.
+      await page.mouse.click(viewport.width - 12, viewport.height - 100);
       assert.equal(await settings.getAttribute('aria-expanded'), 'false',
         'Outside pointer must dismiss tray');
       await settings.click();
