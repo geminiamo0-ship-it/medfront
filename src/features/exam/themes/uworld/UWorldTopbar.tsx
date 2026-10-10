@@ -1,6 +1,6 @@
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import { ExamIcon, type ExamIconName } from '../../shared/ExamIcon';
-export type UWorldTool = 'calculator' | 'labs' | 'notes' | 'shortcuts' | 'library' | 'flashcards' | 'feedback';
+export type UWorldTool = 'calculator' | 'labs' | 'notes' | 'shortcuts' | 'library' | 'flashcards' | 'feedback' | 'ai';
 
 interface Props {
   controller: ExamRunnerController;
