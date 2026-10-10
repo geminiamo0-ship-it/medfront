@@ -502,7 +502,7 @@ async function installApiMocks(target) {
     if (path === '/tests/9006' && method === 'GET') {
       const originalReview = url.searchParams.get('review') === 'original';
       const question = makeQuestion(2001, 1, 'hard');
-      question.userAnswer = { selectedOptionId: originalReview ? 20012 : 20011,
+      question.userAnswer = { selectedOptionId: originalReview ? question.options[1].id : question.options[0].id,
         isCorrect: !originalReview, timeSpentSeconds: 20, answerChanges: 0 };
       question.status = 'answered';
       question.isAnswered = true;
