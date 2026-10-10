@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { UWorldTool } from './UWorldTopbar';
 import { UWorldTopbarIcon } from './UWorldTopbarIcon';
 import type { ExamIconName } from '../../shared/ExamIcon';
@@ -37,15 +38,17 @@ export function UWorldMobileTools({
   return (
     <div id={id} className={'uw-mobile-tools-tray' + (open ? ' is-open' : '')}
       role="group" aria-label="Additional exam tools" aria-hidden={!open}>
-      <div className="uw-mobile-tools-grid">
-        {tools.map(item => (
+      <div className="uw-mobile-tools-rail">
+        {tools.map((item, index) => (
           <button key={item.label} type="button" className="uw-mobile-tray-action"
+            style={{ '--uw-orb-index': index } as CSSProperties}
+            title={item.label}
             onClick={() => activate(item.label, item.tool)}
             disabled={!open}
             aria-label={item.label}
             aria-pressed={item.label === 'Marker' ? markerActive : undefined}>
-            <UWorldTopbarIcon name={item.icon} size={23}/>
-            <span>{item.label}</span>
+            <span className="uw-mobile-action-orb"><UWorldTopbarIcon name={item.icon} size={21}/></span>
+            <span className="uw-mobile-action-label">{item.label}</span>
           </button>
         ))}
       </div>
