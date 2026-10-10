@@ -94,7 +94,13 @@ function TestActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Link to={href} className={linkClass}>{action}</Link>
-      {complete && <Link to={'/test/' + test.id} className={linkClass}>Review</Link>}
+      {complete && <Link to={'/test/' + test.id} className={linkClass}>{test.isRepeatAttempt ? 'Review Attempt' : 'Review Original'}</Link>}
+      {complete && test.isRepeatAttempt && test.originalReviewId !== test.id && (
+        <Link to={'/test/' + test.originalReviewId} className={linkClass}>Review Original</Link>
+      )}
+      {complete && test.latestRepeatReviewId && test.latestRepeatReviewId !== test.id && (
+        <Link to={'/test/' + test.latestRepeatReviewId} className={linkClass}>Review Latest Repeat</Link>
+      )}
       {test.totalQuestions <= 50 && (test.type === 'tutor' || test.type === 'timed') && (
         confirmRepeat ? (
           <span className="inline-flex flex-wrap items-center gap-1" role="group" aria-label={'Repeat test ' + test.id}>
