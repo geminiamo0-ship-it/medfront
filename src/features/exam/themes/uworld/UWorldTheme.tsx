@@ -52,6 +52,11 @@ export function UWorldTheme({ controller: c }: { controller: ExamRunnerControlle
     if (c.isSuspended || c.isCompleted) leave();
     else void suspendAndLeave();
   }
+  function openAiTutor() {
+    if (!c.isCompleted) return;
+    setActiveTool('ai');
+    if (!c.aiSummary && !c.aiSummaryQuery.isFetching) c.loadAiSummary();
+  }
   function toggleTool(tool: UWorldTool) {
     if (tool === 'labs') c.ensureLabsLoaded();
     setActiveTool(current => current === tool ? null : tool);
@@ -77,7 +82,7 @@ export function UWorldTheme({ controller: c }: { controller: ExamRunnerControlle
           {visibleExplanation ? (
             <>
               {split ? <UWorldSplitter width={splitWidth} onChange={setSplitWidth} /> : null}
-              <UWorldExplanationPane controller={c} />
+              <UWorldExplanationPane controller={c} onAiTutor={openAiTutor} />
             </>
           ) : null}
         </div>
