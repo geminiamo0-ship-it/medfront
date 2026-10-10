@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import { UWorldMobileTools } from './UWorldMobileTools';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import type { ExamIconName } from '../../shared/ExamIcon';
 import { UWorldTopbarIcon } from './UWorldTopbarIcon';
@@ -30,12 +32,42 @@ export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings,
   onTool, onFullscreen, markerActive, onMarker }: Props) {
   const question = c.currentQuestion;
   const isMarked = !!question && c.isQuestionMarked(question);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const topbarRef = useRef<HTMLElement>(null);
+  const mobileSettingsRef = useRef<HTMLButtonElement>(null);
+  const trayId = useId();
+
+  useEffect(() => {
+    if (!mobileToolsOpen) return;
+    const outside = (event: PointerEvent) => {
+      if (!topbarRef.current?.contains(event.target as Node)) setMobileToolsOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileToolsOpen(false);
+        mobileSettingsRef.current?.focus();
+      }
+    };
+    const screen = window.matchMedia('(max-width: 650px)');
+    const resize = () => { if (!screen.matches) setMobileToolsOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    screen.addEventListener('change', resize);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+      screen.removeEventListener('change', resize);
+    };
+  }, [mobileToolsOpen]);
+
+  const openTool = (tool: UWorldTool) => { setMobileToolsOpen(false); onTool(tool); };
+  const closeTray = () => setMobileToolsOpen(false);
 
   return (
-    <header className="uw-topbar" aria-label="Exam top toolbar">
+    <header ref={topbarRef} className="uw-topbar" aria-label="Exam top toolbar">
       <div className="uw-top-left">
         <button type="button" className="uw-top-menu" aria-label="Toggle navigator"
-          title="Questions" onClick={onToggleSidebar}>
+          title="Questions" onClick={() => { closeTray(); onToggleSidebar(); }}>
           <UWorldTopbarIcon name="menu" size={23}/>
         </button>
         <div className="uw-item-index">
@@ -80,6 +112,24 @@ export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings,
         <ToolButton label="Calculator" icon="calculator" onClick={() => onTool('calculator')}/>
         <ToolButton label="Settings" icon="settings" onClick={onSettings}/>
       </nav>
+      <nav className="uw-top-mobile-actions" aria-label="Mobile exam controls">
+        <button type="button" className={'uw-mobile-main-action' + (isMarked ? ' is-marked' : '')}
+          aria-label="Mark" aria-pressed={isMarked} title="Mark question"
+          disabled={!question || c.markMutation.isPending}
+          onClick={c.toggleCurrentMark}>
+          <UWorldTopbarIcon name="mark" size={21}/><span>Mark</span>
+        </button>
+        <button ref={mobileSettingsRef} type="button"
+          className={'uw-mobile-main-action uw-mobile-settings-toggle' + (mobileToolsOpen ? ' is-open' : '')}
+          aria-label="Settings" aria-haspopup="true" aria-expanded={mobileToolsOpen}
+          aria-controls={trayId} title="Additional exam tools"
+          onClick={() => setMobileToolsOpen(value => !value)}>
+          <UWorldTopbarIcon name="settings" size={22}/><span>Settings</span>
+        </button>
+      </nav>
+      <UWorldMobileTools id={trayId} open={mobileToolsOpen} markerActive={markerActive}
+        onTool={openTool} onFullscreen={onFullscreen} onMarker={onMarker}
+        onAppearance={onSettings} onClose={closeTray}/>
     </header>
   );
 }
