@@ -41,7 +41,7 @@ export function UWorldMobileTools({
       <div className="uw-mobile-tools-rail">
         {tools.map((item, index) => (
           <button key={item.label} type="button" className="uw-mobile-tray-action"
-            style={{ '--uw-orb-index': index } as CSSProperties}
+            style={{ '--uw-open-delay': `${index * 37}ms`, '--uw-close-delay': `${(tools.length - index - 1) * 24}ms` } as CSSProperties}
             title={item.label}
             onClick={() => activate(item.label, item.tool)}
             disabled={!open}
