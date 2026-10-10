@@ -160,7 +160,7 @@ export default function WelcomePage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold tracking-tight text-ink">Statistics</h1>
-        <span className="text-xs font-semibold text-ink-faint">Bank #{bankId}</span>
+        <span className="max-w-[55%] truncate text-right text-sm font-semibold text-ink-muted" title={bank?.name ?? stats.qBankName}>{bank?.name ?? stats.qBankName}</span>
       </div>
 
       <div className="mt-4 inline-flex max-w-full rounded-xl border border-line bg-surface2 p-1" role="tablist" aria-label="Statistics attempt view">
@@ -184,7 +184,7 @@ export default function WelcomePage() {
         <p className="mt-3 rounded-lg border border-line bg-surface2 px-4 py-3 text-sm text-ink-muted">No repeated answers yet. Solve a previously answered question again to see your progress here.</p>
       )}
 
-      <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-5">
         {/* Score */}
         <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
           <div className="flex items-start gap-8">
@@ -197,17 +197,6 @@ export default function WelcomePage() {
                 {statisticsView === 'original' && <p className="mt-2 text-xs text-ink-muted">Omissions are tracked in the overall question pool, not counted as answered.</p>}
               </div>
             </div>
-          </div>
-        </section>
-
-        <div className="lg:col-span-2 border-b border-line pb-1 text-xs font-semibold text-ink-muted">Overall activity · across all attempts, not split by Original/Repeat</div>
-        {/* Answer changes */}
-        <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
-          <h2 className="text-sm font-bold text-ink">Answer Changes</h2>
-          <div className="mt-2">
-            <StatRow label="Correct to Incorrect" value={stats.answerChanges.correctToIncorrect} />
-            <StatRow label="Incorrect to Correct" value={stats.answerChanges.incorrectToCorrect} />
-            <StatRow label="Incorrect to Incorrect" value={stats.answerChanges.incorrectToIncorrect} />
           </div>
         </section>
 
@@ -226,6 +215,17 @@ export default function WelcomePage() {
           </div>
         </section>
 
+        <div className="lg:col-span-2 border-b border-line pb-1 text-xs font-semibold text-ink-muted">Overall activity · across all attempts, not split by Original/Repeat</div>
+        {/* Answer changes */}
+        <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
+          <h2 className="text-sm font-bold text-ink">Answer Changes</h2>
+          <div className="mt-2">
+            <StatRow label="Correct to Incorrect" value={stats.answerChanges.correctToIncorrect} />
+            <StatRow label="Incorrect to Correct" value={stats.answerChanges.incorrectToCorrect} />
+            <StatRow label="Incorrect to Incorrect" value={stats.answerChanges.incorrectToIncorrect} />
+          </div>
+        </section>
+
         {/* Test counts */}
         <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
           <h2 className="text-sm font-bold text-ink">Test Count</h2>
@@ -236,19 +236,25 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* Percentile */}
-        <section className="rounded-2xl border border-line bg-surface p-6 shadow-card lg:col-span-2">
-          <h2 className="text-sm font-bold text-ink">Overall Percentile Rank</h2>
-          <div className="mt-3 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
-            <BellCurve youPct={stats.percentileRank} medianPct={stats.medianPercentile} />
-            <div>
-              <p className="text-xs text-ink-muted">Percentile and peer comparisons reflect all completed attempts, independently of the selected tab.</p>
-              <StatRow label="Median Score" value={`${stats.medianScore}%`} />
-              <StatRow label="Your Average Time Spent (sec)" value={stats.yourAverageTimeSpent} />
-              <StatRow label="Others' Average Time Spent (sec)" value={stats.othersAverageTimeSpent} />
-            </div>
+        {/* Cohort context is always overall; separate from the user's attempt-phase score. */}
+        <section className="rounded-2xl border border-line bg-surface p-5 shadow-card lg:col-span-2">
+          <h2 className="text-sm font-bold text-ink">Overall Score &amp; Timing</h2>
+          <div className="mt-2 grid grid-cols-1 gap-x-8 sm:grid-cols-3">
+            <StatRow label="Median Score" value={`${stats.medianScore}%`} />
+            <StatRow label="Your Avg. Time (sec)" value={stats.yourAverageTimeSpent} />
+            <StatRow label="Others' Avg. Time (sec)" value={stats.othersAverageTimeSpent} />
           </div>
         </section>
+
+        {/* Full-width centered final card, not a sidecar with stranded whitespace. */}
+        <section className="rounded-2xl border border-line bg-surface p-6 shadow-card lg:col-span-2">
+          <h2 className="text-center text-sm font-bold text-ink">Overall Percentile Rank</h2>
+          <div className="mx-auto mt-4 max-w-2xl">
+            <BellCurve youPct={stats.percentileRank} medianPct={stats.medianPercentile} />
+          </div>
+          <p className="mt-2 text-center text-xs text-ink-muted">Your percentile and peers reflect all completed attempts, not the selected Original/Repeat tab.</p>
+        </section>
+
       </div>
     </div>
   );
