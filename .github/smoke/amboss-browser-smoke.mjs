@@ -499,6 +499,21 @@ async function installApiMocks(target) {
 
     // Successful article Create Test must LOAD the real AMBOSS Exam Runner.
     // A URL-only assertion would miss the catch-all route redirect to /hub.
+    if (path === '/tests/9006' && method === 'GET') {
+      const originalReview = url.searchParams.get('review') === 'original';
+      const question = makeQuestion(2001, 1, 'hard');
+      question.userAnswer = { selectedOptionId: originalReview ? 20012 : 20011,
+        isCorrect: !originalReview, timeSpentSeconds: 20, answerChanges: 0 };
+      question.status = 'answered';
+      question.isAnswered = true;
+      question.isOmitted = false;
+      return json(route, { ...structuredClone(testState), id: 9006,
+        title: 'First answer provenance smoke', status: 'completed',
+        reviewMode: originalReview ? 'original' : 'attempt',
+        questions: [question], totalQuestions: 1, answeredQuestions: 1,
+        correctAnswers: 1, resumeQuestionId: 2001, resumeDisplayOrder: 1 });
+    }
+
     if (path === '/tests/9004' && method === 'GET') {
       return json(route, {
         ...structuredClone(testState),
@@ -1468,8 +1483,8 @@ try {
     assert((await complete.getByRole('link', { name: 'Review attempt for test 9006' }).getAttribute('href')) === '/test/9006',
       device.name + ': Review attempt icon route failed');
     await complete.getByRole('button', { name: 'More actions for test 9006' }).click();
-    assert((await complete.getByRole('link', { name: 'Review Original Test' }).getAttribute('href')) === '/test/9006',
-      device.name + ': original-test review menu route failed');
+    assert((await complete.getByRole('link', { name: 'Review First Answers' }).getAttribute('href')) === '/test/9006?review=original',
+      device.name + ': first answered review must select read-only original projection');
     assert((await complete.getByRole('link', { name: 'Review Latest Repeat' }).getAttribute('href')) === '/test/9009',
       device.name + ': latest repeat review menu route failed');
     await complete.getByRole('button', { name: 'More actions for test 9006' }).press('Escape');
@@ -1518,6 +1533,19 @@ try {
       assert(repeatRequestSourceId === 9006,
         'Repeat must call /tests/:internal-id/repeat, not external Custom question ID retrieval');
     }
+    await context.close();
+  }
+
+  // First answered review uses the read-only original API projection and shows a clear label.
+  {
+    const { context, page } = await preparePage(browser, { width: 1280, height: 900 });
+    await page.goto(baseUrl + '/qbank/1/previous-tests?step=1', { waitUntil: 'networkidle' });
+    const saved = page.locator('tbody tr').filter({ hasText: 'System: Cardiology' });
+    await saved.getByRole('button', { name: 'More actions for test 9006' }).click();
+    await saved.getByRole('link', { name: 'Review First Answers' }).click();
+    await page.waitForURL((url) => url.pathname === '/test/9006' && url.searchParams.get('review') === 'original');
+    await page.getByRole('status').getByText('Reviewing your first recorded answer for each question', { exact: false }).waitFor();
+    await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
     await context.close();
   }
 
