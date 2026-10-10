@@ -43,3 +43,7 @@
 .uw-runner[data-mode="continuous"] .uw-explanation-pane{height:auto;width:100%;overflow:visible;background:var(--uw-page);border:0;}
 .uw-runner[data-mode="continuous"] .uw-explanation-header{max-width:794px;}
 .uw-runner[data-mode="continuous"] .uw-explanation-content{max-width:810px;}
+
+.uw-marker-active .uw-stem{cursor:text;}
+.uw-runner .exam-user-marker{background:var(--exam-marker-color,#ffe36e);color:#211b0e;padding:0;}
+.uw-top-right .uw-bar-action.is-active{background:rgba(255,255,255,.18);}
