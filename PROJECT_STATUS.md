@@ -1,6 +1,8 @@
 # PROJECT_STATUS.md — MedPark frontend reconstruction
 
-**Last updated:** 2026-10-09  
+**Last updated:** 2026-10-10
+**Active user-reprioritized implementation:** #60 Original/Repeat Welcome + Previous Tests Review/Delete. Approved spec `docs/page-specs/ORIGINAL_REPEAT_STATS.md` committed on feature branch `feat/original-repeat-stats-60`. Frontend draft PR #61 and companion backend draft PR medhvgg#43 (issue medhvgg#42). Backend derives first surviving answered response vs latest subsequent answered response per question, including Custom, without overwriting old attempts. Repeat-on-repeat root normalized; existing Create Test latest status filters NOT changed. Welcome tabs show phase score, and mark peer/activity panels Overall; Previous Tests links are owner-scoped, completed only; single-test confirmed Delete uses existing API. **STATUS: IMPLEMENTING / VERIFYING CI**, NOT merged/deployed until tests pass. **Exact next gates:** backend Verify including new focused tests, frontend Verify + AMBOSS Browser Smoke, reviewed responsive DOM, merge backend first, Railway live authenticated security/semantics, then frontend Cloudflare live acceptance. Parent #55 and Results #53/#51 keep their independent unresolved live gates. No false DONE.
+  
 **Master epic:** #1  
 **G1 parent:** #3 — Stabilize current frontend before new pages  
 **Active issue:** #55 — Previous Tests V2: APPROVED UI + backend contracts merged; workflow **VERIFYING** because Cloudflare signed-in acceptance remains unverified. Frontend PRs [#58](https://github.com/geminiamo0-ship-it/medfront/pull/58) and [#59](https://github.com/geminiamo0-ship-it/medfront/pull/59) merged; backend [PR #40](https://github.com/geminiamo0-ship-it/medhvgg/pull/40) merged on canonical `medhvgg/main`, Railway Production `349a7632` SUCCESS. Backend #38/#39 still OPEN/VERIFYING, not falsely DONE. Results #53/#51 independent Cloudflare gate stays OPEN/VERIFYING.
