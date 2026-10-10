@@ -76,7 +76,7 @@ async function mock(context) {
 
 const browser = await chromium.launch({ headless: true });
 try {
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 834, height: 1000 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 900 }, { width: 834, height: 1000 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
     answered = false;
     const context = await browser.newContext({ viewport });
     await context.addInitScript(() => localStorage.setItem('token', 'uworld-mock-token'));
@@ -84,6 +84,39 @@ try {
     const page = await context.newPage();
     await page.goto(base + '/test/9010', { waitUntil: 'networkidle' });
     await page.locator('.uw-runner[data-appearance="blue"]').waitFor();
+    // Topbar fidelity stage #67: geometry is measured in the rendered Chromium UI.
+    const geometry = await page.evaluate(() => {
+      const bar = document.querySelector('.uw-topbar');
+      const center = document.querySelector('.uw-top-center');
+      const mark = document.querySelector('.uw-mark');
+      const previous = document.querySelector('.uw-top-navigation');
+      const right = Array.from(document.querySelectorAll('.uw-top-right button'))
+        .find(button => window.getComputedStyle(button).display !== 'none');
+      const toolLabel = document.querySelector('.uw-top-tool span');
+      if (!bar || !center || !mark || !previous || !right || !toolLabel) return null;
+      const box = el => el.getBoundingClientRect();
+      const b = box(bar), n = box(center), m = box(mark), p = box(previous), r = box(right);
+      return {
+        centerDelta: Math.abs((n.left + n.width / 2) - (b.left + b.width / 2)),
+        leftOverlap: m.right - p.left,
+        rightOverlap: n.right - r.left,
+        barOverflow: bar.scrollWidth - bar.clientWidth,
+        labelSize: Number.parseFloat(window.getComputedStyle(toolLabel).fontSize),
+        barHeight: b.height,
+      };
+    });
+    assert(geometry, 'Topbar geometry could not be measured');
+    assert(geometry.centerDelta <= 8,
+      'Topbar Previous/Next not centrally aligned at ' + viewport.width + ': ' + JSON.stringify(geometry));
+    assert(geometry.leftOverlap <= 2 && geometry.rightOverlap <= 2,
+      'Topbar navigation overlaps adjacent actions at ' + viewport.width + ': ' + JSON.stringify(geometry));
+    assert(geometry.barOverflow <= 2,
+      'Topbar overflows horizontally at ' + viewport.width + ': ' + JSON.stringify(geometry));
+    assert(geometry.labelSize <= 11,
+      'Topbar font is too large at ' + viewport.width + ': ' + geometry.labelSize);
+    assert(Math.abs(geometry.barHeight - (viewport.width <= 650 ? 56 : 48)) <= 2,
+      'Topbar height differs from approved V3 at ' + viewport.width + ': ' + geometry.barHeight);
+    await page.locator('.uw-topbar').screenshot({ path: output + '/topbar-v3-' + viewport.width + '.png' });
     await page.getByText('Patient with knee pain').waitFor();
     await page.getByRole('radio', { name: /Option B/ }).check();
     await page.getByRole('button', { name: 'Submit' }).click();
