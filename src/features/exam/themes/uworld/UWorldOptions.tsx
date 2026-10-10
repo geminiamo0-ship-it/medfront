@@ -17,7 +17,7 @@ export function UWorldOptions({ options, selectedId, revealed, locked, correctId
         const correct = revealed && correctId === option.id;
         const incorrect = revealed && selected && correctId !== null && !correct;
         return (
-          <label key={option.id} className={'uw-option' + (selected ? ' is-chosen' : '')}>
+          <label key={option.id} className={'uw-option' + (selected ? ' is-chosen' : '') + (correct ? ' is-correct' : '') + (incorrect ? ' is-incorrect' : '')}>
             <span className="uw-option-result" aria-label={correct ? 'Correct answer' : incorrect ? 'Incorrect selection' : undefined}>
               {correct ? '✓' : incorrect ? '×' : ''}
             </span>
