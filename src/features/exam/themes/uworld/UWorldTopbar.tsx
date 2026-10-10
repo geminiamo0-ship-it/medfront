@@ -124,7 +124,7 @@ export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings,
           aria-label="Settings" aria-haspopup="true" aria-expanded={mobileToolsOpen}
           aria-controls={trayId} title="Additional exam tools"
           onClick={() => setMobileToolsOpen(value => !value)}>
-          <UWorldTopbarIcon name="settings" size={22}/><span>Settings</span>
+          <span className="uw-settings-gear"><UWorldTopbarIcon name="settings" size={22}/></span><span>Settings</span>
         </button>
       </nav>
       <UWorldMobileTools id={trayId} open={mobileToolsOpen} markerActive={markerActive}
