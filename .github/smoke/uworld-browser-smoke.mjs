@@ -88,10 +88,11 @@ try {
     const geometry = await page.evaluate(() => {
       const bar = document.querySelector('.uw-topbar');
       const center = document.querySelector('.uw-top-center');
-      const mark = document.querySelector('.uw-mark');
+      const mobile = window.innerWidth <= 650;
+      const mark = document.querySelector(mobile ? '.uw-item-index' : '.uw-mark');
       const previous = document.querySelector('.uw-top-navigation');
-      const right = Array.from(document.querySelectorAll('.uw-top-right button'))
-        .find(button => window.getComputedStyle(button).display !== 'none');
+      const right = document.querySelector(mobile
+        ? '.uw-top-mobile-actions button' : '.uw-top-right button');
       const toolLabel = document.querySelector('.uw-top-tool span');
       if (!bar || !center || !mark || !previous || !right || !toolLabel) return null;
       const box = el => el.getBoundingClientRect();
@@ -124,7 +125,46 @@ try {
     await page.getByText('Clinical review for option B.').waitFor();
     assert.equal(await page.locator('.uw-runner').getAttribute('data-mode'), 'split');
     await page.screenshot({ path: output + '/uworld-blue-split-' + viewport.width + '.png' });
-    await page.getByRole('button', { name: 'Settings' }).click();
+    if (viewport.width <= 650) {
+      // Mobile has exactly the four visible exam actions: Prev, Next, Mark, Settings.
+      const top = page.locator('.uw-topbar');
+      for (const label of ['Previous', 'Next', 'Mark', 'Settings']) {
+        assert.equal(await top.getByRole('button', { name: label, exact: true }).count(), 1,
+          'Mobile control ' + label + ' is missing or duplicated at ' + viewport.width);
+      }
+      const settings = top.getByRole('button', { name: 'Settings', exact: true });
+      assert.equal(await settings.getAttribute('aria-expanded'), 'false');
+      await settings.click();
+      assert.equal(await settings.getAttribute('aria-expanded'), 'true');
+      const tools = top.getByRole('group', { name: 'Additional exam tools' });
+      await tools.waitFor();
+      assert.deepEqual(await tools.locator('button').allTextContents(), [
+        'Shortcuts', 'Full Screen', 'Marker', 'Lab Values', 'Notes', 'Calculator', 'Appearance & Layout',
+      ]);
+      await page.waitForTimeout(320);
+      await top.screenshot({ path: output + '/topbar-mobile-tools-open-' + viewport.width + '.png' });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
+      await settings.click();
+      assert.equal(await settings.getAttribute('aria-expanded'), 'false',
+        'Second tap must close mobile tray');
+      await settings.click();
+      await page.keyboard.press('Escape');
+      assert.equal(await settings.getAttribute('aria-expanded'), 'false',
+        'Escape must close mobile tray');
+      await settings.click();
+      await page.getByText('Patient with knee pain').click();
+      assert.equal(await settings.getAttribute('aria-expanded'), 'false',
+        'Outside pointer must dismiss tray');
+      await settings.click();
+      await tools.getByRole('button', { name: 'Marker' }).click();
+      assert.equal(await settings.getAttribute('aria-expanded'), 'false',
+        'Selecting a tool closes tray');
+      await settings.click();
+      assert.equal(await tools.getByRole('button', { name: 'Marker' }).getAttribute('aria-pressed'), 'true');
+      await tools.getByRole('button', { name: 'Appearance & Layout' }).click();
+    } else {
+      await page.getByRole('button', { name: 'Settings' }).click();
+    }
     await page.getByRole('button', { name: /Sepia/ }).click();
     assert.equal(await page.locator('.uw-runner').getAttribute('data-appearance'), 'sepia');
     await page.getByRole('checkbox', { name: 'Split view' }).uncheck();
