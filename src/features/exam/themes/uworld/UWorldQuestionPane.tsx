@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { SafeHtml } from '../../shared/SafeHtml';
+import { UWorldMarkedStem } from './UWorldMarkedStem';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 import { UWorldOptions } from './UWorldOptions';
 import { UWorldResultSummary } from './UWorldResultSummary';
 
-export function UWorldQuestionPane({ controller: c }: { controller: ExamRunnerController }) {
+export function UWorldQuestionPane({ controller: c, markerActive }: { controller: ExamRunnerController; markerActive: boolean }) {
   const [pendingOption, setPendingOption] = useState<number | null>(null);
   const q = c.currentQuestion;
   if (!q || !c.test) return null;
@@ -19,7 +19,7 @@ export function UWorldQuestionPane({ controller: c }: { controller: ExamRunnerCo
   const submitting = c.showAnswerMutation.isPending;
   return (
     <section className="uw-question-pane" aria-label="Question and answers">
-      <SafeHtml html={q.textHtml} className="uw-stem" />
+      <UWorldMarkedStem controller={c} markerActive={markerActive} />
       <UWorldOptions options={q.options} selectedId={chosen} correctId={correctId}
         revealed={authorizedReveal} locked={locked}
         onChoose={(id) => c.isTimed ? c.selectOption(id) : setPendingOption(id)} />
