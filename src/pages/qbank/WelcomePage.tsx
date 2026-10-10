@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -100,10 +101,11 @@ function BellCurve({ youPct, medianPct }: { youPct: number; medianPct: number })
 
 export default function WelcomePage() {
   const { bank, step, bankId } = useWorkspace();
+  const [statisticsView, setStatisticsView] = useState<'original' | 'repeat'>('original');
 
   const statsQuery = useQuery({
-    queryKey: ['qbank-statistics', bank?.code, step],
-    queryFn: () => getQbankStatistics(bank!.code, step),
+    queryKey: ['qbank-statistics', bank?.code, step, statisticsView],
+    queryFn: () => getQbankStatistics(bank!.code, step, statisticsView),
     enabled: bank != null,
   });
 
@@ -161,22 +163,44 @@ export default function WelcomePage() {
         <span className="text-xs font-semibold text-ink-faint">Bank #{bankId}</span>
       </div>
 
+      <div className="mt-4 inline-flex max-w-full rounded-xl border border-line bg-surface2 p-1" role="tablist" aria-label="Statistics attempt view">
+        {(['original', 'repeat'] as const).map(view => (
+          <button
+            key={view}
+            type="button"
+            role="tab"
+            aria-selected={statisticsView === view}
+            onClick={() => setStatisticsView(view)}
+            className={`min-h-11 rounded-lg px-5 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-link ${statisticsView === view ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'}`}
+          >{view === 'original' ? 'Original' : 'Repeat'}</button>
+        ))}
+      </div>
+      <p className="mt-2 text-sm text-ink-muted" role="status">
+        {statisticsView === 'original'
+          ? 'First answered attempt for each question. Later attempts do not change this result.'
+          : 'Latest answered retry per question, including Custom tests. Questions answered only once are excluded.'}
+      </p>
+      {statisticsView === 'repeat' && stats.score.totalCorrect + stats.score.totalIncorrect === 0 && (
+        <p className="mt-3 rounded-lg border border-line bg-surface2 px-4 py-3 text-sm text-ink-muted">No repeated answers yet. Solve a previously answered question again to see your progress here.</p>
+      )}
+
       <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Score */}
         <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
           <div className="flex items-start gap-8">
             <Donut pct={scorePct} label="Correct" color="#46D160" />
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-ink">Your Score</h2>
+              <h2 className="text-sm font-bold text-ink">{statisticsView === 'original' ? 'Original Score' : 'Latest Repeat Score'}</h2>
               <div className="mt-2">
                 <StatRow label="Total Correct" value={stats.score.totalCorrect} />
                 <StatRow label="Total Incorrect" value={stats.score.totalIncorrect} />
-                <StatRow label="Total Omitted" value={stats.score.totalOmitted} />
+                {statisticsView === 'original' && <p className="mt-2 text-xs text-ink-muted">Omissions are tracked in the overall question pool, not counted as answered.</p>}
               </div>
             </div>
           </div>
         </section>
 
+        <div className="lg:col-span-2 border-b border-line pb-1 text-xs font-semibold text-ink-muted">Overall activity · across all attempts, not split by Original/Repeat</div>
         {/* Answer changes */}
         <section className="rounded-2xl border border-line bg-surface p-6 shadow-card">
           <h2 className="text-sm font-bold text-ink">Answer Changes</h2>
@@ -214,11 +238,11 @@ export default function WelcomePage() {
 
         {/* Percentile */}
         <section className="rounded-2xl border border-line bg-surface p-6 shadow-card lg:col-span-2">
-          <h2 className="text-sm font-bold text-ink">Percentile Rank</h2>
+          <h2 className="text-sm font-bold text-ink">Overall Percentile Rank</h2>
           <div className="mt-3 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
             <BellCurve youPct={stats.percentileRank} medianPct={stats.medianPercentile} />
             <div>
-              <StatRow label="Your Score (rank)" value={`${scorePct}%`} />
+              <StatRow label="Your Score ({statisticsView})" value={`${scorePct}%`} />
               <StatRow label="Median Score" value={`${stats.medianScore}%`} />
               <StatRow label="Your Average Time Spent (sec)" value={stats.yourAverageTimeSpent} />
               <StatRow label="Others' Average Time Spent (sec)" value={stats.othersAverageTimeSpent} />
