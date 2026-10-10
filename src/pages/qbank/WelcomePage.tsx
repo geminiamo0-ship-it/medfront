@@ -242,7 +242,7 @@ export default function WelcomePage() {
           <div className="mt-3 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
             <BellCurve youPct={stats.percentileRank} medianPct={stats.medianPercentile} />
             <div>
-              <StatRow label="Your Score ({statisticsView})" value={`${scorePct}%`} />
+              <p className="text-xs text-ink-muted">Percentile and peer comparisons reflect all completed attempts, independently of the selected tab.</p>
               <StatRow label="Median Score" value={`${stats.medianScore}%`} />
               <StatRow label="Your Average Time Spent (sec)" value={stats.yourAverageTimeSpent} />
               <StatRow label="Others' Average Time Spent (sec)" value={stats.othersAverageTimeSpent} />
