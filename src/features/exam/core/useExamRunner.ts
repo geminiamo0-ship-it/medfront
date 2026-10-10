@@ -75,7 +75,7 @@ export function useExamRunner(testIdParam: string | undefined, originalReview = 
   const validTestId = Number.isInteger(testId) && testId > 0;
 
   const testQuery = useQuery({
-    queryKey: ['exam-test', testId, originalReview ? 'original' : 'attempt'],
+    queryKey: originalReview ? ['exam-test', testId, 'original'] : ['exam-test', testId],
     queryFn: () => getExamTest(testId, originalReview ? 'original' : undefined),
     enabled: validTestId,
   });
