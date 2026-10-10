@@ -142,7 +142,8 @@ try {
         'Shortcuts', 'Full Screen', 'Marker', 'Lab Values', 'Notes', 'Calculator', 'Appearance & Layout',
       ]);
       await page.waitForTimeout(320);
-      await top.screenshot({ path: output + '/topbar-mobile-tools-open-' + viewport.width + '.png' });
+      // Use viewport screenshot: the animated absolute tray extends below header bounds.
+      await page.screenshot({ path: output + '/mobile-tools-expanded-' + viewport.width + '.png' });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
       await settings.click();
       assert.equal(await settings.getAttribute('aria-expanded'), 'false',
