@@ -1,13 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { SafeHtml } from '../../shared/SafeHtml';
 import type { ExamRunnerController } from '../../core/useExamRunner';
 
 export function UWorldExplanationPane({ controller: c }: { controller: ExamRunnerController }) {
   const q = c.currentQuestion;
+  const requested = useRef<number | null>(null);
   useEffect(() => {
-    if (c.isCompleted && c.isRevealed && q) c.ensureCurrentReviewExplanation();
-    // The controller guards duplicate in-flight requests for the current question.
-  }, [c.isCompleted, c.isRevealed, q?.id]);
+    if (c.isCompleted && c.isRevealed && q && requested.current !== q.id) {
+      requested.current = q.id;
+      c.ensureCurrentReviewExplanation();
+    }
+  }, [c, q]);
   if (!q || !c.isRevealed) return null;
   const html = c.currentReveal?.explanation.explanationHtml ?? q.explanationHtml ?? '';
   return (
