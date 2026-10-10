@@ -48,3 +48,8 @@
 .uw-marker-active .uw-stem{cursor:text;}
 .uw-runner .exam-user-marker{background:var(--exam-marker-color,#ffe36e);color:#211b0e;padding:0;}
 .uw-top-right .uw-bar-action.is-active{background:rgba(255,255,255,.18);}
+
+.uw-question-pane{container-type:inline-size;container-name:uw-question;}
+@container uw-question (max-width:520px){
+  .uw-result-card{grid-template-columns:1fr 1fr;gap:12px;padding:11px;}
+}
