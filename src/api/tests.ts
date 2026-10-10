@@ -228,6 +228,11 @@ export function repeatSavedTest(sourceTestId: number) {
   return api.post<{ id: number }>('/tests/' + sourceTestId + '/repeat', {});
 }
 
+/** Owner-scoped delete restores only history owned by this test; other tests survive. */
+export function deleteSavedTest(testId: number) {
+  return api.delete<{ success: boolean }>('/tests/' + testId);
+}
+
 export function getSystemsWithTopics(step: number, filters: Record<string, unknown>) {
   return api.post<SystemWithTopics[]>('/tests/metadata/systems-with-topics', { step, filters });
 }
