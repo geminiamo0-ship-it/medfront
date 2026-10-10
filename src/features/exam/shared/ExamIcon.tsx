@@ -21,7 +21,12 @@ export type ExamIconName =
   | 'suspend'
   | 'resume'
   | 'end-block'
-  | 'ai-summary';
+  | 'ai-summary'
+  | 'full-screen'
+  | 'shortcuts'
+  | 'library'
+  | 'feedback'
+  | 'notebook';
 
 interface ExamIconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: ExamIconName;
@@ -30,6 +35,16 @@ interface ExamIconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
 
 function IconPaths({ name }: { name: ExamIconName }) {
   switch (name) {
+    case 'full-screen':
+      return <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />;
+    case 'shortcuts':
+      return <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M6 9h1m2 0h1m2 0h1m2 0h1M6 12h1m2 0h1m2 0h1m2 0h1M7 15h10" /></>;
+    case 'library':
+      return <><path d="M5 3h12a2 2 0 0 1 2 2v16H7a3 3 0 0 1-3-3V5a2 2 0 0 1 1-2Z" /><path d="M7 17h12M8 7h7M8 10h7" /></>;
+    case 'feedback':
+      return <><path d="M4 4h16v13H9l-5 4V4Z" /><path d="M8 9h8M8 12h5" /></>;
+    case 'notebook':
+      return <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 3v18M12 8h4M12 12h4M12 16h3" /></>;
     case 'menu':
       return <path d="M4 6.5h16M4 12h16M4 17.5h16" />;
     case 'mark':
