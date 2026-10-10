@@ -24,3 +24,13 @@ User explicitly replaces the previous mobile clipping/hide approach with a bespo
 - The desktop tools bar remains exactly seven inline icons, with desktop Settings opening the existing appearance panel directly. Blue(default), Sepia, Dark use existing theme variables. Prevent simultaneous navigator overlay and mobile tray.
 - Keep UWorld UI small and modular: `UWorldMobileTools.tsx` for tray, CSS in separate `styles/uworld-mobile-tools.css`, Topbar only wires state/handlers. No mutations, backend or shared engine changes.
 - Update UWorld Chromium: 390 and 320 primary layout and drawer open → choose tool → close, Settings → Appearance, Escape/outside close, no overlap/overflow, screenshot **expanded and collapsed**, tablet and desktop remain unchanged. No merge before user approves screenshots.
+
+## Mobile revision 2 — right-edge vertical radial rail, 2026-10-10
+User **rejected the horizontal, full-width dropdown after seeing screenshots** and requests a vertical, side-mounted floating column of **circular tool icons**, unfurling downward from the Settings gear. This supersedes *only* the Mobile revision's full-width tray/grid instructions; all other requirements remain unchanged.
+
+- At phone widths <=650px, primary row still Previous/Next/Mark/Settings plus narrow question identity/navigation. Tapping Settings rotates the gear ~90deg, and a **small floating right-edge vertical rail opens downward from directly beneath the Settings icon**; it **does not stretch across viewport** and does not reflow stem or move the fixed bars.
+- Each tool is a clearly circular ~44–48px control, tiny label beneath the icon for discovery; order: Shortcuts, Full Screen, Marker, Lab Values, Notes, Calculator, Appearance & Layout. A light translucent capsule/connector may group them but the circles are visually distinct.
+- Premium animation: 220–320ms spring-like downward rail reveal, individual icons appear in a subtle top-to-bottom stagger; reverse on close. Settings SVG rotates 90deg on open. Respect reduced-motion.
+- Side rail anchors to the gear's right edge with 8px screen clearance and obeys `max-height` based on viewport height to scroll safely on short devices. No horizontal overflow at 320/390, no obscured controls when opening tools, no accidental exam answer selection.
+- A second Settings tap, Escape, outside pointer and tool selection close. On choosing Appearance & Layout open existing Settings panel, not another modal inside the rail. Keep Blue/Sepia/Dark.
+- Only modify isolated UWorld mobile rail component/style + Topbar state wiring and browser smoke. Desktop and AMBOSS, Bottom Bar, Sidebar and shared controller untouched. Preserve open draft PR #68 until user confirms **vertical circular** screenshot.
