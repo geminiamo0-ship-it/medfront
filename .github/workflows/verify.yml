@@ -37,5 +37,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: UWorld modular architecture guard
+        run: node scripts/check-uworld-modularity.mjs
+
       - name: Build
         run: npm run build
