@@ -8,13 +8,15 @@ interface Props {
   onSettings: () => void;
   onTool: (tool: UWorldTool) => void;
   onFullscreen: () => void;
+  markerActive: boolean;
+  onMarker: () => void;
 }
 function IconButton({ label, icon, onClick }: { label: string; icon: ExamIconName; onClick: () => void }) {
   return <button className="uw-bar-action" type="button" aria-label={label} title={label} onClick={onClick}>
     <ExamIcon name={icon} size={22} /><span>{label}</span>
   </button>;
 }
-export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings, onTool, onFullscreen }: Props) {
+export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings, onTool, onFullscreen, markerActive, onMarker }: Props) {
   const question = c.currentQuestion;
   return (
     <header className="uw-topbar">
@@ -44,7 +46,7 @@ export function UWorldTopbar({ controller: c, onToggleSidebar, onSettings, onToo
       <nav className="uw-top-right" aria-label="Exam tools">
         <IconButton label="Shortcuts" icon="shortcuts" onClick={() => onTool('shortcuts')} />
         <IconButton label="Full Screen" icon="full-screen" onClick={onFullscreen} />
-        <IconButton label="Marker" icon="marker" onClick={() => onTool('shortcuts')} />
+        <button type="button" className={"uw-bar-action" + (markerActive ? " is-active" : "")} onClick={onMarker} aria-label="Marker" aria-pressed={markerActive} title="Select text to highlight"><ExamIcon name="marker" size={22}/><span>Marker</span></button>
         <IconButton label="Lab Values" icon="lab-values" onClick={() => onTool('labs')} />
         <IconButton label="Notes" icon="notes" onClick={() => onTool('notes')} />
         <IconButton label="Calculator" icon="calculator" onClick={() => onTool('calculator')} />
