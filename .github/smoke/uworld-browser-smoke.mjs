@@ -180,11 +180,9 @@ try {
       assert(Math.max(...railGeometry.itemCenters) - Math.min(...railGeometry.itemCenters) <= 3,
         'Tool orbs are not vertically aligned');
       assert(Math.abs(railGeometry.circleWidth - railGeometry.circleHeight) <= 1
-        && railGeometry.circleRadius.includes('50%') || Math.abs(railGeometry.circleWidth - railGeometry.circleHeight) <= 1
-          && railGeometry.circleRadius.startsWith('23px'),
+        && (railGeometry.circleRadius.includes('50%') || railGeometry.circleRadius.startsWith('23px')),
         'Tools must render as circular icons');
-      assert(railGeometry.rotation.startsWith('matrix(0, 1, -1, 0,') ||
-        railGeometry.rotation.startsWith('matrix(0, 1, -1, 0,'),
+      assert(/^matrix\\(0, 1, -1, 0,/.test(railGeometry.rotation),
         'Settings gear should rotate 90deg when the rail is open: ' + railGeometry.rotation);
       await page.screenshot({ path: output + '/mobile-tools-vertical-' + viewport.width + '.png' });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
