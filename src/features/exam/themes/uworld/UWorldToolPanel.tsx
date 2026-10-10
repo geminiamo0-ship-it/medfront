@@ -12,7 +12,6 @@ const LABELS: Record<UWorldTool, string> = {
   library: 'Medical Library', flashcards: 'Flashcards', feedback: 'Question Feedback',
 };
 export function UWorldToolPanel({ controller: c, tool, onClose }: Props) {
-  useEffect(() => { if (tool === 'labs') c.ensureLabsLoaded(); }, [tool]);
   useEffect(() => {
     if (!tool) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
