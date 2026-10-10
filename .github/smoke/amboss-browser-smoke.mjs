@@ -1416,6 +1416,20 @@ try {
     const { context, page } = await preparePage(browser, { width: device.width, height: device.height });
     await page.goto(baseUrl + '/qbank/1?step=1', { waitUntil: 'networkidle' });
     await page.getByRole('heading', { name: 'Statistics', exact: true }).waitFor();
+    const main = page.locator('main');
+    assert((await main.getByTitle('Amboss (Step 1)').count()) === 1, device.name + ': bank name missing from Welcome header');
+    assert((await main.getByText('Bank #1').count()) === 0, device.name + ': internal Bank ID leaked to welcome header');
+    const order = await main.locator('section h2').allTextContents();
+    assert(JSON.stringify(order) === JSON.stringify([
+      'Original Score', 'QBank Usage', 'Answer Changes', 'Test Count',
+      'Overall Score & Timing', 'Overall Percentile Rank',
+    ]), device.name + ': incorrect welcome card ordering: ' + order.join(', '));
+    if (device.width >= 1280) {
+      const scoreY = await main.getByRole('heading', { name: 'Original Score' }).evaluate(el => el.closest('section')?.getBoundingClientRect().top);
+      const usageY = await main.getByRole('heading', { name: 'QBank Usage' }).evaluate(el => el.closest('section')?.getBoundingClientRect().top);
+      assert(Math.abs(scoreY - usageY) < 8, 'desktop: Score and Usage should share first row');
+    }
+
     const originalTab = page.getByRole('tab', { name: 'Original' });
     const repeatTab = page.getByRole('tab', { name: 'Repeat' });
     assert((await originalTab.getAttribute('aria-selected')) === 'true', device.name + ': Original must be default');
@@ -1449,12 +1463,18 @@ try {
     await complete.waitFor();
     assert((await complete.getByText('2.5%', { exact: true }).count()) === 1,
       device.name + ': completed percentage must preserve 2.5%, not round to 3%');
-    assert((await complete.getByRole('link', { name: 'Results' }).getAttribute('href')) === '/test/9006/results',
-      device.name + ': completed row did not link to actual results');
-    assert((await complete.getByRole('link', { name: 'Review Original' }).getAttribute('href')) === '/test/9006',
-      device.name + ': completed row did not preserve question review');
+    assert((await complete.getByRole('link', { name: 'Results for test 9006' }).getAttribute('href')) === '/test/9006/results',
+      device.name + ': Results icon route failed');
+    assert((await complete.getByRole('link', { name: 'Review attempt for test 9006' }).getAttribute('href')) === '/test/9006',
+      device.name + ': Review attempt icon route failed');
+    await complete.getByRole('button', { name: 'More actions for test 9006' }).click();
+    assert((await complete.getByRole('link', { name: 'Review Original Test' }).getAttribute('href')) === '/test/9006',
+      device.name + ': original-test review menu route failed');
     assert((await complete.getByRole('link', { name: 'Review Latest Repeat' }).getAttribute('href')) === '/test/9009',
-      device.name + ': latest completed repeated review must link to the server-owned attempt');
+      device.name + ': latest repeat review menu route failed');
+    await complete.getByRole('button', { name: 'More actions for test 9006' }).press('Escape');
+    assert((await complete.getByRole('link', { name: 'Review Latest Repeat' }).count()) === 0,
+      device.name + ': Escape did not close context menu');
     const expanded = complete.getByRole('button', { name: /Show full name/i });
     await expanded.click();
     assert((await complete.getByText('System: Cardiology · Topic: Cardiac physiology · Topic: Valve disorders and coronary disease', { exact:true }).count()) >= 1,
@@ -1463,26 +1483,36 @@ try {
     assert((await complete.getByRole('button', { name: /Show full name/i }).count()) === 1,
       device.name + ': Escape did not close full name details');
     const suspended = container.filter({ hasText: 'Suspended clinical practice' });
-    assert((await suspended.getByRole('link', { name: 'Resume' }).getAttribute('href')) === '/test/9008',
+    assert((await suspended.getByRole('link', { name: 'Resume test 9008' }).getAttribute('href')) === '/test/9008',
       device.name + ': suspended block did not offer Resume');
     const active = container.filter({ hasText: 'Custom IDs — internal test provenance not supplied' });
-    assert((await active.getByRole('link', { name: 'Continue' }).getAttribute('href')) === '/test/9007',
+    assert((await active.getByRole('link', { name: 'Continue test 9007' }).getAttribute('href')) === '/test/9007',
       device.name + ': active block did not offer Continue');
-    await complete.getByRole('button', { name: /Copy internal test ID/i }).click();
+    await complete.getByRole('button', { name: 'More actions for test 9006' }).click();
+    await complete.getByRole('button', { name: 'Copy Test ID' }).click();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
-    assert(copied === '9006', device.name + ': Copy ID did not copy the internal test ID');
+    assert(copied === '9006', device.name + ': Copy ID menu failed');
     assert((await page.getByRole('status').textContent())?.includes('9006'),
       device.name + ': clipboard success feedback missing');
-    // Delete is explicitly confirmed; cancelling must not invoke the destructive API.
-    await complete.getByRole('button', { name: 'Delete', exact: true }).click();
-    await complete.getByRole('group', { name: 'Delete test 9006' }).getByRole('button', { name: 'Cancel' }).click();
+    // Opening Delete prompts a second confirmation; cancel never calls DELETE.
+    await complete.getByRole('button', { name: 'More actions for test 9006' }).click();
+    await complete.getByRole('button', { name: 'Delete Test' }).click();
+    assert((await complete.getByRole('button', { name: 'Confirm Delete' }).count()) === 1,
+      device.name + ': Delete not confirmation-gated');
+    await complete.getByRole('button', { name: 'Cancel' }).click();
+    assert((await complete.getByRole('button', { name: 'Confirm Delete' }).count()) === 0,
+      device.name + ': Delete cancel failed');
+    await page.getByRole('heading', { name: 'Previous Tests' }).click();
+    assert((await complete.getByRole('button', { name: 'Delete Test' }).count()) === 0,
+      device.name + ': outside click did not dismiss menu');
     const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert(!overflows, device.name + ': Previous Tests has horizontal viewport overflow');
     await page.screenshot({ path: outDir + '/previous-tests-v2-' + device.name + '.png', fullPage: true });
     if (device.name === 'desktop') {
       repeatRequestSourceId = null;
-      await complete.getByRole('button', { name: 'Repeat', exact: true }).click();
-      await complete.getByRole('group', { name: 'Repeat test 9006' }).getByRole('button', { name: 'Confirm' }).click();
+      await complete.getByRole('button', { name: 'More actions for test 9006' }).click();
+      await complete.getByRole('button', { name: 'Repeat Test' }).click();
+      await complete.getByRole('button', { name: 'Confirm Repeat' }).click();
       await page.waitForURL((url) => url.pathname === '/test/9004');
       await page.locator('.amboss-stem').getByText('70% ethanol').waitFor();
       assert(repeatRequestSourceId === 9006,
