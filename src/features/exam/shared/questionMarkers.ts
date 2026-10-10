@@ -1,4 +1,4 @@
-import type { ExamHighlight } from '../../types';
+import type { ExamHighlight } from '../types';
 
 const MARKER_ATTR = 'data-medpark-marker';
 
