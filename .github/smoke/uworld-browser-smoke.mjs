@@ -89,6 +89,8 @@ try {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.locator('.uw-result-card').waitFor();
     await page.getByText('Clinical review for option B.').waitFor();
+    assert.equal(await page.locator('.uw-runner').getAttribute('data-mode'), 'split');
+    await page.screenshot({ path: output + '/uworld-blue-split-' + viewport.width + '.png' });
     await page.getByRole('button', { name: 'Settings' }).click();
     await page.getByRole('button', { name: /Sepia/ }).click();
     assert.equal(await page.locator('.uw-runner').getAttribute('data-appearance'), 'sepia');
