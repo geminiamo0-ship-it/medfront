@@ -7,7 +7,8 @@
 .uw-options {width:fit-content;max-width:100%;min-width:230px;border:1px solid var(--uw-answer);box-shadow:0 2px 0 var(--uw-answer);padding:5px 8px;margin:0 0 15px;}
 .uw-option {display:grid;grid-template-columns:14px 17px minmax(0,1fr);align-items:center;gap:7px;min-height:30px;cursor:pointer;font-size:12px;line-height:1.35;}
 .uw-option-result {font-size:15px;font-weight:900;color:var(--uw-correct);}
-.uw-option.is-chosen .uw-option-result:not(:empty){color:var(--uw-wrong);}
+ .uw-option.is-incorrect .uw-option-result{color:var(--uw-wrong);}
+.uw-option.is-correct .uw-option-result{color:var(--uw-correct);}
 .uw-option input {width:17px;height:17px;margin:0;accent-color:var(--uw-accent);}
 .uw-option-copy {display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;min-width:0;}
 .uw-choice-letter {white-space:nowrap;flex:none;}
