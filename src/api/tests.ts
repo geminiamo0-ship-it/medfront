@@ -102,6 +102,8 @@ export interface QbankStatistics {
   success: boolean;
   data: {
     qBankName: string;
+    statisticsView?: 'latest' | 'original' | 'repeat';
+    overallMetricsShared?: boolean;
     score: { percentage: string; totalCorrect: number; totalIncorrect: number; totalOmitted: number };
     answerChanges: { correctToIncorrect: number; incorrectToCorrect: number; incorrectToIncorrect: number };
     usage: { percentage: string; usedQuestions: number; unusedQuestions: number; totalQuestions: number };
@@ -115,9 +117,9 @@ export interface QbankStatistics {
 }
 
 /** GET /tests/performance/statistics — per-qbank scoreboard (Welcome page). */
-export function getQbankStatistics(qBankCode: string, step: number) {
+export function getQbankStatistics(qBankCode: string, step: number, view: 'original' | 'repeat' = 'original') {
   return api.get<QbankStatistics>('/tests/performance/statistics', {
-    params: { qBankCode, step },
+    params: { qBankCode, step, view },
   });
 }
 
@@ -199,6 +201,9 @@ export interface PreviousTestSummaryItem extends Omit<TestListItem, 'percentageS
   selectedSystemNames: string[];
   selectedTopicNames: string[];
   mixedPoolModes: string[];
+  originalReviewId: number;
+  latestRepeatReviewId: number | null;
+  isRepeatAttempt: boolean;
 }
 
 export interface PreviousTestsSummaryPage {
