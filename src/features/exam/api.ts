@@ -11,8 +11,8 @@ import type {
   TimedBatchResponse,
 } from './types';
 
-export function getExamTest(testId: number) {
-  return api.get<ExamTest>(`/tests/${testId}`);
+export function getExamTest(testId: number, reviewMode?: 'original') {
+  return api.get<ExamTest>(`/tests/${testId}`, reviewMode ? { params: { review: reviewMode } } : undefined);
 }
 
 export function submitExamAnswer(

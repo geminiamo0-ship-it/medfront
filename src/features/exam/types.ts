@@ -82,6 +82,7 @@ export interface ExamTest {
   resumeDisplayOrder: number | null;
   omittedQuestionIds: number[];
   blockResultsLocked?: boolean;
+  reviewMode?: 'attempt' | 'original';
   questions: ExamQuestion[];
 }
 

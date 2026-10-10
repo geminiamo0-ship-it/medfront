@@ -69,14 +69,14 @@ const EMPTY_TUTOR_CLOCK: TutorClockState = {
   activeStartedAt: null,
 };
 
-export function useExamRunner(testIdParam: string | undefined) {
+export function useExamRunner(testIdParam: string | undefined, originalReview = false) {
   const queryClient = useQueryClient();
   const testId = Number(testIdParam);
   const validTestId = Number.isInteger(testId) && testId > 0;
 
   const testQuery = useQuery({
-    queryKey: ['exam-test', testId],
-    queryFn: () => getExamTest(testId),
+    queryKey: originalReview ? ['exam-test', testId, 'original'] : ['exam-test', testId],
+    queryFn: () => getExamTest(testId, originalReview ? 'original' : undefined),
     enabled: validTestId,
   });
 

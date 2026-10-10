@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { PulseLoader } from '@/components/PulseLoader';
 import { resolveExamTheme } from './registry';
 import { useExamRunner } from './core/useExamRunner';
@@ -6,7 +6,9 @@ import { AmbossTheme } from './themes/amboss/AmbossTheme';
 
 export function ExamRunnerPage() {
   const { testId } = useParams();
-  const controller = useExamRunner(testId);
+  const [searchParams] = useSearchParams();
+  const originalReview = searchParams.get('review') === 'original';
+  const controller = useExamRunner(testId, originalReview);
 
   if (controller.testQuery.isLoading) {
     return (
@@ -32,7 +34,16 @@ export function ExamRunnerPage() {
 
   const theme = resolveExamTheme(controller.test);
   if (theme === 'amboss') {
-    return <AmbossTheme controller={controller} />;
+    return (
+      <>
+        {controller.test.reviewMode === 'original' && (
+          <div role="status" className="sticky top-0 z-50 border-b border-line bg-surface px-4 py-2 text-center text-sm font-semibold text-ink shadow-card">
+            Reviewing your first recorded answer for each question (across all saved tests)
+          </div>
+        )}
+        <AmbossTheme controller={controller} />
+      </>
+    );
   }
 
   return (
